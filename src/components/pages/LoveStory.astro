@@ -1,0 +1,288 @@
+---
+/** Page 8 — Our Love Story (PRD §6.8, THEME §13 P8). Ring behaviour: src/motion/ring.ts */
+import PageShell from '../PageShell.astro';
+import Decor from '../Decor.astro';
+import Icon from '../Icon.astro';
+import Ph from '../Ph.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const story = wedding.loveStory;
+---
+
+<PageShell page={page} index={index} class="ls" note="Placeholder art: D-01 jasmine garland, D-17 gold corner mounts. Couple photographs P-03 to P-07 and the story text to be provided; milestone titles are proposed.">
+  <h2 class="page-title ls__title" tabindex="-1" data-page-heading>Our Love Story</h2>
+
+  <div class="ls__stage">
+    <div class="ls__ring" data-ring data-gesture="x" tabindex="0" role="group" aria-roledescription="carousel" aria-label="Our love story photographs. Use the arrow keys to move between photos.">
+      {
+        story.map((m, i) => (
+          <figure class="ls__card" data-card aria-roledescription="slide" aria-label={`${i + 1} of ${story.length}: ${m.title}`}>
+            {m.photo ? (
+              <img src={m.photo.src} alt={m.photo.alt} draggable="false" />
+            ) : (
+              <div class="ls__ph" aria-hidden="true">
+                <span class="ls__ph-num">{i + 1}</span>
+                <span class="ls__ph-mono">R·D</span>
+                <span class="ls__ph-text">Photo to be provided</span>
+              </div>
+            )}
+            <span class="ls__mount ls__mount--tl" aria-hidden="true" />
+            <span class="ls__mount ls__mount--tr" aria-hidden="true" />
+            <span class="ls__mount ls__mount--bl" aria-hidden="true" />
+            <span class="ls__mount ls__mount--br" aria-hidden="true" />
+          </figure>
+        ))
+      }
+    </div>
+    <Decor name="jasmine-swag" asset="D-01" class="ls__garland sway" style="--sway:0.6deg;--sway-dur:8s" />
+  </div>
+
+  <div class="ls__caption">
+    <button class="ls__arrow" type="button" data-ring-prev aria-label="Previous photo"><Icon name="chevron-left" /></button>
+    <div class="ls__plate">
+      {
+        story.map((m, i) => (
+          <div class:list={['ls__entry', i === 0 && 'is-active']} data-entry>
+            <p class="ls__milestone">
+              {m.title}
+              {m.titleStatus === 'proposed' && <span class="badge badge--proposed preview-only">Proposed</span>}
+            </p>
+            <p class="ls__story" data-hide-if-missing>
+              <Ph value={m.text} label="Story text" />
+            </p>
+          </div>
+        ))
+      }
+    </div>
+    <button class="ls__arrow" type="button" data-ring-next aria-label="Next photo"><Icon name="chevron-right" /></button>
+  </div>
+
+  <div class="ls__dots">
+    {story.map((m, i) => <button class:list={['ls__dot', i === 0 && 'is-active']} type="button" data-ring-dot={i} aria-label={`Show photo ${i + 1}: ${m.title}`} />)}
+  </div>
+  <p class="sr-only" aria-live="polite" data-ring-live></p>
+</PageShell>
+
+<style is:global>
+  .ls__stage {
+    position: relative;
+    width: 100cqw;
+    margin-inline: -12cqw;
+    display: grid;
+    justify-items: center;
+  }
+
+  .ls__ring {
+    position: relative;
+    width: 100%;
+    height: calc(56cqw * 1.25 + 4cqh);
+    perspective: 1100px;
+    touch-action: pan-y pinch-zoom;
+    cursor: grab;
+    outline-offset: -6px;
+  }
+
+  .ls__card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 56cqw;
+    max-width: 300px;
+    aspect-ratio: 4 / 5;
+    margin: 0;
+    padding: 2.2cqw;
+    background: #fffdf8;
+    box-shadow:
+      0 0 0 1px rgba(196, 154, 69, 0.35),
+      0 16px 30px rgba(75, 48, 38, 0.22);
+    transform: translate(-50%, -50%);
+    will-change: transform;
+  }
+
+  .ls__card img,
+  .ls__ph {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  .ls__ph {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 6px;
+    background: radial-gradient(circle at 50% 40%, var(--jasmine), var(--sandal));
+    color: var(--gold-text);
+    text-align: center;
+  }
+
+  .ls__ph-num {
+    font: 600 clamp(28px, 9cqw, 44px) / 1 var(--font-display);
+    color: var(--maroon);
+  }
+
+  .ls__ph-mono {
+    font: 600 14px/1 var(--font-display);
+    letter-spacing: 0.06em;
+  }
+
+  .ls__ph-text {
+    font: 500 9px/1.3 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .ls__mount {
+    position: absolute;
+    width: 12%;
+    aspect-ratio: 1;
+    background: var(--foil-gold);
+  }
+
+  .ls__mount--tl {
+    left: 0;
+    top: 0;
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+  }
+
+  .ls__mount--tr {
+    right: 0;
+    top: 0;
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+  }
+
+  .ls__mount--bl {
+    left: 0;
+    bottom: 0;
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+  }
+
+  .ls__mount--br {
+    right: 0;
+    bottom: 0;
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  }
+
+  .ls__garland {
+    width: 92cqw;
+    margin-top: -6cqh;
+    pointer-events: none;
+  }
+
+  .ls__caption {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    gap: 2cqw;
+    width: 112%;
+  }
+
+  .ls__arrow {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 50%;
+    background: rgba(255, 253, 248, 0.9);
+    color: var(--gold-text);
+  }
+
+  .ls__arrow svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .ls__plate {
+    display: grid;
+    padding: 1.6cqh 4cqw;
+    background: rgba(255, 253, 248, 0.94);
+    box-shadow:
+      inset 0 0 0 1px var(--gold),
+      inset 0 0 0 4px var(--jasmine),
+      inset 0 0 0 5px var(--hairline);
+  }
+
+  .ls__entry {
+    grid-area: 1 / 1;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity var(--t-short),
+      visibility 0s linear var(--t-short);
+  }
+
+  .ls__entry.is-active {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity var(--t-short);
+  }
+
+  .ls__milestone {
+    font: 600 clamp(12px, 3.4cqw, 14px) / 1.3 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brown);
+  }
+
+  .ls__story {
+    margin-top: 4px;
+    font: italic 500 clamp(15px, 4.4cqw, 18px) / 1.35 var(--font-display);
+    color: var(--brown-soft);
+  }
+
+  .ls__dots {
+    display: flex;
+    gap: 4px;
+  }
+
+  .ls__dot {
+    width: 28px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    position: relative;
+  }
+
+  .ls__dot::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 12px;
+    translate: -50% -50%;
+    border-radius: 50%;
+    background: var(--jasmine);
+    box-shadow: inset 0 0 0 1px var(--gold);
+  }
+
+  .ls__dot.is-active::before {
+    background: var(--maroon);
+    box-shadow: none;
+  }
+
+  @container app (max-height: 699px) {
+    .ls__card {
+      width: 46cqw;
+    }
+
+    .ls__ring {
+      height: calc(46cqw * 1.25 + 2cqh);
+    }
+
+    .ls__garland {
+      display: none;
+    }
+  }
+</style>

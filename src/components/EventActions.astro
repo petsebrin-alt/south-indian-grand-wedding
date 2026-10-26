@@ -1,0 +1,56 @@
+---
+/**
+ * Location and Calendar actions for one event (PRD §6.9). Unavailable actions stay visible but
+ * aria-disabled; tapping them explains why (toast) instead of doing nothing.
+ */
+import Icon from './Icon.astro';
+import type { WeddingEvent } from '../data/schema';
+import { CALENDAR_PENDING, directionsUrl, locationUnavailableMessage, venueById } from '../lib/venue';
+
+interface Props {
+  event: WeddingEvent;
+  compact?: boolean;
+}
+
+const { event, compact = false } = Astro.props;
+const venue = venueById(event.venueId);
+const maps = directionsUrl(venue);
+const calendarReady = event.timeStatus === 'confirmed';
+---
+
+<div class:list={['ev-actions', compact && 'ev-actions--compact']}>
+  {
+    maps ? (
+      <a class="ev-action" href={maps} target="_blank" rel="noopener" aria-label={`Location of ${event.name} (opens Google Maps)`}>
+        <Icon name="pin" />
+        <span>Location</span>
+      </a>
+    ) : (
+      <button class="ev-action" type="button" aria-disabled="true" data-disabled-message={locationUnavailableMessage(venue)} aria-label={`Location of ${event.name}: ${locationUnavailableMessage(venue)}`}>
+        <Icon name="pin" />
+        <span>Location</span>
+      </button>
+    )
+  }
+  {
+    calendarReady ? (
+      <button class="ev-action" type="button" data-open-dialog={`calendar-${event.id}`} aria-haspopup="dialog" aria-label={`Add ${event.name} to your calendar`}>
+        <Icon name="calendar" />
+        <span>Calendar</span>
+      </button>
+    ) : (
+      <button class="ev-action" type="button" aria-disabled="true" data-disabled-message={CALENDAR_PENDING} aria-label={`Calendar for ${event.name}: ${CALENDAR_PENDING}`}>
+        <Icon name="calendar" />
+        <span>Calendar</span>
+      </button>
+    )
+  }
+  {
+    !compact && (
+      <button class="ev-action ev-action--more" type="button" data-open-dialog={`event-${event.id}`} aria-haspopup="dialog" aria-label={`Details of ${event.name}`}>
+        <Icon name="info" />
+        <span>Details</span>
+      </button>
+    )
+  }
+</div>

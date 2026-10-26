@@ -1,0 +1,18 @@
+---
+/** Persistent chrome above the book (PRD §5.2). Music toggle is omitted until a licensed track exists (Q-B5). */
+import Icon from './Icon.astro';
+---
+
+<button class="chrome-btn js-only" data-chrome data-open-dialog="contents" aria-haspopup="dialog" aria-controls="contents" aria-label="Contents">
+  <Icon name="lotus" />
+</button>
+<button class="chrome-skip js-only" data-chrome data-skip type="button">Skip</button>
+<button class="chrome-book-view js-only" data-chrome data-book-view type="button"><Icon name="book" /> Book view</button>
+<button class="pearl js-only" data-chrome data-pearl type="button" aria-label="Next page"></button>
+<nav class="folio js-only" data-chrome aria-label="Page navigation">
+  <button type="button" data-prev aria-label="Previous page"><Icon name="chevron-left" /></button>
+  <span class="folio__number" aria-hidden="true"><span data-folio-number>0</span></span>
+  <button type="button" data-next aria-label="Next page"><Icon name="chevron-right" /></button>
+</nav>
+<div class="toast" data-toast role="status"></div>
+<div class="sr-only" data-live aria-live="polite"></div>

@@ -1,0 +1,82 @@
+---
+/** "View All Wishes" overlay (PRD §6.15): approved blessings only, newest first, 20 at a time. */
+import Icon from './Icon.astro';
+---
+
+<div id="wishes-all" class="overlay" role="dialog" aria-modal="true" aria-labelledby="wishes-all-title" hidden data-wishes-all>
+  <header class="overlay__header">
+    <h2 id="wishes-all-title" class="overlay__title">All Blessings</h2>
+    <button class="overlay__close" type="button" data-dialog-close data-autofocus aria-label="Close all blessings">
+      <Icon name="close" />
+    </button>
+  </header>
+  <div class="overlay__body">
+    <p class="wishes-all__count" data-wishes-count aria-live="polite"></p>
+    <ul class="wishes-all__grid" data-wishes-list></ul>
+    <p class="wishes-all__empty" data-wishes-empty hidden>No blessings yet — be the first to write one.</p>
+    <div class="form-status form-status--error" role="alert" data-wishes-error></div>
+    <div class="wishes-all__more">
+      <button class="btn-secondary" type="button" data-wishes-more hidden>Load more blessings</button>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .wishes-all__count {
+    margin-bottom: 14px;
+    text-align: center;
+    font: 500 12px/1.4 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .wishes-all__grid {
+    columns: 2 150px;
+    column-gap: 12px;
+  }
+
+  .wishes-all__card {
+    break-inside: avoid;
+    margin-bottom: 12px;
+    padding: 16px 14px 12px;
+    background: #fffdf8;
+    border-radius: 30% 30% 6px 6px / 10% 10% 6px 6px;
+    box-shadow:
+      inset 0 0 0 1px var(--gold),
+      inset 0 0 0 4px #fffdf8,
+      inset 0 0 0 5px var(--hairline),
+      0 6px 12px rgba(75, 48, 38, 0.12);
+  }
+
+  .wishes-all__card:nth-child(3n + 2) {
+    border-radius: 6px;
+  }
+
+  .wishes-all__msg {
+    font: italic 500 16px/1.4 var(--font-display);
+    color: var(--brown);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+
+  .wishes-all__name {
+    margin-top: 8px;
+    font: 500 10px/1.3 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .wishes-all__empty {
+    text-align: center;
+    font: italic 500 18px/1.4 var(--font-display);
+    color: var(--brown-soft);
+  }
+
+  .wishes-all__more {
+    display: grid;
+    place-items: center;
+    margin-top: 8px;
+  }
+</style>

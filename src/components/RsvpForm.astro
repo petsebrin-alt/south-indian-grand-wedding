@@ -1,0 +1,376 @@
+---
+/**
+ * RSVP focus mode (PRD §6.16): the card lifts to fill the screen and scrolls normally, so the
+ * keyboard never hides the field being typed into. Book gestures are off while it is open.
+ * Behaviour: src/forms/rsvp.ts
+ */
+import Decor from './Decor.astro';
+import Icon from './Icon.astro';
+import { wedding } from '../data/wedding';
+import { formatDateShort } from '../lib/format';
+import { DEFAULT_MAX_ATTENDEES } from '../lib/backend-config';
+import { shortEventName } from '../lib/swatches';
+import { LIMITS } from '../../supabase/functions/_shared/validate.ts';
+
+const max = wedding.rsvp.maxAttendees ?? DEFAULT_MAX_ATTENDEES;
+const config = {
+  maxAttendees: max,
+  deadline: wedding.rsvp.deadline,
+  events: wedding.events.map((e) => ({ id: e.id, name: e.name, short: shortEventName[e.id] ?? e.name })),
+  dietaryOptions: wedding.rsvp.dietaryOptions,
+};
+---
+
+<div id="rsvp-form" class="overlay form-overlay rsvp-overlay" role="dialog" aria-modal="true" aria-labelledby="rsvp-form-title" hidden>
+  <header class="overlay__header">
+    <h2 id="rsvp-form-title" class="overlay__title">Kindly Respond</h2>
+    <button class="overlay__close" type="button" data-dialog-close aria-label="Close RSVP">
+      <Icon name="close" />
+    </button>
+  </header>
+  <div class="overlay__body">
+    <script is:inline type="application/json" id="rsvp-config" set:html={JSON.stringify(config)} />
+    <div class="rsvp-flip" data-rsvp-flip>
+      <form class="form-card rsvp-card rsvp-face rsvp-face--front" data-rsvp-form novalidate>
+        <Decor name="kalasam-crest" asset="D-17" class="rsvp-card__crest" />
+        <p class="rsvp-card__step" data-step-label aria-live="polite">Step 1 of 2</p>
+        <div class="form-status form-status--error" role="alert" data-form-status></div>
+
+        <section data-step="1">
+          <div class="field">
+            <label class="field__label" for="rsvp-name">Guest name</label>
+            <input class="field__input" id="rsvp-name" name="guestName" autocomplete="name" maxlength={LIMITS.guestNameMax} required aria-describedby="rsvp-name-error" data-autofocus />
+            <p class="field__error" id="rsvp-name-error" data-error-for="guestName"></p>
+          </div>
+
+          <fieldset class="field" aria-describedby="rsvp-attendance-error">
+            <legend>Will you attend?</legend>
+            <div class="choice-cards">
+              <label class="choice-card">
+                <input type="radio" name="attendance" value="accept" />
+                <span class="choice-card__title">Joyfully accept</span>
+                <span class="choice-card__sub">I'll be there</span>
+              </label>
+              <label class="choice-card">
+                <input type="radio" name="attendance" value="decline" />
+                <span class="choice-card__title">Regretfully decline</span>
+                <span class="choice-card__sub">Sending blessings</span>
+              </label>
+            </div>
+            <p class="field__error" id="rsvp-attendance-error" data-error-for="attendance"></p>
+          </fieldset>
+
+          <div class="field" data-accept-only hidden>
+            <label class="field__label" for="rsvp-count">Number of attendees (including you)</label>
+            <div class="stepper">
+              <button type="button" data-step-down aria-label="One fewer guest">−</button>
+              <input id="rsvp-count" name="attendeeCount" type="number" inputmode="numeric" min="1" max={max} value="1" aria-describedby="rsvp-count-error" />
+              <button type="button" data-step-up aria-label="One more guest">+</button>
+            </div>
+            <p class="field__error" id="rsvp-count-error" data-error-for="attendeeCount"></p>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" type="button" data-next-step>Continue</button>
+          </div>
+        </section>
+
+        <section data-step="2" hidden>
+          <fieldset class="field" data-accept-only aria-describedby="rsvp-events-error">
+            <legend>Which celebrations will you attend?</legend>
+            <div class="chips">
+              {
+                wedding.events.map((e) => (
+                  <label class="chip-check">
+                    <input type="checkbox" name="events" value={e.id} checked={e.id === 'wedding'} />
+                    {shortEventName[e.id]} <small>{formatDateShort(e.startISO).replace(/ \d{4}$/, '')}</small>
+                  </label>
+                ))
+              }
+            </div>
+            <p class="field__error" id="rsvp-events-error" data-error-for="events"></p>
+          </fieldset>
+
+          <fieldset class="field" data-accept-only>
+            <legend>Dietary preferences (optional)</legend>
+            <div class="chips">
+              {
+                wedding.rsvp.dietaryOptions.map((d) => (
+                  <label class="chip-check">
+                    <input type="checkbox" name="dietary" value={d} />
+                    {d}
+                  </label>
+                ))
+              }
+            </div>
+            <div class="field rsvp-note" data-dietary-note hidden>
+              <label class="field__label" for="rsvp-dietary-note">Please tell us more</label>
+              <input class="field__input" id="rsvp-dietary-note" name="dietaryNote" maxlength={LIMITS.dietaryNoteMax} aria-describedby="rsvp-note-error" />
+              <p class="field__error" id="rsvp-note-error" data-error-for="dietaryNote"></p>
+            </div>
+          </fieldset>
+
+          <div class="field">
+            <label class="field__label" for="rsvp-message">A message for the couple (optional)</label>
+            <textarea class="field__input" id="rsvp-message" name="message" rows="3" maxlength={LIMITS.messageMax} aria-describedby="rsvp-message-count rsvp-message-error"></textarea>
+            <p class="field__counter" id="rsvp-message-count" data-counter-for="message">0 / {LIMITS.messageMax}</p>
+            <p class="field__error" id="rsvp-message-error" data-error-for="message"></p>
+          </div>
+
+          <div class="field">
+            <label class="consent">
+              <input type="checkbox" name="consent" aria-describedby="rsvp-consent-error" />
+              <span>I agree that my response is shared only with the families of Rahul and Divya.</span>
+            </label>
+            <button class="link-button rsvp-privacy" type="button" data-open-dialog="privacy">How we use your details</button>
+            <p class="field__error" id="rsvp-consent-error" data-error-for="consent"></p>
+          </div>
+
+          <div class="hp" aria-hidden="true">
+            <label for="rsvp-website">Leave this empty</label>
+            <input id="rsvp-website" name="website" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-secondary" type="button" data-prev-step>Back</button>
+            <button class="btn-primary" type="submit" data-submit>
+              <span class="btn-label">Confirm RSVP</span>
+              <span class="btn-sending"><span class="petal-spinner" aria-hidden="true"></span> Sending…</span>
+            </button>
+          </div>
+        </section>
+        <div data-bot></div>
+      </form>
+
+      <div class="form-card rsvp-card rsvp-face rsvp-face--back" data-rsvp-done tabindex="-1" aria-hidden="true" inert hidden>
+        <svg class="rsvp-done__wreath" viewBox="0 0 120 120" aria-hidden="true">
+          <g class="rsvp-done__buds">
+            {Array.from({ length: 18 }, (_, i) => <ellipse cx="60" cy="9" rx="4.2" ry="7.5" transform={`rotate(${i * 20} 60 60)`} />)}
+          </g>
+          <circle cx="60" cy="60" r="38" class="rsvp-done__ring" />
+          <path d="M43 61 l11 11 l24 -26" class="rsvp-done__check" />
+        </svg>
+        <p class="rsvp-done__script">Thank you, <span data-done-name></span>!</p>
+        <p class="rsvp-done__title" data-done-title>Your RSVP is confirmed</p>
+        <ul class="rsvp-done__summary" data-done-summary></ul>
+        <div class="form-actions">
+          <button class="btn-secondary" type="button" data-edit-response>Edit my response</button>
+          <button class="btn-primary" type="button" data-dialog-close>Back to the invitation</button>
+        </div>
+      </div>
+    </div>
+    <div class="rsvp-particles" aria-hidden="true" data-rsvp-particles></div>
+  </div>
+</div>
+
+<style is:global>
+  .rsvp-overlay .overlay__body {
+    position: relative;
+    padding-top: 40px;
+  }
+
+  .rsvp-flip {
+    display: grid;
+    perspective: 1400px;
+  }
+
+  .rsvp-face {
+    grid-area: 1 / 1;
+    align-self: start;
+    backface-visibility: hidden;
+    transition: transform 600ms var(--ease-silk);
+  }
+
+  .rsvp-face--back {
+    transform: rotateY(180deg);
+    display: grid;
+    align-content: start;
+    justify-items: center;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .rsvp-flip.is-done .rsvp-face--front {
+    transform: rotateY(-180deg);
+    pointer-events: none;
+  }
+
+  .rsvp-flip.is-done .rsvp-face--back {
+    transform: rotateY(0deg);
+  }
+
+  .reduce-motion .rsvp-face,
+  .rsvp-flip.is-instant .rsvp-face {
+    transition: none;
+  }
+
+  /* Focus mode: the card lifts and scales up to fill the screen (THEME §13 P17). */
+  .rsvp-overlay .rsvp-flip {
+    transform: scale(0.94);
+    transition: transform 400ms var(--ease-silk);
+  }
+
+  .rsvp-overlay.is-open .rsvp-flip {
+    transform: none;
+  }
+
+  .reduce-motion .rsvp-overlay .rsvp-flip {
+    transform: none;
+    transition: none;
+  }
+
+  .rsvp-card__crest {
+    position: absolute;
+    left: 50%;
+    top: -34px;
+    width: 64px;
+    translate: -50% 0;
+  }
+
+  .rsvp-card {
+    padding-top: 40px;
+  }
+
+  .rsvp-face--back .form-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .rsvp-face--back .form-actions > * {
+    min-height: 48px;
+  }
+
+  .rsvp-card__step {
+    margin-bottom: 14px;
+    text-align: center;
+    font: 500 11px/1.4 var(--font-royal);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .rsvp-note {
+    margin: 12px 0 0;
+  }
+
+  .rsvp-privacy {
+    justify-self: start;
+    margin-left: 32px;
+    font-size: 13px;
+  }
+
+  .rsvp-done__wreath {
+    width: 96px;
+    height: 96px;
+    margin-top: 6px;
+  }
+
+  .rsvp-done__buds ellipse {
+    fill: #fffaf0;
+    stroke: var(--gold);
+    stroke-width: 0.8;
+  }
+
+  .rsvp-done__ring {
+    fill: var(--sandal-light);
+    stroke: var(--gold);
+    stroke-width: 1.5;
+  }
+
+  .rsvp-done__check {
+    fill: none;
+    stroke: var(--gold-text);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+  }
+
+  .is-done .rsvp-done__check {
+    animation: rsvp-check 600ms var(--ease-silk) 450ms forwards;
+  }
+
+  .reduce-motion .is-done .rsvp-done__check,
+  .is-instant .rsvp-done__check {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  @keyframes rsvp-check {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .rsvp-done__script {
+    margin-top: 18px;
+    font: 400 clamp(30px, 9cqw, 44px) / 1.1 var(--font-script);
+    color: var(--maroon);
+  }
+
+  .rsvp-done__title {
+    font: 600 14px/1.4 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brown);
+  }
+
+  .rsvp-done__summary {
+    display: grid;
+    gap: 6px;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(244, 234, 214, 0.55);
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--brown);
+  }
+
+  .rsvp-done__summary strong {
+    font: 500 10px/1.4 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+    display: block;
+  }
+
+  .rsvp-particles {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* Eight jasmine petals fall once after a confirmed RSVP. */
+  .rsvp-petal {
+    position: absolute;
+    top: -16px;
+    width: 10px;
+    height: 16px;
+    border-radius: 50% 50% 50% 50% / 65% 65% 35% 35%;
+    background: radial-gradient(ellipse at 50% 30%, #fffdf6, #f3e7cc);
+    box-shadow: 0 1px 2px rgba(75, 48, 38, 0.18);
+    opacity: 0;
+    animation: rsvp-petal-fall 3.4s cubic-bezier(0.3, 0.1, 0.4, 1) forwards;
+  }
+
+  @keyframes rsvp-petal-fall {
+    0% {
+      opacity: 0;
+      transform: translate(0, 0) rotate(0deg);
+    }
+    10% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--drift), 70vh) rotate(var(--spin));
+    }
+  }
+</style>

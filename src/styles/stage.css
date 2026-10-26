@@ -1,0 +1,261 @@
+/*
+ * Presentation around the app (PRD §7, THEME §14.1).
+ * Phones: the app fills the screen and the stage is invisible.
+ * Tablets / wide screens without the mockup: the page is centred at full height.
+ * Desktop ≥1024 px landscape: Option B — one phone mockup on a temple-inspired background.
+ */
+
+.stage,
+.device,
+.device__bezel {
+  display: contents;
+}
+
+.stage__bg,
+.stage__aside,
+.stage__portrait-note {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- wide, without mockup */
+@media (min-aspect-ratio: 3/5) {
+  .js .app {
+    width: min(100vw, 60dvh);
+    margin-inline: auto;
+    box-shadow: 0 0 60px rgba(75, 48, 38, 0.18);
+  }
+
+  .js .stage__bg {
+    display: block;
+    position: fixed;
+    inset: 0;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 559px) {
+  .js .stage__portrait-note {
+    display: block;
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 1;
+    max-width: 22vw;
+    font: 500 12px/1.4 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+}
+
+/* ---------------------------------------------------------------- Option B mockup */
+@media (min-width: 1024px) and (orientation: landscape) and (min-height: 560px) {
+  .js .stage {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 4vw;
+    padding: 0 4vw;
+  }
+
+  .js .device {
+    display: block;
+    position: relative;
+    z-index: 1;
+    padding: 3px;
+    border-radius: 58px;
+    background: linear-gradient(145deg, #e3c78a 0%, #c49a45 28%, #f4e3b5 50%, #c49a45 72%, #8a6420 100%);
+    box-shadow:
+      0 40px 80px rgba(75, 48, 38, 0.25),
+      0 0 0 1px rgba(255, 255, 255, 0.35) inset;
+  }
+
+  .js .device__bezel {
+    display: block;
+    position: relative;
+    padding: 10px;
+    border-radius: 55px;
+    background: #1c1412;
+  }
+
+  /* Dynamic-island style notch */
+  .js .device__bezel::before {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    top: 20px;
+    left: 50%;
+    width: 92px;
+    height: 26px;
+    border-radius: 999px;
+    background: #0d0907;
+    transform: translateX(-50%);
+  }
+
+  .js .app {
+    --safe-top: 40px;
+    --safe-bottom: 14px;
+    --safe-left: 0px;
+    --safe-right: 0px;
+    position: relative;
+    inset: auto;
+    margin: 0;
+    height: calc(min(88vh, 932px) - 26px);
+    width: calc((min(88vh, 932px) - 26px) * 390 / 844);
+    border-radius: 45px;
+    box-shadow: none;
+    transform: translateZ(0); /* clip children to the rounded screen in Safari */
+  }
+
+  .js .stage__aside {
+    display: block;
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* ---------------------------------------------------------------- background (placeholder for D-41) */
+
+.stage__bg {
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(255, 249, 239, 0.95) 0%, rgba(244, 234, 214, 0.9) 42%, rgba(234, 216, 183, 0.95) 100%),
+    var(--sandal-light);
+}
+
+/* The distant scene drifts very slowly (40 s each way); still under reduced motion (PRD §7.2) */
+.stage__scene {
+  position: absolute;
+  inset: -3%;
+  animation: stage-drift 40s ease-in-out infinite alternate;
+}
+
+@keyframes stage-drift {
+  to {
+    transform: translate3d(-1.2%, -0.8%, 0) scale(1.015);
+  }
+}
+
+.reduce-motion .stage__scene {
+  animation: none;
+}
+
+.stage__gopuram {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  height: 86vh;
+  width: auto;
+  transform: translateX(-50%);
+}
+
+/* Only the vector stand-in is softened; the commissioned background art (D-41) shows as supplied */
+.stage__gopuram[data-placeholder] {
+  opacity: 0.38;
+  filter: blur(2px) sepia(0.3);
+}
+
+.stage__medallion {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(120vh, 1100px);
+  transform: translate(-50%, -50%);
+  color: var(--gold);
+  opacity: 0.09;
+}
+
+/* Jasmine garlands caught up at the top corners */
+.stage__garland {
+  position: absolute;
+  top: -2vh;
+  width: min(34vw, 560px);
+  opacity: 0.9;
+}
+
+.stage__garland--l {
+  left: -6vw;
+  transform: rotate(8deg);
+}
+
+.stage__garland--r {
+  right: -6vw;
+  transform: scaleX(-1) rotate(8deg);
+}
+
+/* Brass lamps at the bottom corners, inside the pillars (.stage__bg outranks the base .lamp rule) */
+.stage__bg .stage__lamp {
+  position: absolute;
+  bottom: 3vh;
+  width: min(5.5vw, 8vh);
+}
+
+.stage__lamp--l {
+  left: calc(2vw + min(8vw, 11vh) + 1.5vw);
+}
+
+.stage__lamp--r {
+  right: calc(2vw + min(8vw, 11vh) + 1.5vw);
+}
+
+.stage__pillar {
+  position: absolute;
+  bottom: 0;
+  width: min(8vw, 11vh); /* pillar art is 120 × 900, so it stands just under the viewport height */
+  color: var(--gold);
+  opacity: 0.32;
+}
+
+.stage__pillar--l {
+  left: 2vw;
+}
+
+.stage__pillar--r {
+  right: 2vw;
+  transform: scaleX(-1);
+}
+
+.stage__aside--left {
+  justify-self: end;
+  text-align: right;
+}
+
+.stage__aside--right {
+  justify-self: start;
+}
+
+.stage__names {
+  font: 600 clamp(32px, 3vw, 46px) / 1.1 var(--font-display);
+  color: var(--brown);
+}
+
+.stage__details {
+  margin-top: 14px;
+  display: grid;
+  gap: 6px;
+  font: 500 13px/1.4 var(--font-royal);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold-text);
+}
+
+.stage__divider {
+  width: 160px;
+  margin: 14px 0 0 auto;
+  color: var(--gold);
+}
+
+.stage__qr {
+  width: 132px;
+  padding: 10px;
+  background: var(--jasmine);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+}
+
+.stage__qr-caption {
+  margin-top: 10px;
+  font: 500 13px/1.4 var(--font-body);
+  color: var(--brown-soft);
+}

@@ -1,0 +1,34 @@
+---
+/** Full biography sheet for Meet the Couple, rendered only when the biography is long (PRD §6.6). */
+import Icon from './Icon.astro';
+import { wedding } from '../data/wedding';
+
+interface Props {
+  role: 'groom' | 'bride';
+}
+
+const { role } = Astro.props;
+const person = wedding.couple[role];
+const show = !!person.bio && person.bio.length > 220;
+---
+
+{
+  show && (
+    <div id={`bio-${role}`} class="sheet" role="dialog" aria-modal="true" aria-labelledby={`bio-${role}-title`} hidden>
+      <div class="sheet__panel">
+        <span class="sheet__handle" aria-hidden="true" />
+        <header class="sheet__header">
+          <h2 id={`bio-${role}-title`} class="sheet__title">
+            {role === 'groom' ? 'The Groom' : 'The Bride'} · {person.name}
+          </h2>
+          <button class="overlay__close" type="button" data-dialog-close data-autofocus aria-label="Close">
+            <Icon name="close" />
+          </button>
+        </header>
+        <p class="body-text" style="margin-top:12px">
+          {person.bio}
+        </p>
+      </div>
+    </div>
+  )
+}

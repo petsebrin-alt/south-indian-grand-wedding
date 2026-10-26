@@ -1,0 +1,246 @@
+---
+/** Page 16 — Wishing Wall (PRD §6.15, THEME §13 P16). Behaviour: src/forms/wishes.ts */
+import PageShell from '../PageShell.astro';
+import Decor from '../Decor.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const { groom, bride } = wedding.couple;
+const shapes = ['arch', 'rect', 'scallop', 'rect', 'arch'];
+---
+
+<PageShell page={page} index={index} watermark={false} class="ww" note="Placeholder art: D-35 blessing cards (CSS), D-01 jasmine, D-08 bells, D-07 diya. Wishes appear here after a family member approves them.">
+  <h2 class="page-title ww__title" tabindex="-1" data-page-heading>Blessings for {groom.name} &amp; {bride.name}</h2>
+
+  <div class="ww__hang">
+    <div class="ww__rod" aria-hidden="true">
+      <Decor name="jasmine-swag" asset="D-01" class="ww__rod-jasmine" />
+      <Decor name="temple-bell" asset="D-08" class="ww__bell ww__bell--a sway" style="--sway:2deg;--sway-dur:5s" />
+      <Decor name="temple-bell" asset="D-08" class="ww__bell ww__bell--b sway" style="--sway:2deg;--sway-dur:5.8s;--sway-delay:-1s" />
+    </div>
+    <ul class="ww__cards" data-wall aria-label="Recent blessings">
+      <li class="ww__card ww__card--arch ww__card--empty" data-wall-empty>
+        <p class="ww__msg">Be the first to bless the couple</p>
+      </li>
+      {
+        shapes.map((shape, i) => (
+          <li class:list={['ww__card', `ww__card--${shape}`, i === 4 && 'ww__card--extra']} data-wall-slot hidden style={`--i:${i};--col:${(i % 2) + 1};--row:${Math.floor(i / 2) + 1};--drop:${i % 2}`}>
+            <p class="ww__msg" />
+            <p class="ww__name" />
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <div class="ww__actions">
+    <button class="btn-primary" type="button" data-open-dialog="wish-composer" aria-haspopup="dialog" data-needs-api="blessing">Write a Blessing</button>
+    <button class="btn-secondary" type="button" data-open-dialog="wishes-all" aria-haspopup="dialog" data-needs-api="blessing">View All Wishes</button>
+  </div>
+
+  <Fragment slot="foreground">
+    <span class="layer layer--foreground ww__diya" aria-hidden="true">
+      <Decor name="agal-diya" asset="D-07" class="ww__diya-img" />
+      <span class="flame ww__diya-flame"></span>
+    </span>
+  </Fragment>
+</PageShell>
+
+<style is:global>
+  /* Heading from 6%, buttons to 92% (PRD §6.15): this page uses more of the height than most. */
+  .ww .page__content {
+    top: calc(var(--safe-top) + 5.5cqh);
+    bottom: calc(var(--safe-bottom) + 8cqh);
+    gap: 1.2cqh;
+  }
+
+  .ww__title {
+    max-width: 16em;
+  }
+
+  /* Cards hang on gold threads from a jasmine-garlanded brass rod; the threads are clipped at the rod */
+  .ww__hang {
+    position: relative;
+    flex: none;
+    width: 112%;
+    overflow: hidden;
+    padding-top: 14px;
+  }
+
+  .ww__rod {
+    position: absolute;
+    left: 2%;
+    right: 2%;
+    top: 0;
+    height: 10px;
+    z-index: 2;
+    border-radius: 5px;
+    background: linear-gradient(180deg, #f1d99b 0%, #c49a45 45%, #7a5718 100%);
+    box-shadow: 0 3px 6px rgba(75, 48, 38, 0.25);
+  }
+
+  .ww__rod-jasmine {
+    position: absolute;
+    left: -2%;
+    top: -4px;
+    width: 104%;
+    pointer-events: none;
+  }
+
+  .ww__bell {
+    position: absolute;
+    top: 6px;
+    width: 4.4cqw;
+  }
+
+  .ww__bell--a {
+    left: 33%;
+  }
+
+  .ww__bell--b {
+    right: 33%;
+  }
+
+  /* Staggered two columns (PRD §6.15): left 1·3·5, right 2·4 hanging lower. The area keeps its
+     height whether it holds one card or five, so the title and buttons never move. */
+  .ww__cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: min-content;
+    align-content: start;
+    gap: 2cqh 4cqw;
+    min-height: 47cqh;
+    padding: 3cqh 2cqw 2.4cqh;
+    isolation: isolate;
+  }
+
+  .ww__cards:has(> .ww__card--empty:not([hidden])) {
+    align-content: center;
+  }
+
+  .ww__card {
+    position: relative;
+    z-index: calc(10 - var(--i, 0));
+    display: grid;
+    align-content: center;
+    gap: 5px;
+    min-height: 11cqh;
+    padding: 1.5cqh 3.2cqw 1.4cqh;
+    background-color: #fffdf8;
+    background-image: var(--paper-texture);
+    background-blend-mode: multiply;
+    box-shadow:
+      inset 0 0 0 1px var(--gold),
+      inset 0 0 0 4px #fffdf8,
+      inset 0 0 0 5px var(--hairline),
+      0 8px 16px rgba(75, 48, 38, 0.16);
+    --tilt: calc((var(--i, 0) - 2) * 1.2deg);
+    transform-origin: 50% -20px;
+    rotate: var(--tilt);
+  }
+
+  .ww__card[data-wall-slot] {
+    grid-column: var(--col);
+    grid-row: var(--row);
+    top: calc(var(--drop) * 4cqh); /* not a transform: GSAP owns the transform during the drop */
+  }
+
+  /* Gold thread up to the rod; it passes behind the cards hanging above */
+  .ww__card::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    width: 1px;
+    height: 60cqh;
+    background: var(--gold);
+  }
+
+  .ww__card--empty {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 64%;
+    --tilt: -1.5deg;
+  }
+
+  .ww__card--arch {
+    border-radius: 40% 40% 8px 8px / 16% 16% 8px 8px;
+    padding-top: 2.6cqh;
+  }
+
+  .ww__card--rect {
+    border-radius: 4px;
+  }
+
+  .ww__card--scallop {
+    border-radius: 18px 18px 18px 18px / 12px 12px 12px 12px;
+  }
+
+  .ww__msg {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font: italic 500 clamp(14px, 4cqw, 16px) / 1.28 var(--font-display);
+    color: var(--brown);
+    overflow-wrap: anywhere;
+  }
+
+  .ww__name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font: 500 10px/1.3 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .ww__actions {
+    display: grid;
+    gap: 1.2cqh;
+    width: 100%;
+  }
+
+  .ww__diya {
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 7cqh);
+    width: 12cqw;
+    translate: -50% 0;
+  }
+
+  .ww__diya-img {
+    width: 100%;
+  }
+
+  .ww__diya-flame {
+    left: 92%;
+    top: 46%;
+    width: 16%;
+  }
+
+  @container app (max-height: 699px) {
+    .ww__card {
+      min-height: 11cqh;
+      padding-block: 1.4cqh;
+    }
+
+    .ww__cards {
+      min-height: 40cqh;
+    }
+
+    .ww__card--extra {
+      display: none;
+    }
+
+    .ww__diya {
+      display: none;
+    }
+  }
+</style>

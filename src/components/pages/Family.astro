@@ -1,0 +1,262 @@
+---
+/** Page 7 — Parents and Family (PRD §6.7, THEME §13 P7). Motion: src/motion/pages/family.ts */
+import PageShell from '../PageShell.astro';
+import Decor from '../Decor.astro';
+import Icon from '../Icon.astro';
+import Ph from '../Ph.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const { groom, bride } = wedding.couple;
+const fam = wedding.family;
+const sides = [
+  { key: 'groom', label: "Groom's Family", tree: "View Groom's Family Tree", photo: fam.groom.photo },
+  { key: 'bride', label: "Bride's Family", tree: "View Bride's Family Tree", photo: fam.bride.photo },
+] as const;
+---
+
+<PageShell page={page} index={index} watermark={false} class="fm" note="Placeholder art: S-06/D-18 gold arch nameplate, D-04 jasmine-rose garland, D-07 agal diyas, S-09 oval frames, D-03 jasmine sprigs. Family photos P-08/P-09 to be provided.">
+  <div class="fm__arch">
+    <Decor name="arch-nameplate" asset="S-06" class="fm__plate" />
+    <Decor name="arch-garland" asset="D-04" class="fm__garland sway" style="--sway:0.4deg;--sway-dur:9s" />
+    {
+      ['l', 'r'].map((s) => (
+        <span class={`fm__diya fm__diya--${s}`} aria-hidden="true">
+          <Decor name="agal-diya" asset="D-07" class="fm__diya-img" />
+          <span class="flame fm__diya-flame" />
+        </span>
+      ))
+    }
+    <div class="fm__text">
+      <h2 class="display display--s fm__line" tabindex="-1" data-page-heading>With the blessings of our beloved parents</h2>
+      <p class="lead fm__line">{groom.name}</p>
+      <p class="caption fm__line" data-hide-if-missing>
+        son of <Ph value={fam.groom.father} label="Groom's father" /> &amp; <Ph value={fam.groom.mother} label="Groom's mother" />
+      </p>
+      <p class="amp fm__line fm__amp">&amp;</p>
+      <p class="lead fm__line">{bride.name}</p>
+      <p class="caption fm__line" data-hide-if-missing>
+        daughter of <Ph value={fam.bride.father} label="Bride's father" /> &amp; <Ph value={fam.bride.mother} label="Bride's mother" />
+      </p>
+    </div>
+  </div>
+
+  <div class="fm__frames">
+    {
+      sides.map((s) => (
+        <div class="fm__side">
+          <div class="fm__oval">
+            {s.photo ? (
+              <img class="fm__photo" src={s.photo.src} alt={s.photo.alt} />
+            ) : (
+              <span class="fm__photo fm__photo--ph" aria-hidden="true">
+                R·D
+              </span>
+            )}
+            <Decor name="oval-frame" asset="S-09" class="fm__oval-frame" />
+            <Decor name="jasmine-cluster" asset="D-03" class="fm__sprig" />
+          </div>
+          <p class="eyebrow">{s.label}</p>
+          <button class="btn-secondary fm__tree-btn" type="button" data-open-dialog={`tree-${s.key}`} aria-haspopup="dialog">
+            <Icon name="tree" /> {s.tree}
+          </button>
+        </div>
+      ))
+    }
+  </div>
+</PageShell>
+
+<style is:global>
+  .fm {
+    background-image: var(--paper-texture), radial-gradient(ellipse at 50% 35%, rgba(255, 253, 248, 0.9), rgba(244, 234, 214, 0.5) 70%);
+  }
+
+  .fm__arch {
+    position: relative;
+    width: 72cqw;
+    max-width: 380px;
+    aspect-ratio: 340 / 460;
+  }
+
+  .fm__plate,
+  .fm__garland {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .fm__plate {
+    filter: drop-shadow(0 12px 22px rgba(75, 48, 38, 0.2));
+  }
+
+  .fm__garland {
+    transform-origin: 50% 10%;
+  }
+
+  .fm__text {
+    position: absolute;
+    left: 13%;
+    right: 13%;
+    top: 21%;
+    bottom: 7%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9cqh;
+  }
+
+  .fm__text .ph__label {
+    font-size: 9px;
+  }
+
+  /* The write-in mask hides anything outside the line box, so lines must wrap inside it */
+  .fm__line {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    --wipe: 115%;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--wipe) - 15%), transparent var(--wipe));
+    mask-image: linear-gradient(90deg, #000 calc(var(--wipe) - 15%), transparent var(--wipe));
+  }
+
+  .fm__text .display {
+    font-size: clamp(16px, 4.6cqw, 21px);
+  }
+
+  .fm__text .lead {
+    font-size: clamp(20px, 6cqw, 28px);
+    font-weight: 600;
+  }
+
+  .fm__amp {
+    font-size: clamp(18px, 5cqw, 24px);
+  }
+
+  .fm__diya {
+    position: absolute;
+    bottom: -2%;
+    width: 16%;
+  }
+
+  .fm__diya--l {
+    left: -8%;
+  }
+
+  .fm__diya--r {
+    right: -8%;
+    transform: scaleX(-1);
+  }
+
+  .fm__diya-img {
+    width: 100%;
+  }
+
+  .fm__diya-flame {
+    left: 92%;
+    top: 46%;
+    width: 16%;
+  }
+
+  .fm__frames {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4cqw;
+    width: 112%;
+  }
+
+  .fm__side {
+    display: grid;
+    justify-items: center;
+    gap: 0.6cqh;
+  }
+
+  .fm__oval {
+    position: relative;
+    width: 22cqw;
+    max-width: 120px;
+    aspect-ratio: 160 / 200;
+  }
+
+  .fm__photo {
+    position: absolute;
+    inset: 9% 10%;
+    width: 80%;
+    height: 82%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .fm__photo--ph {
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 50% 40%, var(--jasmine), var(--sandal));
+    font: 600 14px/1 var(--font-display);
+    color: var(--gold-text);
+  }
+
+  .fm__oval-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .fm__sprig {
+    position: absolute;
+    left: 50%;
+    top: -14%;
+    width: 46%;
+    translate: -50% 0;
+    rotate: 45deg;
+  }
+
+  .fm__tree-btn {
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  @container app (max-height: 760px) {
+    .fm__arch {
+      width: 62cqw;
+    }
+  }
+
+  @container app (max-height: 699px) {
+    .fm__arch {
+      width: 60cqw;
+    }
+
+    .fm__oval {
+      width: 15cqw;
+    }
+
+    .fm__text {
+      top: 27%;
+      bottom: 4%;
+      left: 11%;
+      right: 11%;
+      gap: 0.3cqh;
+    }
+
+    .fm__text .display {
+      font-size: 13px;
+    }
+
+    .fm__text .lead {
+      font-size: 19px;
+    }
+
+    .fm__frames .eyebrow {
+      font-size: 10px;
+    }
+  }
+</style>

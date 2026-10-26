@@ -1,0 +1,148 @@
+---
+import '@fontsource/cormorant-garamond/500.css';
+import '@fontsource/cormorant-garamond/600.css';
+import '@fontsource/cormorant-garamond/500-italic.css';
+import '@fontsource/cinzel/500.css';
+import '@fontsource/cinzel/600.css';
+import '@fontsource/manrope/400.css';
+import '@fontsource/manrope/600.css';
+import '@fontsource/pinyon-script/400.css';
+import cormorantFont from '@fontsource/cormorant-garamond/files/cormorant-garamond-latin-600-normal.woff2?url';
+import cinzelFont from '@fontsource/cinzel/files/cinzel-latin-500-normal.woff2?url';
+import '../styles/fonts.css';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/book.css';
+import '../styles/pages.css';
+import '../styles/chrome.css';
+import '../styles/stage.css';
+import '../styles/motion.css';
+import '../styles/forms.css';
+
+import Stage from '../components/Stage.astro';
+import OrnamentSprite from '../components/OrnamentSprite.astro';
+import Chrome from '../components/Chrome.astro';
+import ContentsDialog from '../components/ContentsDialog.astro';
+import CalendarSheet from '../components/CalendarSheet.astro';
+import BioSheet from '../components/BioSheet.astro';
+import EventSheet from '../components/EventSheet.astro';
+import TravelSheet from '../components/TravelSheet.astro';
+import { travelTiles } from '../lib/travel';
+import FamilyTree from '../components/FamilyTree.astro';
+import WishComposer from '../components/WishComposer.astro';
+import WishesAll from '../components/WishesAll.astro';
+import RsvpForm from '../components/RsvpForm.astro';
+import ContactSheet from '../components/ContactSheet.astro';
+import PrivacySheet from '../components/PrivacySheet.astro';
+import ShareSheet from '../components/ShareSheet.astro';
+import Cover from '../components/pages/Cover.astro';
+import Welcome from '../components/pages/Welcome.astro';
+import Blessings from '../components/pages/Blessings.astro';
+import SaveTheDate from '../components/pages/SaveTheDate.astro';
+import Countdown from '../components/pages/Countdown.astro';
+import Partner from '../components/pages/Partner.astro';
+import Family from '../components/pages/Family.astro';
+import LoveStory from '../components/pages/LoveStory.astro';
+import Events from '../components/pages/Events.astro';
+import Ceremony from '../components/pages/Ceremony.astro';
+import Reception from '../components/pages/Reception.astro';
+import DressCode from '../components/pages/DressCode.astro';
+import Venues from '../components/pages/Venues.astro';
+import Travel from '../components/pages/Travel.astro';
+import Wishes from '../components/pages/Wishes.astro';
+import Rsvp from '../components/pages/Rsvp.astro';
+import Help from '../components/pages/Help.astro';
+import ThankYou from '../components/pages/ThankYou.astro';
+import { bookPages } from '../data/pages';
+import { wedding } from '../data/wedding';
+import { siteMode } from '../lib/site-mode';
+
+// Link previews (WhatsApp, iMessage, social apps) need an absolute image URL: the domain (M-28) makes it so.
+const absolute = (path: string) => (wedding.site.url ? new URL(path, wedding.site.url).href : path);
+const ogImage = absolute('/og-image.jpg');
+const { groom: g, bride: b } = wedding.couple;
+
+const p = (id: string) => {
+  const index = bookPages.findIndex((page) => page.id === id);
+  return { page: bookPages[index], index };
+};
+---
+
+<html lang="en" class={siteMode === 'preview' ? 'preview' : 'is-production'}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{wedding.site.title}</title>
+    <meta name="description" content={wedding.site.description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#FFF9EF" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={`${g.name} & ${b.name}`} />
+    <meta property="og:title" content={wedding.site.title} />
+    <meta property="og:description" content={wedding.site.description} />
+    {wedding.site.url && <meta property="og:url" content={wedding.site.url} />}
+    {wedding.site.url && <link rel="canonical" href={wedding.site.url} />}
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`Wedding invitation of ${g.name} and ${b.name}`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href={cormorantFont} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={cinzelFont} as="font" type="font/woff2" crossorigin />
+    <!-- Handmade-paper texture behind every page, including the cover's envelope card (its largest paint) -->
+    <link rel="preload" href="/textures/paper-noise.webp" as="image" type="image/webp" fetchpriority="high" />
+    <script is:inline>
+      document.documentElement.classList.add('js');
+      if (/[?&]preview=1\b/.test(location.search)) document.documentElement.classList.add('preview');
+    </script>
+  </head>
+  <body>
+    <OrnamentSprite />
+    <Stage>
+      <div class="app">
+        <main class="book" aria-roledescription="book" aria-label="Wedding invitation of Rahul and Divya">
+          <Cover {...p('cover')} />
+          <Welcome {...p('welcome')} />
+          <Blessings {...p('blessings')} />
+          <SaveTheDate {...p('save-the-date')} />
+          <Countdown {...p('countdown')} />
+          <Partner {...p('groom')} role="groom" />
+          <Partner {...p('bride')} role="bride" />
+          <Family {...p('family')} />
+          <LoveStory {...p('love-story')} />
+          <Events {...p('events')} part={1} />
+          <Events {...p('events-wedding')} part={2} />
+          <Ceremony {...p('ceremony')} />
+          <Reception {...p('reception')} />
+          <DressCode {...p('dress-code')} />
+          <Venues {...p('venues')} />
+          <Travel {...p('travel')} />
+          <Wishes {...p('wishes')} />
+          <Rsvp {...p('rsvp')} />
+          <Help {...p('help')} />
+          <ThankYou {...p('thank-you')} />
+        </main>
+        <Chrome />
+        <ContentsDialog />
+        {wedding.events.map((e) => <CalendarSheet eventId={e.id} />)}
+        {wedding.events.map((e) => <EventSheet event={e} />)}
+        {travelTiles.map((t) => <TravelSheet item={t.key} icon={t.icon} />)}
+        <BioSheet role="groom" />
+        <BioSheet role="bride" />
+        <FamilyTree side="groom" />
+        <FamilyTree side="bride" />
+        <WishComposer />
+        <WishesAll />
+        <RsvpForm />
+        {wedding.contacts.map((c) => <ContactSheet contact={c} />)}
+        <PrivacySheet />
+        <ShareSheet />
+      </div>
+    </Stage>
+    <script>
+      import '../book/main.ts';
+    </script>
+  </body>
+</html>

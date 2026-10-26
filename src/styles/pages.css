@@ -1,0 +1,384 @@
+/*
+ * Page shell and shared page typography (THEME §4, §9).
+ * Sizes use cqw/cqh of the app container so pages render identically on phones and in the mockup.
+ */
+
+.page {
+  --page-bg: var(--ivory);
+  background-color: var(--page-bg);
+  background-image: var(--paper-texture);
+  background-blend-mode: multiply;
+  color: var(--brown);
+}
+
+.page[data-tone='jasmine'] {
+  --page-bg: var(--jasmine);
+}
+
+.page[data-tone='sandal'] {
+  --page-bg: var(--sandal);
+}
+
+.page[data-tone='sandal-light'] {
+  --page-bg: var(--sandal-light);
+}
+
+.page[data-tone='evening'] {
+  background-image: var(--paper-texture), var(--evening-wash);
+}
+
+.page[data-tone='golden'] {
+  background-image: var(--paper-texture), var(--golden-hour);
+}
+
+/* L1 watermark */
+.page__watermark {
+  position: absolute;
+  z-index: var(--z-watermark);
+  left: 50%;
+  top: 46%;
+  width: 112cqw;
+  transform: translate(-50%, -50%);
+  color: var(--gold);
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+/* L2 frame: double gold rule with kolam corners */
+.page__frame {
+  position: absolute;
+  z-index: var(--z-architecture);
+  inset: calc(var(--safe-top) + 10px) calc(var(--safe-right) + 10px) calc(var(--safe-bottom) + 10px) calc(var(--safe-left) + 10px);
+  border: 1.5px solid var(--gold);
+  pointer-events: none;
+}
+
+.page__frame::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 0.75px solid var(--hairline);
+}
+
+.page__corner {
+  position: absolute;
+  width: 20cqw;
+  max-width: 120px;
+  color: var(--gold);
+  opacity: 0.85;
+}
+
+.page__corner--tl {
+  top: 6px;
+  left: 6px;
+}
+
+.page__corner--tr {
+  top: 6px;
+  right: 6px;
+  transform: scaleX(-1);
+}
+
+.page__corner--bl {
+  bottom: 6px;
+  left: 6px;
+  transform: scaleY(-1);
+}
+
+.page__corner--br {
+  bottom: 6px;
+  right: 6px;
+  transform: scale(-1, -1);
+}
+
+/* L4 content safe zone: x 12–88%, y 8–90% (THEME §9.2) */
+.page__content {
+  position: absolute;
+  z-index: var(--z-content);
+  inset: calc(var(--safe-top) + 8cqh) 12cqw calc(var(--safe-bottom) + 10cqh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2.2cqh;
+  text-align: center;
+}
+
+@container app (max-height: 699px) {
+  .page__content {
+    gap: 1.6cqh;
+    inset-block: calc(var(--safe-top) + 7cqh) calc(var(--safe-bottom) + 9cqh);
+  }
+
+  .page__corner {
+    width: 16cqw;
+  }
+}
+
+/* ---------------------------------------------------------------- typography */
+
+.eyebrow {
+  font: 500 var(--t-eyebrow) / 1.35 var(--font-royal);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-text);
+}
+
+.page-title {
+  font: 600 var(--t-heading) / 1.25 var(--font-royal);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brown);
+}
+
+.names {
+  font: 600 var(--t-names-xl) / 1.05 var(--font-display);
+  letter-spacing: 0.01em;
+  color: var(--brown);
+}
+
+.names--l {
+  font-size: var(--t-names-l);
+}
+
+.amp {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 0.8em;
+  color: var(--maroon);
+  transform: translateY(0.04em);
+}
+
+.display {
+  font: italic 500 var(--t-display-m) / 1.25 var(--font-display);
+  color: var(--brown);
+}
+
+.display--s {
+  font-size: clamp(17px, 4.9cqw, 22px);
+}
+
+.script {
+  font: 400 var(--t-script-l) / 1.05 var(--font-script);
+  color: var(--maroon);
+}
+
+.telugu {
+  font: 500 var(--t-telugu) / 1.6 var(--font-telugu);
+  color: var(--gold-text);
+}
+
+.lead {
+  font: 500 clamp(18px, 5.13cqw, 24px) / 1.3 var(--font-display);
+  color: var(--brown);
+}
+
+.body-text {
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--brown-soft);
+}
+
+.caption {
+  font-size: var(--t-body-s);
+  line-height: 1.5;
+  color: var(--brown-soft);
+}
+
+.divider {
+  width: 52cqw;
+  max-width: 280px;
+  color: var(--gold);
+}
+
+.stack-xs {
+  display: grid;
+  gap: 0.6cqh;
+}
+
+/* ---------------------------------------------------------------- placeholders (PRD §4.3) */
+
+.ph__label {
+  display: none;
+}
+
+.preview .ph__label {
+  display: inline;
+  padding: 0.05em 0.45em;
+  border: 1px dashed var(--gold);
+  border-radius: 4px;
+  background: rgba(244, 227, 181, 0.4);
+  color: var(--gold-deep);
+  font: 500 0.62em/1.5 var(--font-body);
+  font-style: normal;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.preview .ph__fallback {
+  display: none;
+}
+
+html:not(.preview) .ph[data-empty] {
+  display: none;
+}
+
+html:not(.preview) [data-hide-if-missing]:has(.ph[data-empty]) {
+  display: none;
+}
+
+/* Photo placeholder: ivory silk card with monogram (THEME §8) */
+.photo-ph {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 253, 248, 0.9), rgba(234, 216, 183, 0.6)),
+    var(--sandal-light);
+  border: 1.5px solid var(--gold);
+  box-shadow:
+    inset 0 0 0 4px var(--jasmine),
+    inset 0 0 0 5px var(--hairline),
+    0 8px 20px var(--shadow);
+  color: var(--gold-text);
+}
+
+.photo-ph__mono {
+  font: 600 clamp(22px, 7cqw, 34px) / 1 var(--font-display);
+  letter-spacing: 0.06em;
+}
+
+.photo-ph .ph__label {
+  font-size: 11px;
+}
+
+/* Phase marker shown only in preview builds */
+.phase-note {
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px dashed rgba(196, 154, 69, 0.6);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.7);
+  font: 500 11px/1.45 var(--font-body);
+  color: var(--brown-soft);
+  text-wrap: balance;
+}
+
+/* ---------------------------------------------------------------- shared page pieces */
+
+.nameplate {
+  position: relative;
+  width: 104%; /* slightly wider than the text column, clear of the pearl handle */
+  padding: 3.2cqh 4cqw;
+  border-radius: 999px / 60%;
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.95), rgba(244, 234, 214, 0.95));
+  box-shadow:
+    0 0 0 1.5px var(--gold),
+    0 0 0 5px var(--jasmine),
+    0 0 0 6px var(--hairline),
+    0 10px 24px var(--shadow);
+}
+
+.monogram {
+  position: relative;
+  width: 22cqw;
+  max-width: 120px;
+  aspect-ratio: 1;
+  color: var(--gold);
+}
+
+.monogram__letters {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 600 clamp(18px, 5.6cqw, 30px) / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--gold-text);
+}
+
+.card {
+  width: 100%;
+  padding: 2.4cqh 5cqw;
+  background: rgba(255, 253, 248, 0.92);
+  border: 1px solid var(--gold);
+  box-shadow:
+    inset 0 0 0 3px var(--jasmine),
+    inset 0 0 0 4px var(--hairline),
+    0 8px 22px var(--shadow);
+}
+
+.list-rows {
+  width: 100%;
+  display: grid;
+  gap: 1.2cqh;
+  text-align: left;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4cqw;
+  padding: 1.2cqh 4cqw;
+  background: rgba(255, 253, 248, 0.88);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+}
+
+.row__medallion {
+  width: 13cqw;
+  max-width: 60px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--gold);
+  box-shadow: inset 0 0 0 3px var(--jasmine), inset 0 0 0 4px var(--hairline);
+  background: var(--sandal-light);
+  font: 600 clamp(16px, 5cqw, 22px) / 1 var(--font-display);
+  color: var(--gold-text);
+}
+
+.row__title {
+  font: 600 clamp(13px, 3.6cqw, 15px) / 1.3 var(--font-royal);
+  letter-spacing: 0.08em;
+  color: var(--brown);
+}
+
+.row__meta {
+  font-size: var(--t-body-s);
+  line-height: 1.45;
+  color: var(--brown-soft);
+}
+
+@container app (max-height: 699px) {
+  .list-rows {
+    gap: 0.8cqh;
+  }
+
+  .row {
+    padding-block: 0.8cqh;
+  }
+
+  .phase-note {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .compact-hide {
+    display: none;
+  }
+}
+
+.row--wedding {
+  border-color: var(--maroon);
+}
+
+.row--wedding .row__medallion {
+  border-color: var(--maroon);
+  color: var(--maroon);
+}

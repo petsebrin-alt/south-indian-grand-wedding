@@ -1,0 +1,298 @@
+---
+/** Cover — Royal Temple Invitation Opening (PRD §6.1, THEME §13 P0). Motion: src/motion/pages/cover.ts */
+import PageShell from '../PageShell.astro';
+import Decor from '../Decor.astro';
+import Lamp from '../Lamp.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const { groom, bride } = wedding.couple;
+const bells = [20, 36, 64, 80];
+---
+
+<PageShell page={page} index={index} note="Placeholder art: D-01 jasmine arch, D-08 bells, D-09 pillars, D-06 lamps, D-15 silk drape. Envelope D-19 is drawn in CSS until the silk envelope photograph is supplied.">
+  <Fragment slot="architecture">
+    <Decor name="temple-pillar" asset="D-09" class="layer layer--architecture cover__pillar cover__pillar--l" eager />
+    <Decor name="temple-pillar" asset="D-09" class="layer layer--architecture cover__pillar cover__pillar--r" eager />
+    <Decor name="silk-drape" asset="D-15" class="layer layer--architecture cover__drape" eager />
+  </Fragment>
+
+  <div class="envelope" data-envelope>
+    <div class="envelope__back"></div>
+    <div class="envelope__card" data-card aria-hidden="true">
+      <span class="envelope__card-mono">R·D</span>
+    </div>
+    <div class="envelope__pocket">
+      <span class="envelope__zari" aria-hidden="true"></span>
+      <div class="envelope__front">
+        <p class="eyebrow">The wedding invitation of</p>
+        <h1 class="names names--l" tabindex="-1" data-page-heading>{groom.name} <span class="amp">&amp;</span> {bride.name}</h1>
+      </div>
+    </div>
+    <div class="envelope__flap" data-flap aria-hidden="true">
+      <span class="envelope__flap-face envelope__flap-face--front"></span>
+      <span class="envelope__flap-face envelope__flap-face--back"></span>
+    </div>
+    <div class="envelope__seal" data-seal aria-hidden="true">
+      <span class="seal__half seal__half--l"></span>
+      <span class="seal__half seal__half--r"></span>
+      <span class="seal__mono">R·D</span>
+    </div>
+  </div>
+  <a class="btn-primary cover__open" href="#welcome" data-open-book>Tap to Open Our Invitation</a>
+
+  <Fragment slot="foreground">
+    <Decor name="jasmine-swag" asset="D-01" class="layer layer--foreground cover__swag sway" style="--sway:0.8deg;--sway-dur:7s" eager />
+    {
+      bells.map((x, i) => (
+        <Decor
+          name="temple-bell"
+          asset="D-08"
+          class="layer layer--foreground cover__bell sway"
+          style={`left:${x}%;--sway:2deg;--sway-dur:${5 + i * 0.6}s;--sway-delay:${-i * 0.8}s`}
+          eager
+        />
+      ))
+    }
+    <Lamp class="layer layer--foreground cover__lamp cover__lamp--l" eager />
+    <Lamp class="layer layer--foreground cover__lamp cover__lamp--r" eager />
+    <div class="cover__unfold" data-unfold aria-hidden="true"></div>
+  </Fragment>
+</PageShell>
+
+<style is:global>
+  .cover__pillar {
+    bottom: calc(var(--safe-bottom) + 3cqh);
+    height: min(70cqh, 125cqw);
+    width: auto;
+  }
+
+  .cover__pillar--l {
+    left: 3cqw;
+  }
+
+  .cover__pillar--r {
+    right: 3cqw;
+    transform: scaleX(-1);
+  }
+
+  .cover__drape {
+    left: -2cqw;
+    top: calc(var(--safe-top) - 1cqh);
+    width: 104cqw;
+    opacity: 0.92;
+  }
+
+  .cover__swag {
+    left: -2cqw;
+    top: calc(var(--safe-top) + 1cqh);
+    width: 104cqw;
+  }
+
+  .cover__bell {
+    top: calc(var(--safe-top) + 6cqh);
+    width: 6.5cqw;
+    translate: -50% 0;
+  }
+
+  .cover__lamp {
+    bottom: calc(var(--safe-bottom) + 7cqh);
+    width: 15cqw;
+  }
+
+  .cover__lamp--l {
+    left: 17cqw;
+  }
+
+  .cover__lamp--r {
+    right: 17cqw;
+  }
+
+  .cover__open {
+    position: relative;
+    z-index: var(--z-content);
+    width: 70cqw;
+    max-width: 340px;
+    padding-inline: 16px;
+    white-space: nowrap;
+  }
+
+  .cover__unfold {
+    position: absolute;
+    inset: 0;
+    z-index: calc(var(--z-foreground) + 2);
+    opacity: 0;
+    pointer-events: none;
+    transform-origin: 0 0;
+    background-color: var(--jasmine);
+    background-image: var(--paper-texture);
+    background-blend-mode: multiply;
+    box-shadow: inset 0 0 0 1.5px var(--gold);
+  }
+
+  /* ---------------------------------------------------------------- envelope (D-19, CSS stand-in) */
+
+  .envelope {
+    position: relative;
+    z-index: var(--z-hero);
+    width: 68cqw;
+    max-width: 420px;
+    aspect-ratio: 1.25;
+    perspective: 900px;
+    filter: drop-shadow(0 18px 24px rgba(75, 48, 38, 0.26));
+  }
+
+  .envelope__back,
+  .envelope__pocket,
+  .envelope__flap,
+  .envelope__card {
+    position: absolute;
+  }
+
+  .envelope__back {
+    inset: 0;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #e7d6b4, #d8c299);
+  }
+
+  .envelope__card {
+    inset: 7% 6% 10%;
+    z-index: 1;
+    display: grid;
+    place-items: start center;
+    padding-top: 6%;
+    background-color: var(--jasmine);
+    background-image: var(--paper-texture);
+    background-blend-mode: multiply;
+    box-shadow:
+      inset 0 0 0 1.5px var(--gold),
+      inset 0 0 0 5px var(--jasmine),
+      inset 0 0 0 6px var(--hairline);
+  }
+
+  .envelope__card-mono {
+    font: 600 clamp(14px, 4.4cqw, 22px) / 1 var(--font-display);
+    letter-spacing: 0.06em;
+    color: var(--gold-text);
+  }
+
+  .envelope__pocket {
+    inset: 0;
+    z-index: 2;
+    border-radius: 6px;
+    clip-path: polygon(0 24%, 50% 60%, 100% 24%, 100% 100%, 0 100%);
+    background:
+      linear-gradient(120deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 40%),
+      repeating-linear-gradient(90deg, rgba(196, 154, 69, 0.05) 0 1px, transparent 1px 3px),
+      linear-gradient(180deg, var(--jasmine), var(--sandal-light));
+    box-shadow: inset 0 0 0 1.5px var(--gold), inset 0 0 0 5px rgba(255, 253, 248, 0.8), inset 0 0 0 6px var(--hairline);
+  }
+
+  .envelope__zari {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    bottom: 7%;
+    height: 10px;
+    background: url('../../assets/placeholders/zari-band.svg') repeat-x center / auto 100%;
+    opacity: 0.9;
+  }
+
+  .envelope__front {
+    position: absolute;
+    inset: auto 0 13%;
+    display: grid;
+    gap: 2px;
+  }
+
+  .envelope__front .names {
+    font-size: clamp(25px, 7.8cqw, 40px);
+  }
+
+  .envelope__flap {
+    inset: 0 0 auto;
+    height: 50%;
+    z-index: 3;
+    transform-origin: 50% 0;
+    transform-style: preserve-3d;
+  }
+
+  .envelope__flap-face {
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    backface-visibility: hidden;
+  }
+
+  .envelope__flap-face--front {
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 50%),
+      linear-gradient(180deg, var(--sandal-light), var(--sandal));
+    filter: drop-shadow(0 2px 0 var(--gold));
+  }
+
+  .envelope__flap-face--back {
+    transform: rotateX(180deg);
+    background: linear-gradient(180deg, #d8c299, #e9dbbd);
+  }
+
+  .envelope__seal {
+    position: absolute;
+    z-index: 4;
+    left: 50%;
+    top: 50%;
+    width: 15cqw;
+    max-width: 80px;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    display: grid;
+    place-items: center;
+  }
+
+  .seal__half {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--foil-gold);
+    box-shadow: 0 6px 14px var(--shadow-deep);
+  }
+
+  .seal__half--l {
+    clip-path: polygon(0 0, 52% 0, 47% 30%, 53% 55%, 48% 100%, 0 100%);
+  }
+
+  .seal__half--r {
+    clip-path: polygon(52% 0, 100% 0, 100% 100%, 48% 100%, 53% 55%, 47% 30%);
+  }
+
+  .seal__mono {
+    position: relative;
+    font: 600 clamp(14px, 4.4cqw, 22px) / 1 var(--font-display);
+    letter-spacing: 0.04em;
+    color: var(--maroon-deep);
+  }
+
+  @container app (max-height: 699px) {
+    .envelope {
+      width: 62cqw;
+    }
+
+    .envelope__front .eyebrow {
+      display: none;
+    }
+
+    .cover__bell {
+      width: 5cqw;
+    }
+
+    .cover__lamp {
+      width: 12cqw;
+    }
+  }
+</style>

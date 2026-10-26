@@ -1,0 +1,39 @@
+---
+/**
+ * Share fallback (PRD §6.18, AC-30) for browsers without the native share sheet: WhatsApp and
+ * Copy link. The link and message are filled in when it opens (src/book/main.ts).
+ */
+import Icon from './Icon.astro';
+---
+
+<div id="share-sheet" class="sheet share-sheet" role="dialog" aria-modal="true" aria-labelledby="share-sheet-title" hidden>
+  <div class="sheet__panel">
+    <span class="sheet__handle" aria-hidden="true"></span>
+    <header class="sheet__header">
+      <h2 id="share-sheet-title" class="sheet__title">Share the invitation</h2>
+      <button class="overlay__close" type="button" data-dialog-close data-autofocus aria-label="Close">
+        <Icon name="close" />
+      </button>
+    </header>
+    <p class="sheet__note">Send the invitation to family and friends.</p>
+    <div class="sheet__list">
+      <a class="sheet__item" href="https://wa.me/" target="_blank" rel="noopener noreferrer" data-share-whatsapp>
+        <Icon name="chat" /> Share on WhatsApp
+      </a>
+      <button class="sheet__item" type="button" data-copy="" data-copy-message="Invitation link copied" data-share-copy>
+        <Icon name="copy" /> Copy link
+      </button>
+    </div>
+    <p class="share-sheet__url" data-share-url-text></p>
+  </div>
+</div>
+
+<style is:global>
+  .share-sheet__url {
+    margin-top: 12px;
+    overflow-wrap: anywhere;
+    text-align: center;
+    font-size: 13px;
+    color: var(--brown-soft);
+  }
+</style>

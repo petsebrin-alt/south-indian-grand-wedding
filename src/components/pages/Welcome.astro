@@ -1,0 +1,146 @@
+---
+/** Page 1 — Welcome Invitation (PRD §6.2, THEME §13 P1). Motion: src/motion/pages/welcome.ts */
+import PageShell from '../PageShell.astro';
+import Ornament from '../Ornament.astro';
+import Decor from '../Decor.astro';
+import Lamp from '../Lamp.astro';
+import Draft from '../Draft.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+import { formatDateLong, formatTime } from '../../lib/format';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const { groom, bride } = wedding.couple;
+const { startISO, city } = wedding.ceremony;
+const letters = (word: string) => [...word];
+const strands = [
+  { name: 'jasmine-strand-medium', x: 5, delay: 0 },
+  { name: 'jasmine-strand-short', x: 15, delay: -1.6 },
+  { name: 'jasmine-strand-short', x: 85, delay: -0.8 },
+  { name: 'jasmine-strand-medium', x: 95, delay: -2.4 },
+];
+---
+
+<PageShell page={page} index={index} watermark={false} note="Placeholder art: D-01 jasmine swag, D-02 strands, D-10 carved arch watermark, D-06 brass lamps. The nameplate (D-18) is CSS until the antique-gold raster is supplied.">
+  <Fragment slot="architecture">
+    <Decor name="temple-arch" asset="D-10" class="layer layer--architecture wl__arch" eager />
+  </Fragment>
+
+  <div class="monogram wl__monogram">
+    <Ornament name="monogram-ring" class="wl__ring" />
+    <span class="monogram__letters">R·D</span>
+  </div>
+  <p class="telugu wl__telugu wl__lead" lang="te"><Draft copy={wedding.copy.teluguTitle} /></p>
+  <div class="stack-xs">
+    <p class="eyebrow wl__lead">Together with our families</p>
+    <p class="display display--s wl__lead">We joyfully invite you to celebrate the wedding of</p>
+  </div>
+  <div class="nameplate wl__nameplate">
+    <h2 class="names wl__names" tabindex="-1" data-page-heading aria-label={`${groom.name} & ${bride.name}`}>
+      <span aria-hidden="true">
+        {letters(groom.name).map((c) => <span class="wl__ch">{c}</span>)}{' '}<span class="amp wl__ch">&amp;</span>{' '}{letters(bride.name).map((c) => <span class="wl__ch">{c}</span>)}
+      </span>
+    </h2>
+  </div>
+  <Ornament name="divider-line" class="divider wl__divider" />
+  <div class="stack-xs">
+    <p class="lead wl__detail">{formatDateLong(startISO)}</p>
+    <p class="eyebrow wl__detail">{formatTime(startISO)} IST</p>
+    <p class="caption wl__detail">{city}</p>
+  </div>
+  <p class="body-text wl__message"><Draft copy={wedding.copy.welcomeMessage} /></p>
+
+  <Fragment slot="foreground">
+    <Decor name="jasmine-swag" asset="D-01" class="layer layer--foreground wl__swag sway" style="--sway:0.6deg;--sway-dur:8s" eager />
+    {
+      strands.map((s, i) => (
+        <Decor
+          name={s.name}
+          asset="D-02"
+          class="layer layer--foreground wl__strand sway"
+          style={`left:${s.x}%;--sway:1.5deg;--sway-dur:${5.5 + i * 0.5}s;--sway-delay:${s.delay}s`}
+          eager
+        />
+      ))
+    }
+    <Lamp class="layer layer--foreground wl__lamp wl__lamp--l" eager />
+    <Lamp class="layer layer--foreground wl__lamp wl__lamp--r" eager />
+  </Fragment>
+</PageShell>
+
+<style is:global>
+  .wl__arch {
+    left: 50%;
+    top: calc(var(--safe-top) + 6cqh);
+    width: 96cqw;
+    translate: -50% 0;
+    opacity: 0.14;
+    mask-image: linear-gradient(to bottom, #000 55%, transparent 92%);
+  }
+
+  .wl__swag {
+    left: -2cqw;
+    top: calc(var(--safe-top) - 0.5cqh);
+    width: 104cqw;
+  }
+
+  .wl__strand {
+    top: calc(var(--safe-top) + 1cqh);
+    width: 6cqw;
+    translate: -50% 0;
+  }
+
+  .wl__lamp {
+    bottom: calc(var(--safe-bottom) + 6cqh);
+    width: 13cqw;
+  }
+
+  .wl__lamp--l {
+    left: 3cqw;
+  }
+
+  .wl__lamp--r {
+    right: 3cqw;
+  }
+
+  .wl__names {
+    white-space: nowrap;
+  }
+
+  .wl__ch {
+    display: inline-block;
+  }
+
+  .wl__divider {
+    width: 56cqw;
+  }
+
+  .wl__message {
+    max-width: 30em;
+  }
+
+  @container app (max-height: 760px) {
+    .wl__telugu {
+      display: none;
+    }
+  }
+
+  @container app (max-height: 699px) {
+    .wl__monogram {
+      display: none;
+    }
+
+    .wl__strand {
+      width: 5cqw;
+    }
+
+    .wl__lamp {
+      width: 11cqw;
+    }
+  }
+</style>

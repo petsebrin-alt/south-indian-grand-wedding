@@ -1,0 +1,86 @@
+/*
+ * Design tokens — THEME.md §3, §4, §9, §10.
+ * Change values here, never hard-code colours, sizes or easings in components.
+ */
+:root {
+  /* Core palette (THEME §3.1) */
+  --ivory: #fff9ef;
+  --jasmine: #fffdf8;
+  --sandal: #ead8b7;
+  --gold: #c49a45;          /* decorative only — never text on light backgrounds */
+  --maroon: #7a2635;
+  --brown: #4b3026;
+
+  /* Support tokens (THEME §3.2) */
+  --gold-text: #8a6420;     /* all gold-coloured text on light backgrounds */
+  --gold-deep: #7a5718;
+  --gold-light: #e3c78a;
+  --gold-highlight: #f4e3b5;
+  --maroon-deep: #5e1c28;
+  --brown-soft: #6b4e3f;
+  --paper-back: #f3e7cf;
+  --sandal-light: #f4ead6;
+  --hairline: rgba(196, 154, 69, 0.45);
+  --shadow: rgba(75, 48, 38, 0.18);
+  --shadow-deep: rgba(75, 48, 38, 0.28);
+  --veil: rgba(255, 249, 239, 0.86);
+
+  /* Gradients (THEME §3.3) */
+  --foil-gold: linear-gradient(135deg, #7a5718 0%, #c49a45 20%, #f4e3b5 42%, #c49a45 60%, #8a6420 82%, #c49a45 100%);
+  --evening-wash: linear-gradient(180deg, #ead8b7 0%, #f4ead6 38%, #fff9ef 100%);
+  --golden-hour: linear-gradient(180deg, #f4e3b5 0%, #f4ead6 45%, #fff9ef 100%);
+  --paper-texture: url('/textures/paper-noise.webp');
+
+  /* Typography families (THEME §4.1) */
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-royal: 'Cinzel', Georgia, serif;
+  --font-body: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-script: 'Pinyon Script', 'Cormorant Garamond', Georgia, serif;
+  --font-telugu: 'Noto Serif Telugu', 'Noto Sans Telugu', serif;
+
+  /* Type scale against the 390 px reference page (THEME §4.2): clamp(min, cqw, max) */
+  --t-names-xl: clamp(36px, 11cqw, 60px);
+  --t-names-l: clamp(32px, 9.75cqw, 52px);
+  --t-display-m: clamp(22px, 6.67cqw, 34px);
+  --t-heading: clamp(17px, 5.13cqw, 26px);
+  --t-eyebrow: clamp(11px, 3.08cqw, 14px);
+  --t-script-l: clamp(38px, 11.8cqw, 60px);
+  --t-script-s: clamp(18px, 5.64cqw, 28px);
+  --t-numeral: clamp(32px, 10.26cqw, 56px);
+  --t-body: clamp(15px, 3.85cqw, 17px);
+  --t-body-s: clamp(13px, 3.33cqw, 14px);
+  --t-label: clamp(12px, 3.08cqw, 13px);
+  --t-telugu: clamp(18px, 5.13cqw, 26px);
+  --t-folio: 11px;
+
+  /* Layers (THEME §9.1) */
+  --z-paper: 0;
+  --z-watermark: 10;
+  --z-architecture: 20;
+  --z-hero: 30;
+  --z-content: 40;
+  --z-foreground: 50;
+  --z-particles: 60;
+  --z-chrome: 100;
+  --z-overlay: 200;
+  --z-toast: 300;
+
+  /* Motion (THEME §10.2) */
+  --ease-silk: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-temple: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-page: cubic-bezier(0.45, 0.05, 0.25, 1);
+  --ease-settle: cubic-bezier(0.34, 1.2, 0.64, 1);
+  --t-micro: 150ms;
+  --t-short: 300ms;
+  --t-medium: 600ms;
+  --t-long: 900ms;
+  --t-reveal: 1400ms;
+  --t-turn: 850ms;
+  --stagger: 80ms;
+
+  /* Safe areas — overridden inside the desktop mockup (stage.css) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}

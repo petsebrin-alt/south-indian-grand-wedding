@@ -1,0 +1,323 @@
+---
+/** Page 11 — The Sacred Wedding Ceremony (PRD §6.10, THEME §13 P11). Motion: src/motion/pages/ceremony.ts */
+import PageShell from '../PageShell.astro';
+import Decor from '../Decor.astro';
+import Lamp from '../Lamp.astro';
+import Ornament from '../Ornament.astro';
+import Ph from '../Ph.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+import { formatDateLong, formatTime } from '../../lib/format';
+import { venueById, venueFallback } from '../../lib/venue';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const { groom, bride } = wedding.couple;
+const { startISO, city, venueId } = wedding.ceremony;
+const venue = venueById(venueId);
+// Jasmine canopy strands hanging from the beam (x %, length, sway timing)
+const strands = [
+  { x: 22, name: 'jasmine-strand-short' },
+  { x: 31, name: 'jasmine-strand-short' },
+  { x: 40, name: 'jasmine-strand-short' },
+  { x: 60, name: 'jasmine-strand-short' },
+  { x: 69, name: 'jasmine-strand-short' },
+  { x: 78, name: 'jasmine-strand-short' },
+];
+---
+
+<PageShell
+  page={page}
+  index={index}
+  watermark={false}
+  class="cm"
+  note="Placeholder art: D-21 mandapam beam and flower chandelier, D-09 pillars, D-14 banana plants, D-02 jasmine canopy, D-13 thoranam, D-15 silk, D-06 lamps, D-25 kalasams, D-22 thali plate, S-02 kolam."
+>
+  <Fragment slot="architecture">
+    <Decor name="silk-drape" asset="D-15" class="layer layer--architecture cm__drape" />
+    <Decor name="temple-pillar" asset="D-09" class="layer layer--architecture cm__pillar cm__pillar--back cm__pillar--bl" />
+    <Decor name="temple-pillar" asset="D-09" class="layer layer--architecture cm__pillar cm__pillar--back cm__pillar--br" />
+    <div class="layer layer--architecture cm__platform" aria-hidden="true">
+      <span class="cm__step cm__step--top"></span>
+      <span class="cm__step cm__step--base"></span>
+      <Ornament name="kolam-medallion" class="cm__kolam" />
+    </div>
+    <Decor name="brass-kalasam" asset="D-25" class="layer layer--architecture cm__kalasam cm__kalasam--l" />
+    <Decor name="brass-kalasam" asset="D-25" class="layer layer--architecture cm__kalasam cm__kalasam--r" />
+  </Fragment>
+
+  <div class="cm__plaque">
+    <h2 class="page-title cm__line" tabindex="-1" data-page-heading>The Sacred Wedding Ceremony</h2>
+    <p class="names names--l cm__line">{groom.name} <span class="amp">&amp;</span> {bride.name}</p>
+    <p class="lead cm__line">{formatDateLong(startISO)}</p>
+    <p class="cm__muhurtham cm__line">Muhurtham: {formatTime(startISO)} IST</p>
+    <p class="caption cm__line">{city}</p>
+    <p class="caption cm__line" data-selectable><Ph value={venue.name} label="Ceremony venue name" fallback={venueFallback(venue)} /></p>
+  </div>
+  <Decor name="thali-plate" asset="D-22" class="cm__thali" />
+
+  <Fragment slot="foreground">
+    <Decor name="temple-pillar" asset="D-09" class="layer layer--foreground cm__pillar cm__pillar--front cm__pillar--fl" />
+    <Decor name="temple-pillar" asset="D-09" class="layer layer--foreground cm__pillar cm__pillar--front cm__pillar--fr" />
+    <Decor name="jasmine-strand-long" asset="D-02" class="layer layer--foreground cm__garland cm__garland--l sway" style="--sway:0.8deg;--sway-dur:7s" />
+    <Decor name="jasmine-strand-long" asset="D-02" class="layer layer--foreground cm__garland cm__garland--r sway" style="--sway:0.8deg;--sway-dur:7.6s;--sway-delay:-2s" />
+    <Decor name="banana-plant" asset="D-14" class="layer layer--foreground cm__banana cm__banana--l" />
+    <Decor name="banana-plant" asset="D-14" class="layer layer--foreground cm__banana cm__banana--r" />
+    <Decor name="mandapam-beam" asset="D-21" class="layer layer--foreground cm__beam" />
+    <Decor name="mango-toran" asset="D-13" class="layer layer--foreground cm__toran" />
+    {
+      strands.map((s, i) => (
+        <Decor
+          name={s.name}
+          asset="D-02"
+          class="layer layer--foreground cm__strand sway"
+          style={`left:${s.x}%;--sway:1.2deg;--sway-dur:${6 + (i % 3) * 0.7}s;--sway-delay:${-i * 0.6}s`}
+        />
+      ))
+    }
+    <Decor name="flower-chandelier" asset="D-21" class="layer layer--foreground cm__chandelier sway" style="--sway:0.8deg;--sway-dur:8s" />
+    <Lamp class="layer layer--foreground cm__lamp cm__lamp--l" />
+    <Lamp class="layer layer--foreground cm__lamp cm__lamp--r" />
+  </Fragment>
+</PageShell>
+
+<style is:global>
+  .cm {
+    --cm-beam-top: calc(var(--safe-top) + 6cqh);
+    --cm-canopy-top: calc(var(--cm-beam-top) + 15cqw);
+    --cm-platform-h: 11cqh;
+    --cm-platform-bottom: calc(var(--safe-bottom) + 8cqh);
+  }
+
+  .cm .page__content {
+    inset-block: calc(var(--cm-canopy-top) + 11cqh) calc(var(--cm-platform-bottom) + var(--cm-platform-h) - 3cqh);
+    inset-inline: 15cqw;
+    gap: 1.4cqh;
+  }
+
+  .cm__drape {
+    left: -2cqw;
+    top: calc(var(--safe-top) + 1cqh);
+    width: 104cqw;
+    opacity: 0.9;
+  }
+
+  .cm__beam {
+    left: 0;
+    top: var(--cm-beam-top);
+    width: 100cqw;
+    filter: drop-shadow(0 6px 8px rgba(75, 48, 38, 0.2));
+  }
+
+  .cm__toran {
+    left: 6cqw;
+    top: calc(var(--cm-beam-top) + 14.5cqw);
+    width: 88cqw;
+  }
+
+  .cm__strand {
+    top: var(--cm-canopy-top);
+    width: 4.6cqw;
+    translate: -50% 0;
+  }
+
+  .cm__chandelier {
+    left: 50%;
+    top: calc(var(--cm-canopy-top) - 1cqw);
+    width: 18cqw;
+    translate: -50% 0;
+    transform-origin: 50% 0;
+  }
+
+  /* Replaced elements don't stretch between top and bottom, so heights are explicit */
+  .cm__pillar {
+    width: auto;
+  }
+
+  .cm__pillar--back {
+    bottom: calc(var(--cm-platform-bottom) + var(--cm-platform-h) - 1cqh);
+    height: calc(100cqh - var(--cm-beam-top) - 10cqw - var(--cm-platform-bottom) - var(--cm-platform-h) + 1cqh);
+    opacity: 0.42;
+  }
+
+  .cm__pillar--bl {
+    left: 15cqw;
+  }
+
+  .cm__pillar--br {
+    right: 15cqw;
+    transform: scaleX(-1);
+  }
+
+  .cm__pillar--front {
+    bottom: calc(var(--cm-platform-bottom) + 2cqh);
+    height: calc(100cqh - var(--cm-beam-top) - 8cqw - var(--cm-platform-bottom) - 2cqh);
+  }
+
+  .cm__pillar--fl {
+    left: -3cqw;
+  }
+
+  .cm__pillar--fr {
+    right: -3cqw;
+    transform: scaleX(-1);
+  }
+
+  .cm__garland {
+    top: calc(var(--cm-beam-top) + 18cqw);
+    width: 4.2cqw;
+  }
+
+  .cm__garland--l {
+    left: 3.5cqw;
+  }
+
+  .cm__garland--r {
+    right: 3.5cqw;
+  }
+
+  .cm__banana {
+    bottom: calc(var(--cm-platform-bottom) + 2cqh);
+    height: 38cqh;
+    width: auto;
+  }
+
+  .cm__banana--l {
+    left: -13cqw;
+  }
+
+  .cm__banana--r {
+    right: -13cqw;
+    transform: scaleX(-1);
+  }
+
+  /* Carved stone platform with a rice-flour kolam in front */
+  .cm__platform {
+    left: 0;
+    right: 0;
+    bottom: var(--cm-platform-bottom);
+    height: var(--cm-platform-h);
+  }
+
+  .cm__step {
+    position: absolute;
+    left: 50%;
+    translate: -50% 0;
+    background: linear-gradient(180deg, #ecd8b4 0%, #d9bb8c 60%, #b8946a 100%);
+    box-shadow: 0 6px 14px rgba(75, 48, 38, 0.18);
+  }
+
+  .cm__step--top {
+    top: 0;
+    width: 84cqw;
+    height: 45%;
+    clip-path: polygon(4% 0, 96% 0, 100% 100%, 0 100%);
+  }
+
+  .cm__step--base {
+    bottom: 0;
+    width: 100cqw;
+    height: 58%;
+    clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%);
+    background: linear-gradient(180deg, #e3caa0 0%, #c9a878 100%);
+  }
+
+  .cm__kolam {
+    position: absolute;
+    left: 50%;
+    bottom: 4%;
+    width: 46cqw;
+    translate: -50% 0;
+    transform: scaleY(0.3);
+    transform-origin: 50% 100%;
+    color: #fffdf8;
+    opacity: 0.9;
+  }
+
+  .cm__kalasam {
+    bottom: calc(var(--cm-platform-bottom) + var(--cm-platform-h) - 2cqh);
+    width: 12cqw;
+    z-index: calc(var(--z-content) + 1);
+  }
+
+  .cm__kalasam--l {
+    left: 27cqw;
+  }
+
+  .cm__kalasam--r {
+    right: 27cqw;
+  }
+
+  .cm__lamp {
+    bottom: calc(var(--cm-platform-bottom) + 4cqh);
+    width: 10cqw;
+  }
+
+  .cm__lamp--l {
+    left: 16cqw;
+  }
+
+  .cm__lamp--r {
+    right: 16cqw;
+  }
+
+  .cm__plaque {
+    display: grid;
+    gap: 0.9cqh;
+    width: 100%;
+    padding: 2.4cqh 5cqw;
+    background: rgba(255, 253, 248, 0.95);
+    border-radius: 6px;
+    box-shadow:
+      inset 0 0 0 1.5px var(--gold),
+      inset 0 0 0 5px var(--jasmine),
+      inset 0 0 0 6px var(--hairline),
+      0 10px 24px var(--shadow);
+  }
+
+  .cm__plaque .names {
+    font-size: clamp(26px, 8cqw, 40px);
+  }
+
+  .cm__muhurtham {
+    font: 600 clamp(14px, 4.2cqw, 18px) / 1.3 var(--font-royal);
+    letter-spacing: 0.08em;
+    color: var(--maroon);
+  }
+
+  .cm__thali {
+    width: 34cqw;
+    max-width: 180px;
+    filter: drop-shadow(0 6px 8px rgba(75, 48, 38, 0.2));
+  }
+
+  @container app (max-height: 760px) {
+    .cm__strand:nth-of-type(odd) {
+      display: none;
+    }
+  }
+
+  @container app (max-height: 699px) {
+    .cm .page__content {
+      inset-block: calc(var(--cm-canopy-top) + 9cqh) calc(var(--cm-platform-bottom) + var(--cm-platform-h) - 3cqh);
+      gap: 0.8cqh;
+    }
+
+    .cm__plaque {
+      gap: 0.5cqh;
+      padding-block: 1.6cqh;
+    }
+
+    .cm__thali {
+      width: 24cqw;
+    }
+
+    .cm__chandelier {
+      width: 13cqw;
+    }
+  }
+</style>

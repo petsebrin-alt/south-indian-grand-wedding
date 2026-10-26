@@ -1,0 +1,307 @@
+---
+/** Page 13 — Dress Code (PRD §6.12, THEME §13 P13). Deck behaviour: src/motion/deck.ts */
+import PageShell from '../PageShell.astro';
+import Decor from '../Decor.astro';
+import Emblem from '../Emblem.astro';
+import Icon from '../Icon.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+import { formatDateShort, formatTime } from '../../lib/format';
+import { swatch } from '../../lib/swatches';
+import womanMask from '../../assets/placeholders/attire-woman.svg?url';
+import manMask from '../../assets/placeholders/attire-man.svg?url';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const cards = wedding.dressCode.map((d) => {
+  const event = wedding.events.find((e) => e.id === d.eventId)!;
+  const colours = d.palette.map((name) => ({ name, value: swatch(name) }));
+  return { ...d, event, colours };
+});
+---
+
+<PageShell page={page} index={index} watermark={false} class="dc" note="Placeholder art: S-20 attire silhouettes (fashion sketches to be commissioned), D-16 silk bands, D-03 jasmine. Suggestions, not requirements.">
+  <div class="stack-xs dc__head">
+    <h2 class="page-title" tabindex="-1" data-page-heading>Dress Code</h2>
+    <p class="caption">Suggestions to celebrate in colour <span class="badge badge--suggested">Suggested</span></p>
+  </div>
+
+  <div class="dc__deck" data-deck data-gesture="x" tabindex="0" role="group" aria-roledescription="carousel" aria-label="Dress code suggestions. Use the arrow keys to move between cards; press Enter to turn a card over.">
+    {
+      cards.map((c, i) => (
+        <article
+          class="dc__card"
+          data-card={i}
+          aria-roledescription="slide"
+          aria-label={`${i + 1} of ${cards.length}: ${c.event.name}`}
+          style={`--c1:${c.colours[0].value};--c2:${c.colours[1]?.value ?? c.colours[0].value};--c3:${c.colours[2]?.value ?? c.colours[0].value};--mask-w:url("${womanMask}");--mask-m:url("${manMask}")`}
+        >
+          <div class="dc__inner">
+            <div class="dc__face dc__face--front">
+              <div class="dc__band" aria-hidden="true" />
+              <div class="dc__figures" aria-hidden="true">
+                <span class="dc__figure dc__figure--woman" />
+                <span class="dc__figure dc__figure--man" />
+              </div>
+              <Emblem name={c.eventId} class="dc__emblem" />
+              <h3 class="dc__event">{c.event.name}</h3>
+              <p class="dc__suggestion">{c.suggestion}</p>
+              <div class="dc__swatches">
+                {c.colours.map((col) => (
+                  <span class="dc__swatch" style={`--sw:${col.value}`} title={col.name} />
+                ))}
+              </div>
+              <p class="dc__colours">{c.colours.map((col) => col.name).join(' · ')}</p>
+              <span class="dc__hint" aria-hidden="true">
+                Tap to turn
+              </span>
+            </div>
+            <div class="dc__face dc__face--back" aria-hidden="true">
+              <h3 class="dc__event">{c.event.name}</h3>
+              <p class="dc__when">
+                {formatDateShort(c.event.startISO)} · {formatTime(c.event.startISO)} IST
+                {c.event.timeStatus === 'proposed' && <span class="badge badge--proposed">Proposed</span>}
+              </p>
+              <p class="dc__back-label">Suggested colours</p>
+              <ul class="dc__big-swatches">
+                {c.colours.map((col) => (
+                  <li>
+                    <span class="dc__swatch dc__swatch--big" style={`--sw:${col.value}`} />
+                    {col.name}
+                  </li>
+                ))}
+              </ul>
+              <p class="dc__note">These are gentle suggestions, not requirements. Wear what lets you celebrate comfortably.</p>
+            </div>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+
+  <div class="dc__nav">
+    <button class="ls__arrow" type="button" data-deck-prev aria-label="Previous card"><Icon name="chevron-left" /></button>
+    <div class="dc__dots">
+      {cards.map((c, i) => <button class:list={['ls__dot', i === 0 && 'is-active']} type="button" data-deck-dot={i} aria-label={`Show ${c.event.name}`} />)}
+    </div>
+    <button class="ls__arrow" type="button" data-deck-next aria-label="Next card"><Icon name="chevron-right" /></button>
+  </div>
+  <p class="sr-only" aria-live="polite" data-deck-live></p>
+
+  <Fragment slot="foreground">
+    <Decor name="jasmine-cluster" asset="D-03" class="layer layer--foreground dc__jasmine dc__jasmine--l" />
+    <Decor name="jasmine-cluster" asset="D-03" class="layer layer--foreground dc__jasmine dc__jasmine--r" />
+  </Fragment>
+</PageShell>
+
+<style is:global>
+  .dc__deck {
+    position: relative;
+    width: min(70cqw, 40cqh);
+    aspect-ratio: 1 / 1.42;
+    perspective: 1200px;
+    touch-action: pan-y pinch-zoom;
+    outline-offset: 6px;
+  }
+
+  .dc__card {
+    position: absolute;
+    inset: 0;
+    cursor: grab;
+    will-change: transform;
+  }
+
+  .dc__inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 600ms var(--ease-silk);
+  }
+
+  .dc__card.is-flipped .dc__inner {
+    transform: rotateY(180deg);
+  }
+
+  .reduce-motion .dc__inner {
+    transition: none;
+  }
+
+  .dc__face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8cqh;
+    padding: 0 6% 5%;
+    overflow: hidden;
+    backface-visibility: hidden;
+    background-color: var(--jasmine);
+    background-image: var(--paper-texture);
+    background-blend-mode: multiply;
+    border-radius: 6px;
+    box-shadow:
+      inset 0 0 0 1px var(--gold),
+      inset 0 0 0 4px var(--jasmine),
+      inset 0 0 0 5px var(--hairline),
+      0 12px 26px rgba(75, 48, 38, 0.22);
+    text-align: center;
+  }
+
+  .dc__face--back {
+    transform: rotateY(180deg);
+    justify-content: center;
+    padding-top: 6%;
+  }
+
+  /* Silk band in the event's colours with a zari edge */
+  .dc__band {
+    flex: none;
+    width: calc(100% + 12%);
+    height: 12%;
+    margin: 0 -6%;
+    background:
+      url('../../assets/placeholders/zari-band.svg') bottom / auto 30% repeat-x,
+      linear-gradient(120deg, var(--c1), var(--c2) 55%, var(--c3));
+  }
+
+  .dc__figures {
+    flex: 1;
+    min-height: 0;
+    width: 70%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 6%;
+    margin-top: -2%;
+  }
+
+  .dc__figure {
+    height: 100%;
+    aspect-ratio: 200 / 520;
+    -webkit-mask: var(--mask-w) center / contain no-repeat;
+    mask: var(--mask-w) center / contain no-repeat;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--c1) 85%, white), color-mix(in srgb, var(--c2) 70%, white));
+    opacity: 0.9;
+  }
+
+  .dc__figure--man {
+    aspect-ratio: 180 / 520;
+    -webkit-mask-image: var(--mask-m);
+    mask-image: var(--mask-m);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--c3) 80%, white), color-mix(in srgb, var(--c2) 65%, white));
+  }
+
+  .dc__emblem {
+    flex: none;
+    width: 9cqw;
+    max-width: 44px;
+    color: var(--gold-text);
+  }
+
+  .dc__event {
+    font: 600 clamp(13px, 3.8cqw, 16px) / 1.25 var(--font-royal);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brown);
+  }
+
+  .dc__suggestion {
+    font: italic 500 clamp(15px, 4.4cqw, 19px) / 1.3 var(--font-display);
+    color: var(--brown);
+  }
+
+  .dc__swatches {
+    display: flex;
+    gap: 8px;
+  }
+
+  .dc__swatch {
+    width: 26px;
+    height: 18px;
+    border-radius: 3px 10px 3px 10px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--sw) 70%, white), var(--sw) 60%, color-mix(in srgb, var(--sw) 80%, black));
+    box-shadow: inset 0 0 0 1px rgba(75, 48, 38, 0.15);
+  }
+
+  .dc__swatch--big {
+    display: inline-block;
+    width: 34px;
+    height: 24px;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+
+  .dc__colours,
+  .dc__back-label,
+  .dc__hint {
+    font: 500 9px/1.4 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .dc__hint {
+    opacity: 0.8;
+  }
+
+  .dc__when {
+    font-size: 13px;
+    color: var(--brown-soft);
+  }
+
+  .dc__big-swatches {
+    display: grid;
+    gap: 10px;
+    text-align: left;
+    font: 500 15px/1.3 var(--font-display);
+    color: var(--brown);
+  }
+
+  .dc__note {
+    margin-top: 1cqh;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--brown-soft);
+  }
+
+  .dc__nav {
+    display: flex;
+    align-items: center;
+    gap: 3cqw;
+  }
+
+  .dc__dots {
+    display: flex;
+  }
+
+  .dc__jasmine {
+    width: 20cqw;
+    top: calc(var(--safe-top) + 3cqh);
+  }
+
+  .dc__jasmine--l {
+    left: 2cqw;
+  }
+
+  .dc__jasmine--r {
+    right: 2cqw;
+    transform: scaleX(-1);
+  }
+
+  @container app (max-height: 699px) {
+    .dc__deck {
+      width: min(62cqw, 38cqh);
+    }
+
+    .dc__colours,
+    .dc__hint {
+      display: none;
+    }
+  }
+</style>

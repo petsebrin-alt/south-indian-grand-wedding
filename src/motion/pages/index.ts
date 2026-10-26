@@ -1,0 +1,19 @@
+/** Registers every page choreography (PRD §8.2). Pages without one use the generic [data-enter] fade. */
+import './cover';
+import './welcome';
+import './blessings';
+import './save-the-date';
+import './countdown';
+import './couple';
+import './family';
+import './love-story';
+import './events';
+import './ceremony';
+import './reception';
+import './dress-code';
+import './venues';
+import './travel';
+import './wishes';
+import './rsvp';
+import './help';
+import './thank-you';

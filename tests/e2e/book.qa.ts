@@ -1,0 +1,1388 @@
+/**
+ * QA for the invitation (PRD §15: AC-01–AC-36, except AC-33, which is `npm run perf`) using the installed Google Chrome.
+ * Phase 4 checks use the dev server's API and reset its local store (.data/dev-db.json).
+ *
+ *   npm run dev            # in one terminal
+ *   npm run qa:book        # in another; optional: QA_URL=http://localhost:4321 QA_SHOTS=./qa-shots
+ *
+ * Gestures are sent as real touch input through the Chrome DevTools Protocol.
+ */
+import { mkdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { chromium, type BrowserContext, type CDPSession, type Page } from 'playwright-core';
+
+const BASE = process.env.QA_URL ?? 'http://localhost:4321/';
+const SHOTS = process.env.QA_SHOTS ?? null;
+const results: { id: string; name: string; pass: boolean; detail?: string }[] = [];
+// Waits poll on a timer: Chrome pauses animation frames when the machine is throttled (e.g. on battery),
+// and frame-based polling then never re-checks a condition that is already true.
+const POLL = 100;
+const metrics: Record<string, unknown> = {};
+
+const started = Date.now();
+
+function check(id: string, name: string, pass: boolean, detail?: string) {
+  results.push({ id, name, pass, detail });
+  // Progress as it happens (the full report prints at the end).
+  console.error(`  ${((Date.now() - started) / 1000).toFixed(0).padStart(4)}s ${pass ? '✓' : '✗'} ${id}${pass || !detail ? '' : `  ${detail}`}`);
+}
+
+const current = (page: Page) => page.evaluate(() => document.querySelector<HTMLElement>('.page[data-state=current]')?.id ?? null);
+const pageErrors: string[] = [];
+const settle = (page: Page) =>
+  page
+    .waitForFunction(() => {
+      const b = (window as unknown as { __book?: { isBusy: boolean } }).__book;
+      return !!b && !b.isBusy && !document.querySelector('.app.is-opening') && !!document.querySelector('.page[data-state=current]');
+    }, null, { polling: POLL })
+    .catch(async (err) => {
+      // Say why the book never settled: script error, still busy, or no page shown.
+      const state = await page
+        .evaluate(() => ({
+          url: location.href,
+          book: !!(window as unknown as { __book?: unknown }).__book,
+          busy: (window as unknown as { __book?: { isBusy: boolean } }).__book?.isBusy,
+          opening: !!document.querySelector('.app.is-opening'),
+          current: document.querySelector<HTMLElement>('.page[data-state=current]')?.id ?? null,
+          ready: document.readyState,
+        }))
+        .catch((e) => String(e));
+      throw new Error(`Book did not settle: ${JSON.stringify(state)}; page errors: ${JSON.stringify(pageErrors.slice(-5))}`, { cause: err });
+    });
+
+async function touchDrag(cdp: CDPSession, page: Page, from: [number, number], to: [number, number], steps = 10, stepMs = 16) {
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from[0], y: from[1] }] });
+  for (let i = 1; i <= steps; i++) {
+    const x = from[0] + ((to[0] - from[0]) * i) / steps;
+    const y = from[1] + ((to[1] - from[1]) * i) / steps;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y }] });
+    await page.waitForTimeout(stepMs);
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.waitForTimeout(80);
+  await settle(page);
+}
+
+type Browser = Awaited<ReturnType<typeof chromium.launch>>;
+
+async function newContext(browser: Browser, options: Parameters<Browser['newContext']>[0]): Promise<BrowserContext> {
+  const ctx = await browser.newContext(options);
+  // tsx wraps named functions in a `__name` helper that does not exist inside the page.
+  await ctx.addInitScript({ content: 'globalThis.__name = (f) => f;' });
+  ctx.on('page', (p) => p.on('pageerror', (e) => pageErrors.push(`${p.url()}: ${e.message}`)));
+  return ctx;
+}
+
+function mobileContext(browser: Browser, width = 390, height = 844, extra = {}): Promise<BrowserContext> {
+  return newContext(browser, { viewport: { width, height }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, ...extra });
+}
+
+async function main() {
+  const browser = await chromium.launch({ channel: 'chrome', headless: true });
+  if (SHOTS) mkdirSync(SHOTS, { recursive: true });
+
+  /* ------------------------------------------------ AC-05 deep link + AC-01 opening */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}#rsvp`);
+    await settle(page);
+    check('AC-05a', 'Fresh deep link shows the cover first', (await current(page)) === 'cover');
+    await page.getByRole('link', { name: 'Tap to Open Our Invitation' }).tap();
+    await page.waitForTimeout(200);
+    await settle(page);
+    check('AC-05b', 'Opening the cover lands on the deep-linked page', (await current(page)) === 'rsvp', String(await current(page)));
+    await page.reload();
+    await settle(page);
+    check('AC-05c', 'Reload in the same session keeps the guest on their page', (await current(page)) === 'rsvp', String(await current(page)));
+    await ctx.close();
+  }
+
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await settle(page);
+    await page.getByRole('button', { name: 'Skip' }).tap();
+    await settle(page);
+    check('AC-01', 'SKIP lands on Welcome immediately', (await current(page)) === 'welcome');
+    await ctx.close();
+  }
+
+  /* ------------------------------------------------ AC-02 / AC-03 gestures */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await page.goto(`${BASE}`);
+    await settle(page);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#blessings`);
+    await settle(page);
+    await page.evaluate(() => localStorage.setItem('rdv:hint-seen', '1'));
+
+    await touchDrag(cdp, page, [300, 420], [262, 420], 10, 40);
+    check('AC-02a', 'Short slow drag springs back', (await current(page)) === 'blessings');
+    await touchDrag(cdp, page, [200, 640], [200, 320]);
+    check('AC-02b', 'Swipe up turns forward', (await current(page)) === 'save-the-date');
+    await touchDrag(cdp, page, [330, 420], [70, 440]);
+    check('AC-02c', 'Swipe left turns forward', (await current(page)) === 'countdown');
+    await touchDrag(cdp, page, [60, 420], [330, 420]);
+    check('AC-02d', 'Swipe right turns back', (await current(page)) === 'save-the-date');
+    await touchDrag(cdp, page, [200, 260], [200, 620]);
+    check('AC-02e', 'Swipe down turns back', (await current(page)) === 'blessings');
+    await touchDrag(cdp, page, [372, 826], [150, 600], 14, 16);
+    check('AC-02f', 'Bottom-right corner drag turns forward', (await current(page)) === 'save-the-date');
+    await touchDrag(cdp, page, [20, 826], [300, 780], 14, 16);
+    check('AC-02g', 'Bottom-left corner drag turns back', (await current(page)) === 'blessings');
+
+    // The love-story gallery owns horizontal swipes; vertical swipes on it still turn the page.
+    await page.evaluate(() => (location.hash = 'love-story'));
+    await page.waitForTimeout(100);
+    await settle(page);
+    const ringBox = (await page.locator('#love-story .ls__ring').boundingBox())!;
+    const ringY = ringBox.y + ringBox.height / 2;
+    await touchDrag(cdp, page, [300, ringY], [110, ringY], 12, 20);
+    check('AC-03a', 'Horizontal swipe on the gallery rotates it and does not turn the page', (await current(page)) === 'love-story');
+    await touchDrag(cdp, page, [195, ringY + 60], [195, ringY - 260], 10, 14);
+    check('AC-03b', 'Vertical swipe on the gallery still turns the page', (await current(page)) === 'events');
+    await page.evaluate(() => (location.hash = 'save-the-date'));
+    await page.waitForTimeout(100);
+    await settle(page);
+
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(50);
+    await settle(page);
+    check('AC-02h', 'Arrow key turns forward', (await current(page)) === 'countdown');
+    await page.getByRole('button', { name: 'Previous page' }).tap();
+    await page.waitForTimeout(50);
+    await settle(page);
+    check('AC-02i', 'Previous chevron turns back', (await current(page)) === 'save-the-date');
+    await page.getByRole('button', { name: 'Next page' }).first().tap();
+    await page.waitForTimeout(50);
+    await settle(page);
+    check('AC-02j', 'Pearl handle / Next turns forward', (await current(page)) === 'countdown');
+    for (let i = 0; i < 25; i++) {
+      await page.mouse.wheel(0, 30);
+      await page.waitForTimeout(16);
+    }
+    await settle(page);
+    check('AC-02k', 'One trackpad gesture turns exactly one page', (await current(page)) === 'groom', String(await current(page)));
+
+    /* AC-04 / AC-06 Contents + Back */
+    await page.getByRole('button', { name: 'Contents' }).tap();
+    await page.waitForTimeout(450);
+    await page.getByRole('button', { name: /Venues and Directions/ }).tap();
+    await page.waitForTimeout(150);
+    await settle(page);
+    check('AC-04', 'Contents jumps to the chosen section', (await current(page)) === 'venues' && page.url().endsWith('#venues'), page.url());
+    await page.getByRole('button', { name: 'Contents' }).tap();
+    await page.waitForTimeout(450);
+    await page.goBack();
+    await page.waitForTimeout(300);
+    const dialogHidden = await page.evaluate(() => document.getElementById('contents')!.hidden);
+    check('AC-06', 'Browser Back closes the overlay and stays on the page', dialogHidden && (await current(page)) === 'venues');
+
+    /* AC-07 Scroll View */
+    await page.getByRole('button', { name: 'Contents' }).tap();
+    await page.waitForTimeout(450);
+    await page.getByRole('switch', { name: 'Read as scrolling page' }).tap();
+    await page.waitForTimeout(600);
+    await page.evaluate(() => {
+      const book = document.querySelector('.book')!;
+      book.scrollTop = document.getElementById('ceremony')!.offsetTop;
+    });
+    await page.waitForTimeout(700);
+    check('AC-07a', 'Scroll View stacks pages and the address follows scrolling', page.url().endsWith('#ceremony'), page.url());
+    await page.getByRole('button', { name: 'Book view' }).tap();
+    await settle(page);
+    check('AC-07b', 'Book view returns to the page being read', (await current(page)) === 'ceremony');
+    await ctx.close();
+  }
+
+  /* ------------------------------------------------ AC-32 reduced motion */
+  {
+    const ctx = await mobileContext(browser, 390, 844, { reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await settle(page);
+    await page.getByRole('link', { name: 'Tap to Open Our Invitation' }).tap();
+    await page.waitForTimeout(40);
+    const curlUsed = await page.evaluate(() => document.querySelector('.book__flap-wrap')!.classList.contains('is-on'));
+    await settle(page);
+    check('AC-32', 'Reduced motion replaces the curl with a cross-fade', !curlUsed && (await current(page)) === 'welcome');
+    await ctx.close();
+  }
+
+  /* ------------------------------------------------ AC-07 no JavaScript */
+  {
+    const ctx = await mobileContext(browser, 390, 844, { javaScriptEnabled: false });
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    const height = await page.evaluate(() => document.documentElement.scrollHeight);
+    const sections = await page.locator('section.page').count();
+    check('AC-07c', 'Without JavaScript the pages read as one continuous scroll', sections === 20 && height > 844 * 19, `${sections} pages, ${height}px tall`);
+    await ctx.close();
+  }
+
+  /* ================================================ Phase 2 pages ================================================ */
+
+  /* AC-01 opening animation duration */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await settle(page);
+    await page.waitForTimeout(1200);
+    const started = Date.now();
+    await page.getByRole('link', { name: 'Tap to Open Our Invitation' }).tap();
+    await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'welcome', null, { timeout: 6000, polling: POLL });
+    const seconds = (Date.now() - started) / 1000;
+    metrics.openingSeconds = +seconds.toFixed(2);
+    check('AC-01b', 'Envelope opening lands on Welcome in about 2–3 seconds', seconds >= 1.8 && seconds <= 3.3, `${seconds.toFixed(2)} s`);
+    await ctx.close();
+  }
+
+  /* AC-13 / AC-14 countdown from other time zones, with a fixed clock */
+  {
+    const target = Date.parse('2027-04-07T10:30:00+05:30');
+    const now = Date.parse('2026-10-23T12:00:00Z');
+    const s = Math.floor((target - now) / 1000);
+    const expected = { days: Math.floor(s / 86400), hours: Math.floor((s % 86400) / 3600), minutes: Math.floor((s % 3600) / 60) };
+    for (const tz of ['Europe/London', 'America/New_York', 'Asia/Kolkata']) {
+      const ctx = await mobileContext(browser, 390, 844, { timezoneId: tz });
+      const page = await ctx.newPage();
+      await page.clock.setFixedTime(new Date(now));
+      await page.goto(BASE);
+      await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+      await page.goto(`${BASE}#countdown`);
+      await settle(page);
+      await page.waitForTimeout(300);
+      const shown = await page.evaluate(() => {
+        const v = (k: string) => Number(document.querySelector(`[data-unit=${k}]`)!.textContent!.trim());
+        const local = document.querySelector<HTMLElement>('[data-localtime]')!;
+        return { days: v('days'), hours: v('hours'), minutes: v('minutes'), local: local.hidden ? '' : local.textContent };
+      });
+      const sameCount = shown.days === expected.days && shown.hours === expected.hours && shown.minutes === expected.minutes;
+      const localOk = tz === 'Asia/Kolkata' ? shown.local === '' : tz === 'Europe/London' ? /6:00/.test(shown.local ?? '') : /1:00/.test(shown.local ?? '');
+      check('AC-13', `Countdown is correct from ${tz} (local-time line ${tz === 'Asia/Kolkata' ? 'hidden' : 'shown'})`, sameCount && localOk, JSON.stringify({ shown, expected }));
+      await ctx.close();
+    }
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.clock.setFixedTime(new Date(target + 1000));
+    await page.goto(BASE);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#countdown`);
+    await settle(page);
+    const arrived = await page.evaluate(
+      () => document.querySelector<HTMLElement>('[data-arrived]')!.hidden === false && document.querySelector<HTMLElement>('[data-countdown]')!.hidden === true,
+    );
+    check('AC-14', 'At the Muhurtham the arrival message replaces the countdown', arrived);
+    await ctx.close();
+  }
+
+  /* AC-15 Add to Calendar, AC-16 scratch-to-reveal */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.removeItem('rdv:date-revealed');
+    });
+    await page.goto(`${BASE}#save-the-date`);
+    await settle(page);
+    await page.waitForTimeout(1600);
+    const srDate = await page.evaluate(() => document.querySelector('#save-the-date .sr-only')?.textContent ?? '');
+    check('AC-16a', 'The date is readable by screen readers before scratching', srDate.includes('Wednesday, 7 April 2027'), srDate);
+
+    const panel = (await page.locator('#save-the-date [data-scratch]').first().boundingBox())!;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: panel.x + 6, y: panel.y + 8 }] });
+    for (let row = 0; row < 4; row++)
+      for (let k = 0; k <= 8; k++) {
+        const x = panel.x + 6 + ((row % 2 ? 8 - k : k) / 8) * (panel.width - 12);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: panel.y + 8 + row * (panel.height / 4) }] });
+        await page.waitForTimeout(8);
+      }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(500);
+    const states = await page.evaluate(() => [...document.querySelectorAll('#save-the-date [data-scratch]')].map((p) => p.classList.contains('is-revealed')));
+    check('AC-16b', 'Scratching a gold panel reveals it (and leaves the page in place)', states[0] && (await current(page)) === 'save-the-date', JSON.stringify(states));
+    await page.getByRole('button', { name: 'Reveal date' }).tap();
+    await page.waitForTimeout(500);
+    const all = await page.evaluate(() => [...document.querySelectorAll('#save-the-date [data-scratch]')].every((p) => p.classList.contains('is-revealed')));
+    check('AC-16c', '"Reveal date" reveals every panel with one tap', all);
+
+    await page.getByRole('button', { name: 'Add to Calendar' }).tap();
+    await page.waitForTimeout(500);
+    const google = await page.locator('#calendar-wedding a[target="_blank"]').getAttribute('href');
+    const params = new URL(google!).searchParams;
+    const ics = await page.evaluate(async () => (await fetch('/calendar/wedding.ics')).text());
+    const googleOk = params.get('dates') === '20270407T050000Z/20270407T050000Z' && params.get('ctz') === 'Asia/Kolkata';
+    const icsOk = ics.includes('DTSTART;TZID=Asia/Kolkata:20270407T103000') && !ics.includes('DTEND') && ics.includes('BEGIN:VTIMEZONE');
+    check('AC-15', 'Calendar entries start 10:30 AM IST with no invented end time (Google + .ics)', googleOk && icsOk, `${params.get('dates')} ${params.get('ctz')}`);
+    await page.keyboard.press('Escape');
+    await ctx.close();
+  }
+
+  /* AC-17 portraits enter from the correct side and never leave the screen */
+  for (const [id, side] of [
+    ['groom', 'left'],
+    ['bride', 'right'],
+  ] as const) {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#welcome`);
+    await settle(page);
+    const samples: { left: number; right: number; centre: number }[] = await page.evaluate(async (pageId) => {
+      const frame = document.querySelector<HTMLElement>(`#${pageId} .pt__frame`)!;
+      const out: { left: number; right: number; centre: number }[] = [];
+      location.hash = pageId;
+      for (let i = 0; i < 70; i++) {
+        await new Promise((r) => setTimeout(r, 40));
+        const r = frame.getBoundingClientRect();
+        if (frame.closest('.page')!.getAttribute('data-state') === 'current' || out.length) out.push({ left: r.left, right: r.right, centre: (r.left + r.right) / 2 });
+      }
+      return out;
+    }, id);
+    const finalCentre = samples[samples.length - 1]?.centre ?? 0;
+    const earlyOffset = samples.length > 2 ? samples[1].centre - finalCentre : 0;
+    const inView = samples.every((s) => s.left >= -1 && s.right <= 391);
+    const correctSide = side === 'left' ? earlyOffset < -2 : earlyOffset > 2;
+    check('AC-17', `${id === 'groom' ? 'Rahul' : 'Divya'}'s portrait enters from the ${side} and stays on screen`, correctSide && inView, `offset ${earlyOffset.toFixed(1)}px, ${samples.length} samples`);
+    await ctx.close();
+  }
+
+  /* AC-18 family-tree overlays */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await page.goto(BASE);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#family`);
+    await settle(page);
+    await page.waitForTimeout(2000);
+    const open = async (name: RegExp) => {
+      await page.getByRole('button', { name }).tap();
+      await page.waitForTimeout(500);
+    };
+    const isOpen = () => page.evaluate(() => !document.getElementById('tree-groom')!.hidden);
+
+    await open(/View Groom's Family Tree/);
+    const cover = await page.evaluate(() => {
+      const o = document.getElementById('tree-groom')!.getBoundingClientRect();
+      const a = document.querySelector('.app')!.getBoundingClientRect();
+      const top = document.elementFromPoint(a.left + a.width / 2, a.top + a.height / 2);
+      const body = document.querySelector<HTMLElement>('#tree-groom .overlay__body')!;
+      return { full: Math.abs(o.width - a.width) < 1 && Math.abs(o.height - a.height) < 1, above: !!top?.closest('#tree-groom'), scroll: getComputedStyle(body).overflowY };
+    });
+    check('AC-18a', 'Family tree opens full screen above everything and scrolls independently', cover.full && cover.above && cover.scroll === 'auto', JSON.stringify(cover));
+    await page.getByRole('button', { name: 'Close family tree' }).first().tap();
+    await page.waitForTimeout(400);
+    const closedButton = !(await isOpen());
+    await open(/View Groom's Family Tree/);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+    const closedEsc = !(await isOpen());
+    await open(/View Groom's Family Tree/);
+    await page.goBack();
+    await page.waitForTimeout(400);
+    const closedBack = !(await isOpen()) && (await current(page)) === 'family';
+    await open(/View Groom's Family Tree/);
+    const header = (await page.locator('#tree-groom .overlay__header').boundingBox())!;
+    await touchDrag(cdp, page, [header.x + 60, header.y + 20], [header.x + 60, header.y + 220], 10, 16).catch(() => undefined);
+    await page.waitForTimeout(400);
+    const closedSwipe = !(await isOpen());
+    check('AC-18b', 'Family tree closes by button, Esc, Back and swipe-down', closedButton && closedEsc && closedBack && closedSwipe, JSON.stringify({ closedButton, closedEsc, closedBack, closedSwipe }));
+    const focusBack = await page.evaluate(() => document.activeElement?.textContent?.includes("Groom's Family Tree") ?? false);
+    check('AC-18c', 'Focus returns to the tree button after closing', focusBack);
+    await ctx.close();
+  }
+
+  /* AC-19 love-story gallery */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await page.goto(BASE);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#love-story`);
+    await settle(page);
+    await page.waitForTimeout(1500);
+    const active = () => page.evaluate(() => [...document.querySelectorAll('[data-entry]')].findIndex((e) => e.classList.contains('is-active')));
+    const box = (await page.locator('.ls__ring').boundingBox())!;
+    const y = box.y + box.height / 2;
+    await touchDrag(cdp, page, [300, y], [120, y], 12, 20);
+    const one = await active();
+    await touchDrag(cdp, page, [330, y], [30, y], 4, 8);
+    const flick = await active();
+    await page.locator('.ls__ring').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(800);
+    const key = await active();
+    await page.getByRole('button', { name: 'Previous photo' }).tap();
+    await page.waitForTimeout(800);
+    const button = await active();
+    await page.waitForTimeout(7000);
+    const still = await active();
+    check(
+      'AC-19',
+      'Gallery: one photo per swipe, two on a hard flick, keyboard and arrows work, no auto-spin after interaction',
+      one === 1 && flick === 3 && key === 4 && button === 3 && still === 3 && (await current(page)) === 'love-story',
+      JSON.stringify({ one, flick, key, button, still }),
+    );
+    await ctx.close();
+  }
+
+  /* ================================================ Phase 3 pages ================================================ */
+
+  const openedPage = async (hash: string, w = 390, h = 844) => {
+    const ctx = await mobileContext(browser, w, h);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.setItem('rdv:hint-seen', '1');
+    });
+    await page.goto(`${BASE}#${hash}`);
+    await settle(page);
+    await page.waitForTimeout(2600);
+    return { ctx, page, cdp: await ctx.newCDPSession(page) };
+  };
+  const sheetFits = (id: string) =>
+    (async (page: Page) =>
+      page.evaluate((sheetId) => {
+        const panel = document.querySelector<HTMLElement>(`#${sheetId} .sheet__panel`)!.getBoundingClientRect();
+        const app = document.querySelector('.app')!.getBoundingClientRect();
+        return panel.top >= app.top - 1 && panel.bottom <= app.bottom + 1 && panel.height <= app.height * 0.86 && !document.getElementById(sheetId)!.hidden;
+      }, id)) as (page: Page) => Promise<boolean>;
+
+  /* AC-20 every event shows its details and actions; Location waits for a venue; Calendar waits for confirmation */
+  {
+    const { ctx, page } = await openedPage('events');
+    const read = (pageId: string) =>
+      page.evaluate((pid) => {
+        return [...document.querySelectorAll<HTMLElement>(`#${pid} .ev__item`)].map((item) => {
+          const action = (label: string) => [...item.querySelectorAll<HTMLElement>('.ev-action')].find((a) => a.textContent?.includes(label))!;
+          return {
+            id: item.dataset.event,
+            text: !!item.querySelector('.ev__name')?.textContent && !!item.querySelector('.ev__date')?.textContent && /IST/.test(item.querySelector('.ev__time')?.textContent ?? '') && !!item.querySelector('.ev__venue')?.textContent,
+            locationDisabled: action('Location').getAttribute('aria-disabled') === 'true',
+            calendarEnabled: action('Calendar').getAttribute('aria-disabled') !== 'true',
+            visible: getComputedStyle(item.querySelector('.ev__plate')!).opacity === '1',
+          };
+        });
+      }, pageId);
+    const part1 = await read('events');
+    await page.evaluate(() => (location.hash = 'events-wedding'));
+    await page.waitForTimeout(150);
+    await settle(page);
+    await page.waitForTimeout(2200);
+    const part2 = await read('events-wedding');
+    const rows = [...part1, ...part2];
+    const okRows =
+      rows.length === 5 &&
+      rows.every((r) => r.text && r.locationDisabled && r.visible) &&
+      rows.filter((r) => r.calendarEnabled).map((r) => r.id).join() === 'wedding';
+    check('AC-20a', 'All five events show name, date, time, venue; Location disabled until venues exist; Calendar only for the confirmed wedding', okRows, JSON.stringify(rows));
+
+    // aria-disabled buttons stay tappable for guests (they explain themselves); Playwright needs force for them
+    await page.locator('#events-wedding .ev__item[data-event="reception"] .ev-action', { hasText: 'Location' }).tap({ force: true });
+    await page.waitForTimeout(250);
+    const toastText = await page.locator('[data-toast]').textContent();
+    await page.locator('#events-wedding .ev__item[data-event="wedding"] .ev-action', { hasText: 'Calendar' }).tap();
+    await page.waitForTimeout(500);
+    const calendarOpen = await page.evaluate(() => !document.getElementById('calendar-wedding')!.hidden);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+    await page.locator('#events-wedding .ev__item[data-event="wedding"] .ev-action', { hasText: 'Details' }).tap();
+    await page.waitForTimeout(500);
+    const detailsFit = await sheetFits('event-wedding')(page);
+    check('AC-20b', 'Disabled actions explain themselves; Calendar and Details sheets open and fit the screen', /venue is confirmed/.test(toastText ?? '') && calendarOpen && detailsFit, JSON.stringify({ toastText, calendarOpen, detailsFit }));
+    const thread = await page.evaluate(() => {
+      const p = document.querySelector<SVGPathElement>('#events-wedding .ev__thread-main')!;
+      return p.getAttribute('d')?.length ?? 0;
+    });
+    check('PH3-thread', 'The golden thread is laid through the medallions', thread > 40, String(thread));
+    await ctx.close();
+  }
+
+  /* AC-21 venue tabs */
+  {
+    const { ctx, page } = await openedPage('venues');
+    const tabs = page.getByRole('tab');
+    const count = await tabs.count();
+    const seen: string[] = [];
+    for (let i = 0; i < count; i++) {
+      await tabs.nth(i).tap();
+      await page.waitForTimeout(400);
+      seen.push(await page.evaluate(() => `${document.querySelector('[role=tab][aria-selected=true]')!.id}>${document.querySelector('.vn__panel.is-active')!.id}`));
+    }
+    await tabs.first().focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(300);
+    const keyed = await page.evaluate(() => document.activeElement?.getAttribute('aria-selected') === 'true' && document.activeElement.id);
+    const directionsDisabled = await page.evaluate(() => [...document.querySelectorAll('.vn__go')].every((b) => b.getAttribute('aria-disabled') === 'true'));
+    const stillOnPage = (await current(page)) === 'venues';
+    const ok = count === 4 && seen.every((s) => s.split('>')[0].replace('vn-tab-', '') === s.split('>')[1].replace('vn-panel-', '')) && keyed === 'vn-tab-function-hall' && directionsDisabled && stillOnPage;
+    check('AC-21', 'Venue tabs switch all four locations (touch and arrow keys); Get Directions waits for a confirmed location', ok, JSON.stringify({ count, seen, keyed, directionsDisabled }));
+    await ctx.close();
+  }
+
+  /* AC-22 travel tiles open readable sheets that fit and close */
+  {
+    const { ctx, page } = await openedPage('travel', 375, 667);
+    const ids = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.tv__tile')].map((t) => t.dataset.openDialog!));
+    const results: string[] = [];
+    for (const [i, id] of ids.entries()) {
+      await page.locator(`.tv__tile[data-open-dialog="${id}"]`).tap();
+      await page.waitForTimeout(450);
+      const fits = await sheetFits(id)(page);
+      const how = i % 3;
+      if (how === 0) await page.locator(`#${id} .overlay__close`).tap();
+      else if (how === 1) await page.keyboard.press('Escape');
+      else await page.mouse.click(20, 40); // the dimmed backdrop above the sheet
+      await page.waitForTimeout(450);
+      const closed = await page.evaluate((sid) => document.getElementById(sid)!.hidden, id);
+      if (!fits || !closed) results.push(`${id}: fits=${fits} closed=${closed}`);
+    }
+    check('AC-22', 'All six travel tiles open sheets that fit a small phone and close by button, Esc or backdrop', ids.length === 6 && results.length === 0, results.join(' | '));
+    await ctx.close();
+  }
+
+  /* ================================================ Phase 4: guest forms and backend ================================================ */
+  // Uses the dev server's API (/api) and its test hooks (/api/__dev/*); the local store is reset first.
+
+  const dev = async (page: Page, action: string, body?: unknown) =>
+    (await page.request.post(`${BASE}api/__dev/${action}`, { data: body ?? {} })).json() as Promise<Record<string, unknown> & unknown[]>;
+  const admin = async (page: Page, path: string) =>
+    (await page.request.get(`${BASE}api/admin/${path}`, { headers: { Authorization: 'Bearer dev-admin' } })).json() as Promise<{
+      totals: { responses: number; headcount: number };
+      rsvps: { guest_name: string; attendance: string }[];
+      pendingWishes: { id: string; name: string }[];
+      approvedCount: number;
+    }>;
+  const publicWishes = async (page: Page) => ((await (await page.request.get(`${BASE}api/wishes?limit=50`)).json()) as { total: number }).total;
+  const toastText = (page: Page) => page.evaluate(() => document.querySelector('[data-toast]')?.textContent ?? '');
+
+  /* AC-23 a blessing confirms only after it is stored, stays private until approved, and survives an error */
+  {
+    const { ctx, page } = await openedPage('wishes');
+    await dev(page, 'reset');
+    await page.getByRole('button', { name: 'Write a Blessing' }).tap();
+    await page.waitForTimeout(450);
+    await page.locator('#wish-name').fill('Meera Iyer');
+    await page.locator('#wish-message').fill('May your life together be as bright as a thousand diyas.');
+    await dev(page, 'fail', { count: 1, status: 500 });
+    await page.locator('#wish-composer [data-submit]').tap();
+    await page.waitForFunction(() => !!document.querySelector('#wish-composer [data-form-status]')?.textContent, null, { polling: POLL });
+    const failed = await page.evaluate(() => ({
+      status: document.querySelector('#wish-composer [data-form-status]')!.textContent,
+      kept: (document.getElementById('wish-message') as HTMLTextAreaElement).value.length > 0,
+      done: !document.querySelector<HTMLElement>('#wish-composer [data-state-done]')!.hidden,
+      label: document.querySelector('#wish-composer [data-submit] .btn-label')!.textContent,
+    }));
+    const storedAfterFailure = (await admin(page, 'summary')).pendingWishes.length;
+    // Double tap on Retry: only one blessing may be stored (AC-27).
+    await page.evaluate(() => {
+      const form = document.querySelector<HTMLFormElement>('[data-wish-form]')!;
+      form.requestSubmit();
+      form.requestSubmit();
+    });
+    await page.waitForFunction(() => !document.querySelector<HTMLElement>('#wish-composer [data-state-done]')!.hidden, null, { timeout: 15000, polling: POLL });
+    const pending = (await admin(page, 'summary')).pendingWishes;
+    check(
+      'AC-23',
+      'Blessing: error keeps the text and offers Try again; success only after storage; hidden until approved',
+      /couldn't save/.test(failed.status ?? '') && failed.kept && !failed.done && failed.label === 'Try again' && storedAfterFailure === 0 && pending.length === 1 && (await publicWishes(page)) === 0,
+      JSON.stringify({ failed, storedAfterFailure, pending: pending.length }),
+    );
+
+    /* AC-24 View All shows approved blessings only, 20 at a time, in an independent scroller with a close button */
+    await page.request.post(`${BASE}api/admin/wishes/${pending[0].id}`, { headers: { Authorization: 'Bearer dev-admin' }, data: { status: 'approved' } });
+    for (let i = 0; i < 24; i++)
+      await page.request.post(`${BASE}api/wishes`, {
+        headers: { 'Idempotency-Key': `qa-seed-wish-${String(i).padStart(4, '0')}`, 'CF-Connecting-IP': `198.51.100.${i}` }, // one address each, below the rate limit
+        data: { name: `Guest ${i + 1}`, message: `Warm blessings to the couple, number ${i + 1}.`, website: '', elapsedMs: 5000 },
+      });
+    await page.request.post(`${BASE}api/wishes`, {
+      headers: { 'Idempotency-Key': 'qa-seed-wish-pending', 'CF-Connecting-IP': '198.51.100.200' },
+      data: { name: 'Still Pending', message: 'This one has not been approved yet.', website: '', elapsedMs: 5000 },
+    });
+    const toApprove = (await admin(page, 'summary')).pendingWishes.filter((w) => w.name !== 'Still Pending');
+    for (const w of toApprove) await page.request.post(`${BASE}api/admin/wishes/${w.id}`, { headers: { Authorization: 'Bearer dev-admin' }, data: { status: 'approved' } });
+    await page.locator('#wish-composer .overlay__close').tap();
+    await page.waitForTimeout(450);
+    await page.getByRole('button', { name: 'View All Wishes' }).tap();
+    await page.waitForFunction(() => document.querySelectorAll('[data-wishes-list] li').length > 0, null, { polling: POLL });
+    const firstPage = await page.evaluate(() => document.querySelectorAll('[data-wishes-list] li').length);
+    await page.locator('[data-wishes-more]').tap();
+    await page.waitForFunction(() => document.querySelectorAll('[data-wishes-list] li').length > 20, null, { polling: POLL });
+    const all = await page.evaluate(() => {
+      const body = document.querySelector<HTMLElement>('#wishes-all .overlay__body')!;
+      const close = document.querySelector<HTMLElement>('#wishes-all .overlay__close')!.getBoundingClientRect();
+      return {
+        count: document.querySelectorAll('[data-wishes-list] li').length,
+        label: document.querySelector('[data-wishes-count]')!.textContent,
+        hasPending: document.querySelector('[data-wishes-list]')!.textContent!.includes('Still Pending'),
+        moreHidden: document.querySelector<HTMLElement>('[data-wishes-more]')!.hidden,
+        scrolls: getComputedStyle(body).overflowY === 'auto' && body.scrollHeight > body.clientHeight,
+        closeOk: close.width >= 44 && close.height >= 44 && close.top >= 0,
+      };
+    });
+    check('AC-24', 'View All: approved only, 20 then "Load more", count shown, scrolls independently, 44 px close', firstPage === 20 && all.count === 25 && all.label === '25 blessings' && !all.hasPending && all.moreHidden && all.scrolls && all.closeOk, JSON.stringify({ firstPage, ...all }));
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+    await page.evaluate(() => (window as unknown as { __book: { goTo(i: number, s: string): void } }).__book.goTo(17, 'instant'));
+    await settle(page);
+    await page.evaluate(() => (window as unknown as { __book: { goTo(i: number, s: string): void } }).__book.goTo(16, 'instant'));
+    await settle(page);
+    await page.waitForTimeout(1800);
+    const wall = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#wishes [data-wall-slot]')].filter((c) => !c.hidden && getComputedStyle(c).opacity === '1').length);
+    check('PH4-wall', 'The wall shows the five latest approved blessings, fully visible', wall === 5, String(wall));
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/phase4-wishing-wall.png` });
+    await ctx.close();
+  }
+
+  /* AC-25 / AC-27 RSVP validation, offline and server errors keep input; success only with a stored ID; no duplicates */
+  {
+    const { ctx, page } = await openedPage('rsvp');
+    await page.getByRole('button', { name: 'Respond now' }).tap();
+    await page.waitForTimeout(500);
+    await page.getByRole('button', { name: 'Continue' }).tap();
+    const validation = await page.evaluate(() => ({
+      error: document.querySelector('[data-error-for="guestName"]')!.textContent,
+      focus: document.activeElement?.id,
+      invalid: document.getElementById('rsvp-name')!.getAttribute('aria-invalid'),
+    }));
+    await page.locator('#rsvp-name').fill('Lakshmi Narayanan');
+    await page.locator('#rsvp-form .choice-card', { hasText: 'Joyfully accept' }).tap();
+    await page.locator('#rsvp-form [data-step-up]').tap();
+    await page.getByRole('button', { name: 'Continue' }).tap();
+    await page.locator('#rsvp-form .chip-check', { hasText: 'Reception' }).tap();
+    await page.locator('#rsvp-form .consent').tap();
+
+    const status = () => page.evaluate(() => document.querySelector('#rsvp-form [data-form-status]')!.textContent ?? '');
+    const flipped = () => page.evaluate(() => document.querySelector('[data-rsvp-flip]')!.classList.contains('is-done'));
+    const submit = page.locator('#rsvp-form [data-submit]');
+
+    await ctx.setOffline(true);
+    await submit.tap();
+    await page.waitForTimeout(300);
+    const offline = await status();
+    await ctx.setOffline(false);
+
+    await dev(page, 'fail', { count: 1, status: 503 });
+    await submit.tap();
+    await page.waitForFunction(() => /couldn't save/.test(document.querySelector('#rsvp-form [data-form-status]')!.textContent ?? ''), null, { timeout: 15000, polling: POLL });
+    const serverError = { status: await status(), flipped: await flipped(), name: await page.locator('#rsvp-name').inputValue(), stored: (await admin(page, 'summary')).totals.responses };
+
+    // The next attempt reaches the server and is stored, but its reply is lost (a timeout from the guest's side).
+    let lost = false;
+    await page.route('**/api/rsvp', async (route) => {
+      if (!lost && route.request().method() === 'POST') {
+        lost = true;
+        await route.fetch();
+        return route.abort('failed');
+      }
+      return route.continue();
+    });
+    await submit.tap();
+    await page.waitForFunction(() => document.querySelector('#rsvp-form [data-submit] .btn-label')!.textContent === 'Retry' && !document.querySelector('#rsvp-form [data-submit]')!.classList.contains('is-sending'), null, { timeout: 15000, polling: POLL });
+    const afterLost = { flipped: await flipped(), stored: (await admin(page, 'summary')).totals.responses };
+    // Retry twice in a row (a double tap): the server recognises the same submission.
+    await page.evaluate(() => {
+      const form = document.querySelector<HTMLFormElement>('[data-rsvp-form]')!;
+      form.requestSubmit();
+      form.requestSubmit();
+    });
+    await page.waitForFunction(() => document.querySelector('[data-rsvp-flip]')!.classList.contains('is-done'), null, { timeout: 15000, polling: POLL });
+    await page.waitForTimeout(700);
+    const summary = await admin(page, 'summary');
+    const done = await page.evaluate(() => ({
+      text: document.querySelector('[data-rsvp-done]')!.textContent!.replace(/\s+/g, ' '),
+      saved: !!JSON.parse(localStorage.getItem('rdv:rsvp') ?? 'null')?.id,
+    }));
+    check(
+      'AC-25',
+      'RSVP: inline errors focus the field; offline and server errors keep every answer; success only once stored',
+      validation.error === 'Please enter your name.' &&
+        validation.focus === 'rsvp-name' &&
+        validation.invalid === 'true' &&
+        /offline/.test(offline) &&
+        /details are still here/.test(serverError.status) &&
+        !serverError.flipped &&
+        serverError.name === 'Lakshmi Narayanan' &&
+        serverError.stored === 0 &&
+        done.text.includes('Thank you, Lakshmi!') &&
+        done.text.includes('2 guests') &&
+        done.saved,
+      JSON.stringify({ validation, offline, serverError, done }),
+    );
+    check('AC-27', 'A lost reply, a retry and a double tap still store exactly one RSVP', !afterLost.flipped && afterLost.stored === 1 && summary.totals.responses === 1 && summary.totals.headcount === 2, JSON.stringify({ afterLost, totals: summary.totals }));
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/phase4-rsvp-thank-you.png` });
+
+    // Editing changes the same record.
+    await page.unroute('**/api/rsvp');
+    await page.getByRole('button', { name: 'Edit my response', exact: true }).tap();
+    await page.waitForTimeout(700);
+    await page.locator('#rsvp-form .choice-card', { hasText: 'Regretfully decline' }).tap();
+    await page.getByRole('button', { name: 'Continue' }).tap();
+    await submit.tap();
+    await page.waitForFunction(() => document.querySelector('[data-rsvp-flip]')!.classList.contains('is-done') && /received/.test(document.querySelector('[data-done-title]')!.textContent ?? ''), null, { timeout: 15000, polling: POLL });
+    const edited = await admin(page, 'summary');
+    check('PH4-edit', '"Edit my response" updates the same RSVP', edited.totals.responses === 1 && edited.rsvps[0].attendance === 'decline', JSON.stringify(edited.totals));
+
+    /* AC-26 the families are emailed, and the admin page lists and exports the response */
+    const outbox = (await dev(page, 'outbox')) as unknown as { to: string[]; subject: string; text: string }[];
+    const mails = outbox.map((m) => m.subject);
+    await page.goto(`${BASE}admin`);
+    await page.getByRole('button', { name: 'Sign in (local development)' }).tap();
+    await page.waitForFunction(() => document.querySelectorAll('[data-rsvps] tr').length > 0, null, { polling: POLL });
+    const row = await page.evaluate(() => document.querySelector('[data-rsvps] tr')!.textContent);
+    const csv = await (await page.request.get(`${BASE}api/admin/export?type=rsvps`, { headers: { Authorization: 'Bearer dev-admin' } })).text();
+    const unauthorised = (await page.request.get(`${BASE}api/admin/summary`)).status();
+    check(
+      'AC-26',
+      'Each RSVP emails the families; the admin page lists it and exports CSV; signed-out requests are refused',
+      mails.length === 2 && /New RSVP: Lakshmi Narayanan/.test(mails[0]) && /Updated RSVP/.test(mails[1]) && !!row?.includes('Lakshmi Narayanan') && csv.includes('Lakshmi Narayanan,Declines') && unauthorised === 401,
+      JSON.stringify({ mails, row, unauthorised }),
+    );
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/phase4-admin.png`, fullPage: true });
+    await ctx.close();
+  }
+
+  /* AC-28 contact cards: no invented numbers, disabled actions explain themselves, details sheets fit */
+  {
+    const { ctx, page } = await openedPage('help', 375, 667);
+    const cards = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('.nh__card')].map((c) => ({
+        tel: c.querySelectorAll('a[href^="tel:"]').length,
+        wa: c.querySelectorAll('a[href^="https://wa.me/"]').length,
+        disabled: c.querySelectorAll('[aria-disabled="true"]').length,
+      })),
+    );
+    await page.locator('.nh__card').first().getByRole('button', { name: /Call/ }).tap({ force: true });
+    await page.waitForTimeout(200);
+    const toast = await toastText(page);
+    const sheets: string[] = [];
+    for (const id of ['groom-rep', 'bride-rep', 'coordinator']) {
+      await page.locator(`[data-open-dialog="contact-${id}"]`).tap();
+      await page.waitForTimeout(450);
+      const fits = await page.evaluate((sid) => {
+        const panel = document.querySelector<HTMLElement>(`#${sid} .sheet__panel`)!.getBoundingClientRect();
+        const app = document.querySelector('.app')!.getBoundingClientRect();
+        const close = document.querySelector<HTMLElement>(`#${sid} .overlay__close`)!.getBoundingClientRect();
+        return panel.height <= app.height * 0.81 && panel.bottom <= app.bottom + 1 && close.width >= 44 && close.top >= panel.top;
+      }, `contact-${id}`);
+      await page.locator(`#contact-${id} .overlay__close`).tap();
+      await page.waitForTimeout(450);
+      if (!fits) sheets.push(id);
+    }
+    check(
+      'AC-28',
+      'Call and WhatsApp stay disabled ("Number coming soon") until numbers exist; details sheets fit with a close button',
+      cards.length === 3 && cards.every((c) => c.tel === 0 && c.wa === 0 && c.disabled === 2) && toast === 'Number coming soon' && sheets.length === 0,
+      JSON.stringify({ cards, toast, sheets }),
+    );
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/phase4-need-help.png` });
+    await ctx.close();
+  }
+
+  /* ================================================ Phase 5: closing, sharing, polish ================================================ */
+
+  /* AC-29 the thank-you message is handwritten, readable without animation, and Return riffles back to Welcome */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.setItem('rdv:hint-seen', '1');
+    });
+    await page.goto(`${BASE}#thank-you`);
+    await settle(page);
+    const t0 = Date.now();
+    const glyphState = () =>
+      page.evaluate(() => {
+        const g = [...document.querySelectorAll<SVGPathElement>('#thank-you .ty__glyph')];
+        const filled = g.filter((p) => Number(getComputedStyle(p).fillOpacity) > 0.99).length;
+        return { total: g.length, filled };
+      });
+    let sawPartial = false;
+    let state = await glyphState();
+    while (state.filled < state.total && Date.now() - t0 < 8000) {
+      if (state.filled > 0 && state.filled < state.total) sawPartial = true;
+      await page.waitForTimeout(120);
+      state = await glyphState();
+    }
+    const writeSeconds = (Date.now() - t0) / 1000;
+    await page.waitForTimeout(1800);
+    const finished = await page.evaluate(() => ({
+      label: document.querySelector('#thank-you [data-page-heading]')!.textContent!.trim(),
+      names: getComputedStyle(document.querySelector('#thank-you .ty__names')!).opacity,
+    }));
+
+    // Return to First Page: a quick riffle through a few pages that lands on Welcome, not the cover.
+    const visited = new Set<string>();
+    await page.exposeFunction('__visit', (id: string) => visited.add(id));
+    await page.evaluate(() => {
+      new MutationObserver(() => {
+        const cur = document.querySelector<HTMLElement>('.page[data-state=current]');
+        if (cur) (window as unknown as { __visit: (id: string) => void }).__visit(cur.id);
+      }).observe(document.querySelector('.book')!, { subtree: true, attributes: true, attributeFilter: ['data-state'] });
+    });
+    const r0 = Date.now();
+    await page.getByRole('button', { name: 'Return to First Page' }).tap();
+    await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'welcome', null, { timeout: 6000, polling: POLL });
+    const riffleSeconds = (Date.now() - r0) / 1000;
+    await settle(page);
+    check(
+      'AC-29',
+      'Thank You: the message is written letter by letter (~2.4 s), the names follow, and Return riffles to Welcome in about a second',
+      state.total > 20 &&
+        state.filled === state.total &&
+        sawPartial &&
+        writeSeconds > 1.8 &&
+        writeSeconds < 4.5 &&
+        finished.label === 'Thank You for Blessing Our Journey' &&
+        finished.names === '1' &&
+        riffleSeconds < 2 &&
+        visited.size >= 4 &&
+        !visited.has('cover'),
+      JSON.stringify({ state, sawPartial, writeSeconds, finished, riffleSeconds, visited: [...visited] }),
+    );
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/phase5-welcome-after-riffle.png` });
+    await ctx.close();
+
+    // Without JavaScript the lettering is already solid and readable; screen readers get the words.
+    const noJs = await mobileContext(browser, 390, 844, { javaScriptEnabled: false });
+    const plain = await noJs.newPage();
+    await plain.goto(BASE);
+    const fallback = await plain.evaluate(() => {
+      const svg = document.querySelector<SVGSVGElement>('#thank-you .ty__script')!;
+      const glyph = svg.querySelector<SVGPathElement>('.ty__glyph')!;
+      return {
+        visible: svg.getBoundingClientRect().height > 30,
+        fillOpacity: getComputedStyle(glyph).fillOpacity,
+        hiddenFromAt: svg.getAttribute('aria-hidden'),
+        text: document.querySelector('#thank-you .sr-only')!.textContent,
+      };
+    });
+    check(
+      'AC-29b',
+      'Thank You without JavaScript: solid script lettering, with the words available to screen readers',
+      fallback.visible && fallback.fillOpacity === '1' && fallback.hiddenFromAt === 'true' && fallback.text === 'Thank You for Blessing Our Journey',
+      JSON.stringify(fallback),
+    );
+    await noJs.close();
+  }
+
+  /* AC-30 Share: the native share sheet where available, otherwise WhatsApp and Copy link */
+  {
+    const native = await mobileContext(browser);
+    await native.addInitScript({
+      content: `Object.defineProperty(navigator, 'share', { configurable: true, value: async (d) => { window.__shared = d; } });`,
+    });
+    const page = await native.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.setItem('rdv:hint-seen', '1');
+      localStorage.setItem('rdv:reduce-motion', '1');
+    });
+    await page.goto(`${BASE}#thank-you`);
+    await settle(page);
+    await page.getByRole('button', { name: 'Share Invitation' }).tap();
+    await page.waitForTimeout(300);
+    const shared = await page.evaluate(() => ({
+      data: (window as unknown as { __shared?: { text: string; url: string } }).__shared ?? null,
+      sheetOpen: !document.getElementById('share-sheet')!.hidden,
+    }));
+    await native.close();
+
+    const fallback = await mobileContext(browser);
+    await fallback.addInitScript({ content: `Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });` });
+    await fallback.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(BASE).origin });
+    const page2 = await fallback.newPage();
+    await page2.goto(BASE);
+    await page2.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.setItem('rdv:hint-seen', '1');
+      localStorage.setItem('rdv:reduce-motion', '1');
+    });
+    await page2.goto(`${BASE}#thank-you`);
+    await settle(page2);
+    await page2.getByRole('button', { name: 'Share Invitation' }).tap();
+    await page2.waitForTimeout(450);
+    const sheet = await page2.evaluate(() => {
+      const s = document.getElementById('share-sheet')!;
+      const wa = s.querySelector<HTMLAnchorElement>('[data-share-whatsapp]')!;
+      return {
+        open: !s.hidden,
+        whatsapp: wa.href,
+        text: decodeURIComponent(new URL(wa.href).searchParams.get('text') ?? ''),
+        copy: s.querySelector<HTMLElement>('[data-share-copy]')!.dataset.copy,
+        url: location.origin + location.pathname,
+      };
+    });
+    await page2.locator('#share-sheet [data-share-copy]').tap();
+    await page2.waitForTimeout(300);
+    const toast = await toastText(page2);
+    check(
+      'AC-30',
+      'Share uses the native share sheet when available; otherwise a sheet with WhatsApp and Copy link',
+      !!shared.data?.text.includes('Rahul & Divya') &&
+        !!shared.data?.url &&
+        !shared.sheetOpen &&
+        sheet.open &&
+        sheet.whatsapp.startsWith('https://wa.me/?text=') &&
+        sheet.text.includes('You are invited to the wedding of Rahul & Divya') &&
+        sheet.text.includes(sheet.url) &&
+        sheet.copy === sheet.url &&
+        toast === 'Invitation link copied',
+      JSON.stringify({ shared, sheet, toast }),
+    );
+    if (SHOTS) await page2.screenshot({ path: `${SHOTS}/phase5-share-sheet.png` });
+    await fallback.close();
+  }
+
+  /* AC-31 link preview tags and image */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    const meta = await page.evaluate(() => {
+      const m = (p: string) => document.querySelector<HTMLMetaElement>(`meta[property="${p}"], meta[name="${p}"]`)?.content ?? null;
+      return { title: m('og:title'), description: m('og:description'), image: m('og:image'), width: m('og:image:width'), height: m('og:image:height'), alt: m('og:image:alt'), card: m('twitter:card') };
+    });
+    const imageUrl = new URL(meta.image ?? '/missing', BASE).href;
+    const res = await page.request.get(imageUrl);
+    const bytes = (await res.body()).length;
+    const size = await page.evaluate(
+      (src) =>
+        new Promise<[number, number]>((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve([img.naturalWidth, img.naturalHeight]);
+          img.onerror = () => resolve([0, 0]);
+          img.src = src;
+        }),
+      imageUrl,
+    );
+    check(
+      'AC-31',
+      'Link preview: title, description and a 1200 × 630 JPEG image under 300 KB (absolute URL once the domain is set)',
+      !!meta.title?.includes('Rahul & Divya') &&
+        !!meta.description &&
+        meta.width === '1200' &&
+        meta.height === '630' &&
+        !!meta.alt &&
+        meta.card === 'summary_large_image' &&
+        res.status() === 200 &&
+        res.headers()['content-type']?.includes('image/jpeg') &&
+        bytes < 300 * 1024 &&
+        size[0] === 1200 &&
+        size[1] === 630,
+      JSON.stringify({ meta, status: res.status(), bytes, size }),
+    );
+    await ctx.close();
+  }
+
+  /* AC-32 (full) with reduced motion every page stays complete and still: no petals, sway, 3D turns or auto-advance */
+  {
+    const ctx = await mobileContext(browser, 390, 844, { reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await settle(page);
+    await page.getByRole('link', { name: 'Tap to Open Our Invitation' }).tap();
+    await settle(page);
+    await page.waitForTimeout(1200);
+    const petals = await page.evaluate(() => document.querySelectorAll('.petal').length);
+    const moving = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('.sway, .flame, .glow-breathe')].filter((e) => getComputedStyle(e).animationName !== 'none').length,
+    );
+    // Love story ring: no automatic turning, and the cards lie flat.
+    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(8));
+    await page.waitForTimeout(300);
+    const dotBefore = await page.evaluate(() => [...document.querySelectorAll('[data-ring-dot]')].findIndex((d) => d.classList.contains('is-active')));
+    await page.waitForTimeout(6800);
+    const dotAfter = await page.evaluate(() => [...document.querySelectorAll('[data-ring-dot]')].findIndex((d) => d.classList.contains('is-active')));
+    // Thank You: the lettering is complete at once, and Return fades straight to Welcome.
+    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(19));
+    await page.waitForTimeout(200);
+    const lettering = await page.evaluate(() => [...document.querySelectorAll<SVGPathElement>('#thank-you .ty__glyph')].every((p) => Number(getComputedStyle(p).fillOpacity) > 0.99));
+    await page.getByRole('button', { name: 'Return to First Page' }).tap();
+    await page.waitForTimeout(40);
+    const curl = await page.evaluate(() => document.querySelector('.book__flap-wrap')!.classList.contains('is-on'));
+    await settle(page);
+    const landed = await current(page);
+    check(
+      'AC-32b',
+      'Reduced motion: no petals, sway, flicker or ring auto-advance; the lettering is complete at once; Return fades to Welcome',
+      petals === 0 && moving === 0 && dotBefore === dotAfter && lettering && !curl && landed === 'welcome',
+      JSON.stringify({ petals, moving, dotBefore, dotAfter, lettering, curl, landed }),
+    );
+    await ctx.close();
+  }
+
+  /* AC-34 automated accessibility scan (axe) on every page, the chrome and the overlays */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.setItem('rdv:hint-seen', '1');
+      localStorage.setItem('rdv:reduce-motion', '1');
+    });
+    await page.goto(BASE);
+    await settle(page);
+    await page.addScriptTag({ content: readFileSync(join(process.cwd(), 'node_modules/axe-core/axe.min.js'), 'utf8') });
+    const scan = (scope: string) =>
+      page.evaluate(async (scope) => {
+        const axe = (window as unknown as { axe: { run(ctx: unknown, opts: unknown): Promise<{ violations: { id: string; impact: string; nodes: { target: string[] }[] }[] }> } }).axe;
+        const r = await axe.run({ include: [scope] }, { resultTypes: ['violations'] });
+        return r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${scope}: ${v.id} (${v.impact}) ${v.nodes[0]?.target.join(' ')}`);
+      }, scope);
+    const problems: string[] = [];
+    const ids = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.book > .page')].map((p) => p.id));
+    for (const [i, id] of ids.entries()) {
+      await page.evaluate((i) => (window as unknown as { __book: { show(i: number): void } }).__book.show(i), i);
+      await page.waitForTimeout(150);
+      problems.push(...(await scan(`#${id}`)));
+    }
+    problems.push(...(await scan('[data-chrome]')));
+    const overlays = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.app > [role="dialog"]')].map((d) => d.id));
+    for (const id of overlays) {
+      await page.evaluate((id) => {
+        const d = document.getElementById(id)!;
+        d.hidden = false;
+        d.classList.add('is-open');
+      }, id);
+      await page.waitForTimeout(80);
+      problems.push(...(await scan(`#${id}`)));
+      await page.evaluate((id) => {
+        const d = document.getElementById(id)!;
+        d.hidden = true;
+        d.classList.remove('is-open');
+      }, id);
+    }
+    // The family dashboard, signed out and signed in.
+    await page.goto(`${BASE}admin`);
+    await page.addScriptTag({ content: readFileSync(join(process.cwd(), 'node_modules/axe-core/axe.min.js'), 'utf8') });
+    problems.push(...(await scan('body')).map((p) => `admin sign-in ${p}`));
+    await page.getByRole('button', { name: 'Sign in (local development)' }).tap();
+    await page.waitForFunction(() => !document.querySelector<HTMLElement>('[data-view="dashboard"]')!.hidden, null, { polling: POLL });
+    problems.push(...(await scan('body')).map((p) => `admin dashboard ${p}`));
+    check('AC-34', `No serious or critical axe issues on ${ids.length} pages, the chrome, ${overlays.length} overlays and the dashboard`, problems.length === 0, problems.slice(0, 8).join(' | '));
+    await ctx.close();
+  }
+
+  /* AC-36 supplied artwork is shown as supplied: no tints or filters, no distortion (checked for every real asset present) */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await settle(page);
+    const assets = await page.evaluate(async () => {
+      const book = (window as unknown as { __book: { show(i: number): void } }).__book;
+      const pages = [...document.querySelectorAll<HTMLElement>('.book > .page')];
+      const issues: string[] = [];
+      let real = 0;
+      let slots = 0;
+      for (let i = 0; i < pages.length; i++) {
+        book.show(i);
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        for (const img of pages[i].querySelectorAll<HTMLImageElement>('img.decor')) {
+          slots++;
+          if (!img.dataset.asset) issues.push(`${pages[i].id}: decoration without an asset ID`);
+          if ('placeholder' in img.dataset) continue;
+          real++;
+          const style = getComputedStyle(img);
+          const box = img.getBoundingClientRect();
+          if (style.filter !== 'none') issues.push(`${img.dataset.asset}: filter ${style.filter}`);
+          if (img.naturalWidth && box.width && Math.abs(box.width / box.height - img.naturalWidth / img.naturalHeight) > 0.02 * (img.naturalWidth / img.naturalHeight))
+            issues.push(`${img.dataset.asset}: stretched`);
+        }
+      }
+      return { real, slots, issues };
+    });
+    check(
+      'AC-36',
+      `Supplied artwork appears unaltered (${assets.real} supplied assets present; ${assets.slots} decoration slots carry asset IDs)`,
+      assets.issues.length === 0,
+      assets.issues.slice(0, 8).join(' | '),
+    );
+    await ctx.close();
+  }
+
+  /* Dress-code deck */
+  {
+    const { ctx, page, cdp } = await openedPage('dress-code');
+    const front = () => page.evaluate(() => [...document.querySelectorAll('[data-deck-dot]')].findIndex((d) => d.classList.contains('is-active')));
+    const box = (await page.locator('.dc__deck').boundingBox())!;
+    const y = box.y + box.height / 2;
+    await touchDrag(cdp, page, [box.x + box.width * 0.8, y], [box.x - 40, y], 12, 18);
+    await page.waitForTimeout(500);
+    const afterLeft = await front();
+    await touchDrag(cdp, page, [box.x + box.width * 0.2, y], [box.x + box.width + 40, y], 12, 18);
+    await page.waitForTimeout(500);
+    const afterRight = await front();
+    await page.locator('.dc__deck').tap();
+    await page.waitForTimeout(700);
+    const flipped = await page.evaluate(() => document.querySelectorAll('.dc__card.is-flipped').length === 1);
+    const samePage = (await current(page)) === 'dress-code';
+    await touchDrag(cdp, page, [box.x + box.width / 2, box.y + box.height - 20], [box.x + box.width / 2, box.y - 200], 10, 14);
+    const turned = await current(page);
+    check('PH3-deck', 'Dress-code deck: swipe moves one card each way, tap turns it over, vertical swipe turns the page', afterLeft === 1 && afterRight === 0 && flipped && samePage && turned === 'venues', JSON.stringify({ afterLeft, afterRight, flipped, turned }));
+    await ctx.close();
+  }
+
+  /* Ceremony and reception finish their entrances */
+  {
+    const { ctx, page } = await openedPage('reception');
+    const curtains = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#reception .rc__curtain')].map((c) => +getComputedStyle(c).transform.split('(')[1].split(',')[0]));
+    const cardShown = await page.evaluate(() => getComputedStyle(document.querySelector('#reception .rc__card')!).opacity === '1');
+    await page.evaluate(() => (location.hash = 'ceremony'));
+    await page.waitForTimeout(150);
+    await settle(page);
+    await page.waitForTimeout(2600);
+    const plaque = await page.evaluate(() => getComputedStyle(document.querySelector('#ceremony .cm__plaque')!).opacity === '1');
+    check('PH3-scenes', 'Reception curtains part and the card appears; the mandapam plaque appears', curtains.every((s) => Math.abs(s - 0.34) < 0.02) && cardShown && plaque, JSON.stringify({ curtains, cardShown, plaque }));
+    await ctx.close();
+  }
+
+  /* AC-09 production view shows no "To be provided" text */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await settle(page);
+    const leaks = await page.evaluate(async () => {
+      const html = document.documentElement;
+      html.classList.remove('preview');
+      html.classList.add('is-production');
+      html.classList.add('reduce-motion');
+      const book = (window as unknown as { __book: { show(i: number): void } }).__book;
+      const pages = [...document.querySelectorAll<HTMLElement>('.book > .page')];
+      const found: string[] = [];
+      for (let i = 0; i < pages.length; i++) {
+        book.show(i);
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const walker = document.createTreeWalker(pages[i], NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text;
+          const el = node.parentElement!;
+          if (/To be provided|Phase \d|Placeholder art/.test(node.data) && el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) found.push(`${pages[i].id}: ${node.data.trim().slice(0, 40)}`);
+        }
+      }
+      return found;
+    });
+    check('AC-09', 'Production view hides every "To be provided" label and preview note', leaks.length === 0, leaks.slice(0, 6).join(' | '));
+    await ctx.close();
+  }
+
+  /* ------------------------------------------------ AC-08 layout at phone sizes */
+  for (const [w, h] of [
+    [360, 640],
+    [375, 667],
+    [390, 844],
+    [430, 932],
+  ] as const) {
+    const ctx = await mobileContext(browser, w, h);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await settle(page);
+    const problems = await page.evaluate(async () => {
+      document.documentElement.classList.add('reduce-motion');
+      const book = (window as unknown as { __book: { show(i: number): void } }).__book;
+      const pages = [...document.querySelectorAll<HTMLElement>('.book > .page')];
+      const out: string[] = [];
+      for (let i = 0; i < pages.length; i++) {
+        book.show(i);
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const content = pages[i].querySelector<HTMLElement>('.page__content')!;
+        const c = content.getBoundingClientRect();
+        let top = Infinity;
+        let bottom = -Infinity;
+        let right = -Infinity;
+        let left = Infinity;
+        for (const child of content.children) {
+          const r = child.getBoundingClientRect();
+          if (!r.height) continue;
+          top = Math.min(top, r.top);
+          bottom = Math.max(bottom, r.bottom);
+          left = Math.min(left, r.left);
+          right = Math.max(right, r.right);
+        }
+        const issues = [];
+        if (top < c.top - 1 || bottom > c.bottom + 1) issues.push(`vertical overflow ${Math.round(Math.max(c.top - top, bottom - c.bottom))}px`);
+        if (left < 0 || right > window.innerWidth) issues.push('beyond screen edge');
+        if (document.documentElement.scrollWidth > window.innerWidth) issues.push('horizontal page scroll');
+        if (issues.length) out.push(`${pages[i].id}: ${issues.join(', ')}`);
+      }
+      return out;
+    });
+    check('AC-08', `No overflow at ${w}×${h} (preview build, phase notes included)`, problems.length === 0, problems.join(' | '));
+    if (SHOTS && w === 375) {
+      for (const id of ['cover', 'welcome', 'save-the-date', 'events']) {
+        await page.evaluate((pid) => {
+          const pages = [...document.querySelectorAll('.book > .page')];
+          (window as unknown as { __book: { show(i: number): void } }).__book.show(pages.findIndex((p) => p.id === pid));
+        }, id);
+        await page.waitForTimeout(150);
+        await page.screenshot({ path: `${SHOTS}/mobile-${w}x${h}-${id}.png` });
+      }
+    }
+    await ctx.close();
+  }
+
+  /* ------------------------------------------------ performance with CPU slowed 4× */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await page.goto(BASE);
+    await settle(page);
+    await page.evaluate(() => localStorage.setItem('rdv:hint-seen', '1'));
+    await page.waitForTimeout(1500);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    // Envelope opening under the same 4× CPU slowdown
+    await page.evaluate(() => {
+      const w = window as unknown as { __og: number[]; __orun: boolean };
+      w.__og = [];
+      w.__orun = true;
+      let last = 0;
+      const loop = (t: number) => {
+        if (last) w.__og.push(t - last);
+        last = t;
+        if (w.__orun) requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    });
+    await page.getByRole('link', { name: 'Tap to Open Our Invitation' }).tap();
+    await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'welcome', null, { timeout: 8000, polling: POLL });
+    const openGaps = await page.evaluate(() => {
+      const w = window as unknown as { __og: number[]; __orun: boolean };
+      w.__orun = false;
+      return w.__og;
+    });
+    const openAvg = openGaps.reduce((a, b) => a + b, 0) / openGaps.length;
+    metrics.openingFrames = { averageFps: +(1000 / openAvg).toFixed(1), framesOver20ms: openGaps.filter((g) => g > 20).length, frames: openGaps.length };
+    await settle(page);
+    await page.waitForTimeout(2500); // let Welcome's entry choreography finish before measuring turns
+    await page.evaluate(() => {
+      const w = window as unknown as { __gaps: number[]; __run: boolean };
+      w.__gaps = [];
+      w.__run = true;
+      let last = 0;
+      const loop = (t: number) => {
+        if (last) w.__gaps.push(t - last);
+        last = t;
+        if (w.__run) requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    });
+    for (let i = 0; i < 4; i++) {
+      await page.getByRole('button', { name: 'Next page' }).last().tap();
+      await page.waitForTimeout(40);
+      await settle(page);
+    }
+    for (let i = 0; i < 3; i++) await touchDrag(cdp, page, [330, 600], [60, 380], 18, 16);
+    const gaps = await page.evaluate(() => {
+      const w = window as unknown as { __gaps: number[]; __run: boolean };
+      w.__run = false;
+      return w.__gaps;
+    });
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    const sorted = [...gaps].sort((a, b) => a - b);
+    const avg = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+    metrics.turnFrames = {
+      cpuSlowdown: '4x',
+      frames: gaps.length,
+      averageFps: +(1000 / avg).toFixed(1),
+      medianFrameMs: +sorted[sorted.length >> 1].toFixed(1),
+      p95FrameMs: +sorted[Math.floor(sorted.length * 0.95)].toFixed(1),
+      framesOver20ms: gaps.filter((g) => g > 20).length,
+    };
+    check('PERF', 'Turns hold ≥50 fps average with CPU slowed 4×', 1000 / avg >= 50, JSON.stringify(metrics.turnFrames));
+    await ctx.close();
+  }
+
+  /* ------------------------------------------------ desktop Option B */
+  {
+    const ctx = await newContext(browser, { viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await settle(page);
+    const box = await page.locator('.app').boundingBox();
+    const ratio = box ? box.width / box.height : 0;
+    check('AC-35', 'Desktop shows the book inside one centred phone mockup', !!box && Math.abs(ratio - 390 / 844) < 0.01 && Math.abs(box.x + box.width / 2 - 720) < 4, JSON.stringify(box));
+    // One mockup and one unchanging background, whichever page is showing (PRD §7.2).
+    const scene = () =>
+      page.evaluate(() => ({
+        devices: document.querySelectorAll('.device').length,
+        bg: getComputedStyle(document.querySelector('.stage__bg')!).backgroundImage,
+        pieces: document.querySelectorAll('.stage__bg .stage__garland, .stage__bg .stage__lamp, .stage__bg .stage__pillar, .stage__bg .stage__gopuram').length,
+        drift: getComputedStyle(document.querySelector('.stage__scene')!).animationName,
+      }));
+    const before = await scene();
+    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(12));
+    await page.waitForTimeout(200);
+    const after = await scene();
+    check(
+      'AC-35b',
+      'Desktop background (pillars, garlands, lamps, gopuram, slow drift) stays the same on every page',
+      before.devices === 1 && JSON.stringify(before) === JSON.stringify(after) && before.pieces === 7 && before.drift === 'stage-drift',
+      JSON.stringify({ before, after }),
+    );
+    if (SHOTS) {
+      await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(0));
+      await settle(page);
+      await page.screenshot({ path: `${SHOTS}/desktop-1440x900-cover.png` });
+      await page.getByRole('button', { name: 'Skip' }).click();
+      await settle(page);
+      await page.waitForTimeout(1400); // entry choreography
+      await page.screenshot({ path: `${SHOTS}/desktop-1440x900-welcome.png` });
+    }
+    await ctx.close();
+  }
+
+  /* Tablet portrait: one page at full height on the desktop background, no mockup (PRD §7.3) */
+  {
+    const ctx = await newContext(browser, { viewport: { width: 768, height: 1024 }, hasTouch: true });
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await settle(page);
+    const t = await page.evaluate(() => {
+      const app = document.querySelector('.app')!.getBoundingClientRect();
+      return {
+        mockup: getComputedStyle(document.querySelector('.device')!).display !== 'contents',
+        height: Math.round(app.height),
+        centred: Math.abs(app.left + app.width / 2 - 384) < 2,
+        background: getComputedStyle(document.querySelector('.stage__bg')!).display !== 'none',
+      };
+    });
+    check('AC-35c', 'Tablet portrait shows one page at full height on the background, without a mockup', !t.mockup && t.height === 1024 && t.centred && t.background, JSON.stringify(t));
+    await ctx.close();
+  }
+
+  await browser.close();
+
+  const failed = results.filter((r) => !r.pass);
+  for (const r of results) console.log(`${r.pass ? '✓' : '✗'} ${r.id.padEnd(7)} ${r.name}${r.detail && !r.pass ? `\n          ${r.detail}` : ''}`);
+  if (pageErrors.length) console.log(`\nPage errors (${pageErrors.length}):\n  ${[...new Set(pageErrors)].slice(0, 10).join('\n  ')}`);
+  console.log('\nMetrics:', JSON.stringify(metrics, null, 2));
+  console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
+  process.exit(failed.length ? 1 : 0);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

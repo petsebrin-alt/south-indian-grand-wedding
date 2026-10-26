@@ -1,0 +1,47 @@
+---
+/** Contents overlay styled as a book index (PRD §8.5, THEME §12.10). */
+import Icon from './Icon.astro';
+import Ornament from './Ornament.astro';
+import { bookPages } from '../data/pages';
+import { wedding } from '../data/wedding';
+
+const entries = bookPages.map((p, index) => ({ ...p, index })).filter((p) => p.contents);
+---
+
+<div id="contents" class="overlay" role="dialog" aria-modal="true" aria-labelledby="contents-title" hidden>
+  <header class="overlay__header">
+    <h2 id="contents-title" class="overlay__title">Contents</h2>
+    <button class="overlay__close" type="button" data-dialog-close data-autofocus aria-label="Close contents">
+      <Icon name="close" />
+    </button>
+  </header>
+  <div class="overlay__body">
+    <Ornament name="divider" class="contents__divider" />
+    <ol class="contents-list">
+      {
+        entries.map((p) => (
+          <li>
+            <button type="button" data-goto={p.index}>
+              <span class="contents-list__title">{p.contents}</span>
+              <span class="contents-list__leader" aria-hidden="true" />
+              <span class="contents-list__page">{p.index === 0 ? 'Cover' : p.index}</span>
+            </button>
+          </li>
+        ))
+      }
+    </ol>
+    <div class="contents-settings">
+      <label class="switch">
+        <input type="checkbox" role="switch" data-toggle-scroll />
+        <span>Read as scrolling page</span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" role="switch" data-toggle-motion />
+        <span>Reduce motion</span>
+      </label>
+      <button class="btn-secondary" type="button" data-share data-share-url={wedding.site.url ?? ''} data-share-text={wedding.site.shareText}>
+        <Icon name="share" /> Share invitation
+      </button>
+    </div>
+  </div>
+</div>

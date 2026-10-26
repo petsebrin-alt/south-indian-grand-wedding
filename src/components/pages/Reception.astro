@@ -1,0 +1,213 @@
+---
+/** Page 12 — Grand Wedding Reception (PRD §6.11, THEME §13 P12). Motion: src/motion/pages/reception.ts */
+import PageShell from '../PageShell.astro';
+import Decor from '../Decor.astro';
+import Ph from '../Ph.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+import { formatDateLong, formatTime } from '../../lib/format';
+import { venueById, venueFallback } from '../../lib/venue';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const { groom, bride } = wedding.couple;
+const event = wedding.events.find((e) => e.id === 'reception')!;
+const venue = venueById(event.venueId);
+const proposed = event.timeStatus === 'proposed';
+
+// Warm string lights (D-29a): x %, length % of page height, bulbs per strand; a fixed pattern so it renders identically
+const strands = [
+  [6, 15, 3],
+  [16, 23, 4],
+  [27, 12, 2],
+  [38, 20, 4],
+  [50, 26, 5],
+  [62, 18, 3],
+  [73, 13, 2],
+  [84, 22, 4],
+  [94, 16, 3],
+];
+---
+
+<PageShell page={page} index={index} watermark={false} class="rc" note="Placeholder art: D-27 reception backdrop and floral urns, D-28 ivory silk curtains. Hanging lights (D-29a) are drawn in code so they can light up one by one.">
+  <Fragment slot="architecture">
+    <Decor name="reception-backdrop" asset="D-27" class="layer layer--architecture rc__backdrop" />
+    <div class="layer layer--architecture rc__stage" aria-hidden="true"></div>
+  </Fragment>
+
+  <div class="rc__card">
+    <h2 class="page-title rc__line" tabindex="-1" data-page-heading>Grand Wedding Reception</h2>
+    <p class="names names--l rc__line">{groom.name} <span class="amp">&amp;</span> {bride.name}</p>
+    <p class="lead rc__line">{proposed && <span class="rc__label">Proposed date: </span>}{formatDateLong(event.startISO)}</p>
+    <p class="rc__time rc__line">
+      {proposed && <span class="rc__label">Proposed time: </span>}{formatTime(event.startISO)} IST
+      {proposed && <span class="badge badge--proposed">Proposed</span>}
+    </p>
+    <p class="caption rc__line" data-selectable>
+      Venue: same function hall as Sangeet · <Ph value={venue.name} label="Function hall name" fallback={venueFallback(venue)} />
+    </p>
+  </div>
+
+  <Fragment slot="foreground">
+    <div class="layer layer--foreground rc__lights" aria-hidden="true">
+      {
+        strands.map(([x, len, bulbs], i) => (
+          <span class="rc__strand" style={`left:${x}%;height:${len}cqh`}>
+            {Array.from({ length: bulbs }, (_, b) => (
+              <span class:list={['rc__bulb', (i + b) % 5 === 2 && 'rc__bulb--twinkle']} style={`top:${((b + 1) / bulbs) * 100}%;--tw:${2.6 + ((i * 7 + b * 3) % 10) / 4}s`} />
+            ))}
+          </span>
+        ))
+      }
+    </div>
+    <Decor name="floral-urn" asset="D-27" class="layer layer--foreground rc__urn rc__urn--l" />
+    <Decor name="floral-urn" asset="D-27" class="layer layer--foreground rc__urn rc__urn--r" />
+    <Decor name="silk-curtain" asset="D-28" class="layer layer--foreground rc__curtain rc__curtain--l" />
+    <Decor name="silk-curtain-right" asset="D-28" class="layer layer--foreground rc__curtain rc__curtain--r" />
+  </Fragment>
+</PageShell>
+
+<style is:global>
+  .rc .page__content {
+    inset-inline: 15cqw;
+  }
+
+  .rc__backdrop {
+    left: 50%;
+    top: calc(var(--safe-top) + 10cqh);
+    width: min(84cqw, 58cqh);
+    translate: -50% 0;
+    filter: drop-shadow(0 12px 24px rgba(75, 48, 38, 0.18));
+  }
+
+  /* Low stage with an ivory carpet */
+  .rc__stage {
+    left: 6cqw;
+    right: 6cqw;
+    bottom: calc(var(--safe-bottom) + 10cqh);
+    height: 9cqh;
+    background: linear-gradient(180deg, #fffaf0 0%, #efe2c6 100%);
+    clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+    box-shadow: inset 0 3px 0 var(--gold);
+  }
+
+  .rc__card {
+    display: grid;
+    gap: 1cqh;
+    width: 100%;
+    padding: 3cqh 5cqw;
+    background: rgba(255, 253, 248, 0.96);
+    border-radius: 4px;
+    box-shadow:
+      inset 0 0 0 1.5px var(--gold),
+      inset 0 0 0 6px var(--jasmine),
+      inset 0 0 0 7px var(--gold),
+      0 14px 30px rgba(75, 48, 38, 0.22);
+  }
+
+  .rc__card .names {
+    font-size: clamp(28px, 8.4cqw, 42px);
+    color: var(--maroon);
+  }
+
+  .rc__label {
+    font-family: var(--font-body);
+    font-size: 0.62em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--brown-soft);
+  }
+
+  .rc__time {
+    font: 600 clamp(14px, 4cqw, 17px) / 1.4 var(--font-royal);
+    letter-spacing: 0.06em;
+    color: var(--gold-text);
+  }
+
+  /* Warm hanging lights */
+  .rc__lights {
+    inset: 0 0 auto;
+    height: 30cqh;
+  }
+
+  .rc__strand {
+    position: absolute;
+    top: 0;
+    width: 1px;
+    background: linear-gradient(180deg, rgba(196, 154, 69, 0.8), rgba(196, 154, 69, 0.35));
+  }
+
+  .rc__bulb {
+    position: absolute;
+    left: 50%;
+    width: 7px;
+    height: 9px;
+    translate: -50% -50%;
+    border-radius: 50% 50% 45% 45%;
+    background: radial-gradient(circle at 50% 40%, #fffbe8 0%, #ffe3a0 55%, #f0b34c 100%);
+    box-shadow:
+      0 0 6px 2px rgba(255, 214, 140, 0.75),
+      0 0 18px 6px rgba(255, 214, 140, 0.32);
+  }
+
+  .rc__bulb--twinkle {
+    animation: twinkle var(--tw, 3s) ease-in-out infinite alternate;
+  }
+
+  @keyframes twinkle {
+    to {
+      opacity: 0.82;
+    }
+  }
+
+  .page:not([data-state='current']) .rc__bulb--twinkle,
+  .reduce-motion .rc__bulb--twinkle {
+    animation-play-state: paused;
+  }
+
+  .rc__urn {
+    bottom: calc(var(--safe-bottom) + 8cqh);
+    width: 19cqw;
+  }
+
+  .rc__urn--l {
+    left: 3cqw;
+  }
+
+  .rc__urn--r {
+    right: 3cqw;
+  }
+
+  /* Curtains start closed over the stage and gather to the sides */
+  .rc__curtain {
+    top: 0;
+    height: 100cqh;
+    width: 51cqw;
+    object-fit: fill;
+  }
+
+  .rc__curtain--l {
+    left: 0;
+    transform-origin: 0 50%;
+  }
+
+  .rc__curtain--r {
+    right: 0;
+    transform-origin: 100% 50%;
+  }
+
+  @container app (max-height: 699px) {
+    .rc__card {
+      gap: 0.6cqh;
+      padding-block: 2cqh;
+    }
+
+    .rc__urn {
+      width: 14cqw;
+    }
+  }
+</style>

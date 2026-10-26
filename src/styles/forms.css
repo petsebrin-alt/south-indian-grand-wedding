@@ -1,0 +1,353 @@
+/* Form controls for the Wishing Wall and RSVP (THEME §12.6, PRD §6.15–§6.16). */
+
+.form-card {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 28px 22px 24px;
+  background-color: var(--jasmine);
+  background-image: var(--paper-texture);
+  background-blend-mode: multiply;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 1.5px var(--gold),
+    inset 0 0 0 6px var(--jasmine),
+    inset 0 0 0 7px var(--gold),
+    0 16px 34px rgba(75, 48, 38, 0.18);
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.field__label,
+.field legend {
+  font: 500 11px/1.4 var(--font-royal);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-text);
+}
+
+.field legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+fieldset.field {
+  margin-inline: 0;
+  border: 0;
+  padding: 0;
+}
+
+.field__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  background: transparent;
+  font: 400 16px/1.4 var(--font-body);
+  color: var(--brown);
+}
+
+textarea.field__input {
+  min-height: 96px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.7);
+}
+
+.field__input:focus {
+  outline: none;
+  border-bottom: 2px solid var(--maroon);
+}
+
+textarea.field__input:focus {
+  border: 2px solid var(--maroon);
+}
+
+.field__input[aria-invalid='true'] {
+  border-color: var(--maroon);
+}
+
+.field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--maroon);
+}
+
+.field__error::before {
+  content: '!';
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--maroon);
+  color: var(--ivory);
+  font: 700 11px/1 var(--font-body);
+}
+
+.field__error:empty {
+  display: none;
+}
+
+.field__counter {
+  justify-self: end;
+  font-size: 12px;
+  color: var(--brown-soft);
+}
+
+/* Honeypot: invisible to people, tempting to bots */
+.hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Large selectable cards (attendance) */
+.choice-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.choice-card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  min-height: 84px;
+  padding: 12px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  background: rgba(255, 253, 248, 0.9);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    transform var(--t-micro),
+    background var(--t-micro);
+}
+
+.choice-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.choice-card__title {
+  font: 600 17px/1.2 var(--font-display);
+  color: var(--brown);
+}
+
+.choice-card__sub {
+  font-size: 12px;
+  color: var(--brown-soft);
+}
+
+.choice-card:has(input:checked) {
+  background: var(--maroon);
+  border-color: var(--maroon);
+  transform: scale(0.98);
+}
+
+.choice-card:has(input:checked) .choice-card__title,
+.choice-card:has(input:checked) .choice-card__sub {
+  color: var(--ivory);
+}
+
+.choice-card:has(input:focus-visible) {
+  outline: 2px solid var(--maroon);
+  outline-offset: 3px;
+}
+
+/* Checkbox chips */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-check {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.9);
+  font: 600 13px/1.25 var(--font-body);
+  color: var(--brown);
+  cursor: pointer;
+}
+
+.chip-check small {
+  font-weight: 400;
+  color: var(--brown-soft);
+}
+
+.chip-check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chip-check:has(input:checked) {
+  background: var(--maroon);
+  border-color: var(--maroon);
+  color: var(--ivory);
+}
+
+.chip-check:has(input:checked) small {
+  color: var(--sandal);
+}
+
+.chip-check:has(input:focus-visible) {
+  outline: 2px solid var(--maroon);
+  outline-offset: 2px;
+}
+
+/* Number stepper */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepper button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  background: rgba(255, 253, 248, 0.9);
+  color: var(--maroon);
+  font: 600 20px/1 var(--font-body);
+}
+
+.stepper input {
+  width: 56px;
+  min-height: 44px;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  background: transparent;
+  text-align: center;
+  font: 600 20px/1 var(--font-display);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--brown);
+  -moz-appearance: textfield;
+}
+
+.stepper input::-webkit-outer-spin-button,
+.stepper input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--brown);
+  text-align: left;
+}
+
+.consent input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  accent-color: var(--maroon);
+}
+
+.link-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--maroon);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.form-actions .btn-primary {
+  flex: 1;
+  min-height: 52px;
+}
+
+.form-status {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.form-status:empty {
+  display: none;
+}
+
+.form-status--error {
+  border: 1px solid var(--maroon);
+  background: rgba(122, 38, 53, 0.06);
+  color: var(--maroon);
+}
+
+/* Petal spinner (THEME §12.16) */
+.petal-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 249, 239, 0.35);
+  border-top-color: var(--ivory);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.reduce-motion .petal-spinner {
+  animation-duration: 3s;
+}
+
+.is-sending .btn-label {
+  display: none;
+}
+
+.btn-sending {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.is-sending .btn-sending {
+  display: inline-flex;
+}

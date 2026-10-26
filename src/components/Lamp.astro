@@ -1,0 +1,24 @@
+---
+/** Brass kuthuvilakku (D-06) with five CSS flames over its wicks (THEME §10.3 M-03). */
+import Decor from './Decor.astro';
+
+interface Props {
+  class?: string;
+  eager?: boolean;
+}
+
+const { class: className, eager } = Astro.props;
+// Wick tips in the 360 × 900 lamp artwork, as percentages
+const wicks = [
+  [12.2, 21.1],
+  [31.1, 22],
+  [50, 22.2],
+  [68.9, 22],
+  [87.8, 21.1],
+];
+---
+
+<div class:list={['lamp', className]} aria-hidden="true">
+  <Decor name="kuthuvilakku" asset="D-06" class="lamp__body" eager={eager} />
+  {wicks.map(([x, y], i) => <span class="flame" style={`left:${x}%;top:${y}%;--flicker-delay:${(-i * 0.37).toFixed(2)}s`} />)}
+</div>

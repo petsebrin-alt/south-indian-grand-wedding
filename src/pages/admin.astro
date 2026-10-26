@@ -1,0 +1,353 @@
+---
+/**
+ * Family dashboard (PRD §13.6): private, not linked from the invitation, never indexed.
+ * Behaviour: src/admin/dashboard.ts · sign-in: src/admin/session.ts
+ */
+import '@fontsource/cormorant-garamond/600.css';
+import '@fontsource/cinzel/500.css';
+import '@fontsource/cinzel/600.css';
+import '@fontsource/manrope/400.css';
+import '@fontsource/manrope/600.css';
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/chrome.css';
+import '../styles/forms.css';
+import { wedding } from '../data/wedding';
+
+const { groom, bride } = wedding.couple;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Family dashboard · {groom.name} &amp; {bride.name}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="admin">
+    <header class="admin__head">
+      <p class="admin__eyebrow">Family dashboard</p>
+      <h1 class="admin__title">{groom.name} &amp; {bride.name}</h1>
+    </header>
+
+    <main class="admin__main">
+      <section class="admin-card admin-signin" data-view="sign-in" hidden>
+        <h2 class="admin__h2">Sign in</h2>
+        <p class="admin__lead">This page is for the families. Sign in with the email address the site owner added to the family list.</p>
+        <form class="admin-signin__form" data-email-form novalidate>
+          <div class="field">
+            <label class="field__label" for="admin-email">Email address</label>
+            <input class="field__input" id="admin-email" name="email" type="email" autocomplete="email" required />
+          </div>
+          <button class="btn-primary" type="submit">Send me a sign-in link</button>
+        </form>
+        <button class="btn-secondary" type="button" data-dev-sign-in hidden>Sign in (local development)</button>
+        <p class="admin__note" data-not-configured hidden>Sign-in is not configured yet. See supabase/README.md.</p>
+        <p class="form-status" role="status" data-sign-in-status></p>
+      </section>
+
+      <div class="admin-dash" data-view="dashboard" hidden>
+        <div class="admin-bar">
+          <p class="admin__note">Signed in as <strong data-admin-email></strong> · <span data-updated></span></p>
+          <div class="admin-bar__actions">
+            <button class="btn-secondary" type="button" data-refresh>Refresh</button>
+            <button class="btn-secondary" type="button" data-sign-out>Sign out</button>
+          </div>
+        </div>
+        <p class="form-status form-status--error" role="alert" data-dash-status></p>
+
+        <section aria-labelledby="totals-title">
+          <h2 class="admin__h2" id="totals-title">At a glance</h2>
+          <div class="tiles" data-tiles></div>
+        </section>
+
+        <div class="admin-grid">
+          <section class="admin-card" aria-labelledby="per-event-title">
+            <h2 class="admin__h2" id="per-event-title">Guests per celebration</h2>
+            <table class="mini-table"><tbody data-per-event></tbody></table>
+          </section>
+          <section class="admin-card" aria-labelledby="dietary-title">
+            <h2 class="admin__h2" id="dietary-title">Dietary preferences</h2>
+            <table class="mini-table"><tbody data-dietary></tbody></table>
+            <p class="admin__note">Number of responses that chose each option.</p>
+          </section>
+        </div>
+
+        <section class="admin-card" aria-labelledby="pending-title">
+          <h2 class="admin__h2" id="pending-title">Blessings awaiting approval (<span data-pending-count>0</span>)</h2>
+          <p class="admin__note">Approved blessings appear on the Wishing Wall. Rejected ones are never shown.</p>
+          <p class="admin__empty" data-pending-empty>Nothing waiting. New blessings will appear here.</p>
+          <ul class="wishes" data-pending></ul>
+        </section>
+
+        <section class="admin-card" aria-labelledby="rsvps-title">
+          <div class="admin-card__head">
+            <h2 class="admin__h2" id="rsvps-title">All responses (<span data-rsvp-count>0</span>)</h2>
+            <div class="admin-bar__actions">
+              <button class="btn-secondary" type="button" data-export="rsvps">Export RSVPs (CSV)</button>
+              <button class="btn-secondary" type="button" data-export="wishes">Export blessings (CSV)</button>
+            </div>
+          </div>
+          <p class="admin__empty" data-rsvps-empty>No responses yet.</p>
+          <div class="table-wrap" tabindex="0" role="region" aria-labelledby="rsvps-title">
+            <table class="rsvp-table">
+              <thead>
+                <tr><th>Guest</th><th>Response</th><th>Guests</th><th>Celebrations</th><th>Dietary</th><th>Message</th><th>Received</th></tr>
+              </thead>
+              <tbody data-rsvps></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      import '../admin/dashboard.ts';
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  .admin {
+    min-height: 100vh;
+    background-color: var(--ivory);
+    background-image: var(--paper-texture);
+    background-blend-mode: multiply;
+  }
+
+  .admin__head {
+    padding: 28px 20px 18px;
+    text-align: center;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .admin__eyebrow {
+    font: 500 11px/1.4 var(--font-royal);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .admin__title {
+    font: 600 30px/1.2 var(--font-display);
+    color: var(--maroon);
+  }
+
+  .admin__main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 20px 16px 48px;
+  }
+
+  .admin__h2 {
+    margin-bottom: 10px;
+    font: 600 13px/1.4 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brown);
+  }
+
+  .admin__lead {
+    margin-bottom: 16px;
+    color: var(--brown-soft);
+  }
+
+  .admin__note {
+    font-size: 13px;
+    color: var(--brown-soft);
+  }
+
+  .admin__empty {
+    padding: 14px 0;
+    color: var(--brown-soft);
+    font-style: italic;
+  }
+
+  .admin-card {
+    margin-top: 16px;
+    padding: 18px;
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+    background: rgba(255, 253, 248, 0.92);
+  }
+
+  .admin-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 16px;
+  }
+
+  .admin-signin {
+    max-width: 440px;
+    margin: 32px auto 0;
+    display: grid;
+    gap: 10px;
+  }
+
+  .admin-signin__form {
+    display: grid;
+    gap: 6px;
+  }
+
+  .admin-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .admin-bar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin .btn-primary,
+  .admin .btn-secondary {
+    min-height: 44px;
+    padding: 0 18px;
+    font-size: 14px;
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+  }
+
+  .tile {
+    padding: 14px;
+    border: 1px solid var(--gold);
+    border-radius: 12px;
+    background: var(--jasmine);
+    text-align: center;
+  }
+
+  .tile__value {
+    font: 600 34px/1.1 var(--font-display);
+    font-variant-numeric: lining-nums tabular-nums;
+    color: var(--maroon);
+  }
+
+  .tile__label {
+    font: 500 10px/1.4 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0 16px;
+  }
+
+  .mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+
+  .mini-table th,
+  .mini-table td {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--hairline);
+    text-align: left;
+    font-weight: 400;
+  }
+
+  .num {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600 !important;
+  }
+
+  .wishes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+
+  .wish {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    background: #fffdf8;
+  }
+
+  .wish__msg {
+    font: italic 500 17px/1.4 var(--font-display);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+
+  .wish__meta {
+    font-size: 13px;
+    color: var(--brown-soft);
+  }
+
+  .wish__actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    margin-top: 8px;
+  }
+
+  .rsvp-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .rsvp-table th {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--gold);
+    text-align: left;
+    font: 500 10px/1.4 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .rsvp-table td {
+    padding: 10px;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: top;
+  }
+
+  .rsvp-table .strong {
+    font-weight: 600;
+  }
+
+  .rsvp-table .yes {
+    color: #1f6f50;
+    font-weight: 600;
+  }
+
+  .rsvp-table .no {
+    color: var(--maroon);
+    font-weight: 600;
+  }
+
+  .rsvp-table .msg {
+    max-width: 260px;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+
+  .rsvp-table .nowrap {
+    white-space: nowrap;
+  }
+</style>

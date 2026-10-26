@@ -1,0 +1,64 @@
+---
+/** Event details sheet opened from the timeline (PRD §6.9). Rendered at the app root. */
+import Icon from './Icon.astro';
+import Ph from './Ph.astro';
+import EventActions from './EventActions.astro';
+import type { WeddingEvent } from '../data/schema';
+import { formatDateLong, formatTime } from '../lib/format';
+import { dressCodeFor, venueById, venueFallback } from '../lib/venue';
+
+interface Props {
+  event: WeddingEvent;
+}
+
+const { event } = Astro.props;
+const venue = venueById(event.venueId);
+const dress = dressCodeFor(event);
+const proposed = event.timeStatus === 'proposed';
+---
+
+<div id={`event-${event.id}`} class="sheet" role="dialog" aria-modal="true" aria-labelledby={`event-${event.id}-title`} hidden>
+  <div class="sheet__panel">
+    <span class="sheet__handle" aria-hidden="true"></span>
+    <header class="sheet__header">
+      <h2 id={`event-${event.id}-title`} class="sheet__title">{event.name}</h2>
+      <button class="overlay__close" type="button" data-dialog-close data-autofocus aria-label="Close">
+        <Icon name="close" />
+      </button>
+    </header>
+    <dl class="event-sheet">
+      <div>
+        <dt>Date</dt>
+        <dd>{formatDateLong(event.startISO)}</dd>
+      </div>
+      <div>
+        <dt>Time</dt>
+        <dd>
+          {formatTime(event.startISO)} IST
+          {proposed && <span class="badge badge--proposed">Proposed</span>}
+          {event.id === 'wedding' && <span class="badge badge--muhurtham">Muhurtham</span>}
+          {proposed && <p class="event-sheet__note">This timing is proposed and may change; the families will confirm it.</p>}
+        </dd>
+      </div>
+      <div>
+        <dt>Venue</dt>
+        <dd data-selectable>
+          {venue.label}
+          <br />
+          <Ph value={venue.name && venue.address ? `${venue.name}, ${venue.address}` : venue.name} label={`${venue.label} name and address`} fallback={venueFallback(venue)} />
+        </dd>
+      </div>
+      {
+        dress && (
+          <div>
+            <dt>Dress code</dt>
+            <dd>
+              {dress.suggestion} <span class="badge badge--suggested">Suggested</span>
+            </dd>
+          </div>
+        )
+      }
+    </dl>
+    <EventActions event={event} compact />
+  </div>
+</div>

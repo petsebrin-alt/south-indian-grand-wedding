@@ -1,0 +1,55 @@
+---
+/** Desktop Option B presentation: one phone mockup on a consistent temple-inspired background (PRD §7.2). */
+import QRCode from 'qrcode';
+import Decor from './Decor.astro';
+import Lamp from './Lamp.astro';
+import Ornament from './Ornament.astro';
+import { wedding } from '../data/wedding';
+import { formatDateLong } from '../lib/format';
+
+const { groom, bride } = wedding.couple;
+const qr = wedding.site.url
+  ? await QRCode.toString(wedding.site.url, { type: 'svg', margin: 0, color: { dark: '#4B3026', light: '#FFFDF8' } })
+  : null;
+---
+
+<div class="stage">
+  <div class="stage__bg" aria-hidden="true">
+    <div class="stage__scene">
+      <Decor name="gopuram-misty" asset="D-41" class="stage__gopuram" />
+      <Ornament name="kolam-medallion" class="stage__medallion" />
+    </div>
+    <Ornament name="pillar-line" class="stage__pillar stage__pillar--l" />
+    <Ornament name="pillar-line" class="stage__pillar stage__pillar--r" />
+    <Decor name="jasmine-swag" asset="D-41" class="stage__garland stage__garland--l" />
+    <Decor name="jasmine-swag" asset="D-41" class="stage__garland stage__garland--r" />
+    <Lamp class="stage__lamp stage__lamp--l" />
+    <Lamp class="stage__lamp stage__lamp--r" />
+  </div>
+  <aside class="stage__aside stage__aside--left" aria-hidden="true">
+    <p class="stage__names">{groom.name} <span class="amp">&</span> {bride.name}</p>
+    <Ornament name="divider" class="stage__divider" />
+    <div class="stage__details">
+      <span>{formatDateLong(wedding.ceremony.startISO)}</span>
+      <span>{wedding.ceremony.city}</span>
+    </div>
+  </aside>
+  <div class="device">
+    <div class="device__bezel">
+      <slot />
+    </div>
+  </div>
+  <aside class="stage__aside stage__aside--right" aria-hidden="true">
+    {
+      qr ? (
+        <Fragment>
+          <div class="stage__qr" set:html={qr} />
+          <p class="stage__qr-caption">Open on your phone</p>
+        </Fragment>
+      ) : (
+        <p class="stage__qr-caption preview-only">QR code appears here once the domain is set (M-28).</p>
+      )
+    }
+  </aside>
+  <p class="stage__portrait-note" aria-hidden="true">Best viewed in portrait</p>
+</div>

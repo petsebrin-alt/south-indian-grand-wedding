@@ -1,0 +1,57 @@
+---
+/**
+ * One celebration on the timeline (PRD §6.9, THEME §13 P9/P10, §12.13–12.14): a jasmine-wreath
+ * medallion with the event emblem and a realistic still-life breaking its edge, and a detail
+ * plate with date, time, venue and actions. Rows alternate left and right.
+ */
+import Decor from './Decor.astro';
+import Emblem from './Emblem.astro';
+import Ph from './Ph.astro';
+import EventActions from './EventActions.astro';
+import type { WeddingEvent } from '../data/schema';
+import { formatDateShort, formatTime } from '../lib/format';
+import { venueById, venueFallback } from '../lib/venue';
+
+interface Props {
+  event: WeddingEvent;
+  side: 'left' | 'right';
+}
+
+const { event, side } = Astro.props;
+const venue = venueById(event.venueId);
+const stillLife: Record<WeddingEvent['id'], { name: string; asset: string } | null> = {
+  mehndi: { name: 'mehndi-bowl', asset: 'D-23' },
+  haldi: { name: 'turmeric-bowls', asset: 'D-24' },
+  sangeet: { name: 'music-instruments', asset: 'D-26' },
+  wedding: { name: 'thali-plate', asset: 'D-22' },
+  reception: { name: 'floral-urn', asset: 'D-27' },
+};
+const art = stillLife[event.id];
+const isWedding = event.id === 'wedding';
+---
+
+<li class:list={['ev__item', `ev__item--${side}`, isWedding && 'ev__item--wedding']} data-event={event.id}>
+  <div class="ev__medallion">
+    {event.id === 'sangeet' && <Decor name="hanging-lamp" asset="D-29" class="ev__hanging sway" style="--sway:1.2deg;--sway-dur:5s" />}
+    <Decor name="jasmine-wreath" asset="D-04" class="ev__wreath" />
+    <span class="ev__disc"><Emblem name={event.id} class="ev__emblem" /></span>
+    {art && <Decor name={art.name} asset={art.asset} class="ev__still" />}
+  </div>
+  <div class="ev__plate">
+    <h3 class="ev__name">{event.name}</h3>
+    <p class="ev__when">
+      <span class="ev__date">{formatDateShort(event.startISO)}</span>
+      <span class="ev__time">
+        {formatTime(event.startISO)} IST
+        {event.timeStatus === 'proposed' && <span class="badge badge--proposed">Proposed</span>}
+        {isWedding && <span class="badge badge--muhurtham">Muhurtham</span>}
+      </span>
+    </p>
+    <p class="ev__venue" data-selectable>
+      {venue.label}
+      {' · '}
+      <Ph value={venue.name} label={`${venue.label} name`} fallback={venueFallback(venue)} />
+    </p>
+    <EventActions event={event} />
+  </div>
+</li>

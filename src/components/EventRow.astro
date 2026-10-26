@@ -1,0 +1,34 @@
+---
+/** Interim event row for the timeline pages; Phase 3 replaces it with wreath medallions on the golden thread. */
+import Ph from './Ph.astro';
+import { wedding } from '../data/wedding';
+import type { WeddingEvent } from '../data/schema';
+import { formatDateShort, formatTime } from '../lib/format';
+
+interface Props {
+  event: WeddingEvent;
+  i: number;
+}
+
+const { event, i } = Astro.props;
+const venue = wedding.venues.find((v) => v.id === event.venueId)!;
+const initial = event.name.charAt(0);
+const fallback = venue.privacy === 'onRequest' ? 'Address shared personally' : 'Venue details will be shared soon';
+---
+
+<li class:list={['row', event.id === 'wedding' && 'row--wedding']} data-enter style={`--i:${i}`}>
+  <span class="row__medallion" aria-hidden="true">{initial}</span>
+  <div>
+    <p class="row__title">{event.name}</p>
+    <p class="row__meta">
+      {formatDateShort(event.startISO)} · {formatTime(event.startISO)} IST
+      {event.timeStatus === 'proposed' && <span class="badge badge--proposed">Proposed</span>}
+      {event.id === 'wedding' && <span class="badge badge--muhurtham">Muhurtham</span>}
+    </p>
+    <p class="row__meta">
+      {venue.label}
+      {' · '}
+      <Ph value={venue.name} label={`${venue.label} name`} fallback={fallback} />
+    </p>
+  </div>
+</li>

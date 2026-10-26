@@ -1,0 +1,194 @@
+---
+/** Page 4 — Wedding Countdown (PRD §6.5, THEME §13 P4). Motion: src/motion/pages/countdown.ts */
+import PageShell from '../PageShell.astro';
+import Ornament from '../Ornament.astro';
+import Decor from '../Decor.astro';
+import Lamp from '../Lamp.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+import { formatDateLong, formatTime } from '../../lib/format';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const { startISO } = wedding.ceremony;
+const units = [
+  { key: 'days', label: 'Days' },
+  { key: 'hours', label: 'Hours' },
+  { key: 'minutes', label: 'Minutes' },
+  { key: 'seconds', label: 'Seconds' },
+];
+---
+
+<PageShell page={page} index={index} class="cd" note="Placeholder art: D-08 brass bells, D-02 jasmine strands, D-06 brass lamp. Niche panels (S-07) are CSS.">
+  <Ornament name="divider-line" class="divider cd__rule" />
+  <h2 class="page-title cd__title" tabindex="-1" data-page-heading>Counting Down to the Muhurtham</h2>
+  <Ornament name="divider-line" class="divider cd__rule" />
+
+  <div class="cd__row" data-countdown={startISO} role="timer" aria-label="Time remaining until the wedding Muhurtham">
+    {
+      units.map((u) => (
+        <div class="cd__unit">
+          <Decor name="temple-bell" asset="D-08" class="cd__bell" />
+          <div class="cd__niche">
+            <span class="cd__num" data-unit={u.key} aria-hidden="true">
+              --
+            </span>
+            <span class="cd__label">{u.label}</span>
+          </div>
+        </div>
+      ))
+    }
+    {[1, 2, 3].map((i) => <Decor name="jasmine-strand-short" asset="D-02" class="cd__strand sway lean" style={`left:${i * 25}%;--sway:1.6deg;--sway-dur:${5 + i * 0.7}s;--sway-delay:${-i}s`} />)}
+  </div>
+  <p class="sr-only" data-countdown-summary></p>
+
+  <div class="cd__arrived" data-arrived hidden>
+    <p class="display">{wedding.copy.countdownArrived.text}</p>
+  </div>
+
+  <div class="stack-xs cd__meta">
+    <p class="caption">{formatDateLong(startISO)} · {formatTime(startISO)} IST</p>
+    <p class="caption" data-localtime hidden></p>
+  </div>
+
+  <Fragment slot="foreground">
+    <Lamp class="layer layer--foreground cd__lamp" />
+  </Fragment>
+</PageShell>
+
+<style is:global>
+  .cd__rule {
+    width: 46cqw;
+  }
+
+  .cd__title {
+    max-width: 18em;
+  }
+
+  .cd__row {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3cqw;
+    width: 112%;
+    margin-top: 3cqh;
+  }
+
+  .cd__unit {
+    position: relative;
+    display: grid;
+    justify-items: center;
+  }
+
+  .cd__bell {
+    width: 5.5cqw;
+    margin-bottom: -1.2cqh;
+    transform-origin: 50% 0;
+  }
+
+  .cd__niche {
+    width: 100%;
+    display: grid;
+    align-content: center;
+    gap: 6px;
+    aspect-ratio: 1 / 1.45;
+    border: 1px solid var(--gold);
+    border-radius: 50% 50% 6px 6px / 28% 28% 6px 6px;
+    background:
+      radial-gradient(ellipse at 50% 18%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 60%),
+      linear-gradient(180deg, var(--jasmine), var(--sandal-light));
+    box-shadow:
+      inset 0 0 0 3px var(--jasmine),
+      inset 0 0 0 4px var(--hairline),
+      0 8px 18px var(--shadow);
+  }
+
+  .cd__num {
+    display: inline-flex;
+    justify-content: center;
+    font: 600 clamp(24px, 7.6cqw, 44px) / 1 var(--font-display);
+    font-variant-numeric: lining-nums tabular-nums;
+    color: var(--brown);
+  }
+
+  .cd__slot {
+    position: relative;
+    display: inline-block;
+    height: 1em;
+    overflow: hidden;
+  }
+
+  .cd__digit {
+    display: block;
+  }
+
+  .cd__digit + .cd__digit {
+    position: absolute;
+    inset: 0;
+  }
+
+  .cd__label {
+    font: 500 9px/1 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .cd__strand {
+    position: absolute;
+    top: 6cqh;
+    width: 3.6cqw;
+    translate: -50% 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .cd__arrived {
+    padding: 3cqh 6cqw;
+    border: 1px solid var(--gold);
+    box-shadow: inset 0 0 0 4px var(--jasmine), inset 0 0 0 5px var(--hairline);
+    background: rgba(255, 253, 248, 0.9);
+  }
+
+  .cd__arrived .display {
+    font-size: clamp(24px, 7.6cqw, 34px);
+    color: var(--maroon);
+  }
+
+  .cd__meta {
+    margin-top: 1cqh;
+  }
+
+  .cd__lamp {
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 7cqh);
+    width: 13cqw;
+    translate: -50% 0;
+  }
+
+  @container app (max-width: 339px) {
+    .cd__row {
+      grid-template-columns: repeat(2, 1fr);
+      width: 76%;
+      row-gap: 2cqh;
+    }
+
+    .cd__strand {
+      display: none;
+    }
+  }
+
+  @container app (max-height: 699px) {
+    .cd__lamp {
+      width: 10cqw;
+    }
+
+    .cd__row {
+      margin-top: 1cqh;
+    }
+  }
+</style>

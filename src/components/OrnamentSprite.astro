@@ -1,0 +1,21 @@
+---
+/** Defines every ornament once for Ornament.astro to reference with <use>. Render once per page. */
+import { animated, ornaments, type OrnamentName } from '../lib/ornaments';
+---
+
+<svg class="ornament-sprite" aria-hidden="true" focusable="false">
+  {
+    Object.entries(ornaments)
+      .filter(([name]) => !animated.includes(name as OrnamentName))
+      .map(([name, o]) => <symbol id={`orn-${name}`} viewBox={o.viewBox} set:html={o.inner} />)
+  }
+</svg>
+
+<style is:global>
+  .ornament-sprite {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+</style>

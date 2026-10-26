@@ -1,0 +1,16 @@
+# Supabase project settings for the wedding invitation backend (see supabase/README.md).
+project_id = "rahul-divya-invitation"
+
+# The functions check their own access: public forms are rate-limited and bot-checked,
+# admin requests verify the signed-in family email, the digest requires CRON_SECRET.
+[functions.rsvp]
+verify_jwt = false
+
+[functions.wishes]
+verify_jwt = false
+
+[functions.admin]
+verify_jwt = false
+
+[functions.daily-digest]
+verify_jwt = false

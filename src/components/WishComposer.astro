@@ -1,0 +1,107 @@
+---
+/** "Write a Blessing" overlay (PRD §6.15), styled as one large hanging blessing card. Behaviour: src/forms/wishes.ts */
+import Icon from './Icon.astro';
+import { LIMITS } from '../../supabase/functions/_shared/validate.ts';
+import { wedding } from '../data/wedding';
+
+const { groom, bride } = wedding.couple;
+---
+
+<div id="wish-composer" class="overlay form-overlay" role="dialog" aria-modal="true" aria-labelledby="wish-composer-title" hidden>
+  <header class="overlay__header">
+    <h2 id="wish-composer-title" class="overlay__title">Write a Blessing</h2>
+    <button class="overlay__close" type="button" data-dialog-close aria-label="Close">
+      <Icon name="close" />
+    </button>
+  </header>
+  <div class="overlay__body">
+    <form class="form-card wish-form" data-wish-form novalidate>
+      <div data-state-form>
+        <p class="wish-form__intro">Your words for {groom.name} &amp; {bride.name} will hang on the Wishing Wall once a family member has seen them.</p>
+        <div class="form-status form-status--error" role="alert" data-form-status></div>
+        <div class="field">
+          <label class="field__label" for="wish-name">Your name</label>
+          <input class="field__input" id="wish-name" name="name" autocomplete="name" maxlength={LIMITS.wishNameMax} required aria-describedby="wish-name-error" data-autofocus />
+          <p class="field__error" id="wish-name-error" data-error-for="name"></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="wish-message">Your blessing</label>
+          <textarea class="field__input" id="wish-message" name="message" rows="5" maxlength={LIMITS.messageMax} required aria-describedby="wish-message-error wish-message-count"></textarea>
+          <p class="field__counter" id="wish-message-count" aria-live="polite" data-counter-for="message">0 / {LIMITS.messageMax}</p>
+          <p class="field__error" id="wish-message-error" data-error-for="message"></p>
+        </div>
+        <div class="hp" aria-hidden="true">
+          <label for="wish-website">Leave this empty</label>
+          <input id="wish-website" name="website" tabindex="-1" autocomplete="off" />
+        </div>
+        <p class="wish-form__privacy">
+          Shared only on this invitation, after approval.{' '}
+          <button class="link-button" type="button" data-open-dialog="privacy">How we use your details</button>
+        </p>
+        <div class="form-actions">
+          <button class="btn-primary" type="submit" data-submit>
+            <span class="btn-label">Send Blessing</span>
+            <span class="btn-sending"><span class="petal-spinner" aria-hidden="true"></span> Sending your blessing…</span>
+          </button>
+        </div>
+        <div class="wish-form__bot" data-bot></div>
+      </div>
+      <div class="wish-form__done" data-state-done hidden tabindex="-1">
+        <p class="wish-form__done-title">Thank you!</p>
+        <p>Your blessing has been received and will appear on the wall once the family has seen it.</p>
+        <div class="form-actions">
+          <button class="btn-secondary" type="button" data-dialog-close>Back to the invitation</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style is:global>
+  .form-overlay .overlay__body {
+    padding-top: 24px;
+  }
+
+  .wish-form {
+    border-radius: 40% 40% 8px 8px / 7% 7% 8px 8px;
+    padding-top: 40px;
+  }
+
+  .wish-form::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -24px;
+    width: 1px;
+    height: 24px;
+    background: var(--gold);
+  }
+
+  .wish-form__intro,
+  .wish-form__privacy {
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--brown-soft);
+    text-align: center;
+  }
+
+  .wish-form__privacy {
+    margin: 0 0 12px;
+    font-size: 13px;
+  }
+
+  .wish-form__done {
+    display: grid;
+    gap: 10px;
+    text-align: center;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--brown);
+  }
+
+  .wish-form__done-title {
+    font: 400 var(--t-script-l) / 1.1 var(--font-script);
+    color: var(--maroon);
+  }
+</style>

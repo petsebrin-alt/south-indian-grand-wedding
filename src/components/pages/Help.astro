@@ -1,0 +1,228 @@
+---
+/**
+ * Page 18 — Need Help / Contact (PRD §6.17, THEME §13 P18): three gilt-edged ivory visiting cards.
+ * Call and WhatsApp stay disabled ("Number coming soon") until real numbers are in src/data/wedding.ts.
+ */
+import PageShell from '../PageShell.astro';
+import Icon from '../Icon.astro';
+import Ph from '../Ph.astro';
+import type { BookPage } from '../../data/pages';
+import { contactEmblem, contacts, NUMBER_SOON } from '../../lib/contacts';
+import { whatsappLink } from '../../lib/travel';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+---
+
+<PageShell page={page} index={index} watermark={false} class="nh" note="Names and numbers: to be provided (M-19 to M-21). Emblems are line art until the client's artwork is supplied.">
+  <div class="nh__head">
+    <h2 class="page-title" tabindex="-1" data-page-heading>Need Help?</h2>
+    <p class="caption">We're happy to help with anything you need.</p>
+  </div>
+
+  <ul class="nh__cards">
+    {
+      contacts().map((c, i) => (
+        <li class="nh__card" style={`--i:${i}`}>
+          <span class="nh__emblem" aria-hidden="true">
+            <Icon name={contactEmblem[c.id] ?? 'lotus'} />
+          </span>
+          <div class="nh__who">
+            <p class="nh__role">{c.role}</p>
+            <p class="nh__name">
+              <Ph value={c.name} label="Name" fallback="Name to be shared soon" />
+            </p>
+            {!c.phone && <p class="nh__soon">{NUMBER_SOON}</p>}
+          </div>
+          <div class="nh__actions">
+            {c.phone ? (
+              <a class="nh__action" href={`tel:${c.phone}`} aria-label={`Call ${c.name ?? c.role}`}>
+                <Icon name="phone" /> Call
+              </a>
+            ) : (
+              <button class="nh__action" type="button" aria-disabled="true" data-disabled-message={NUMBER_SOON} aria-label={`Call: ${NUMBER_SOON}`}>
+                <Icon name="phone" /> Call
+              </button>
+            )}
+            {c.whatsapp ? (
+              <a class="nh__action" href={whatsappLink(c.whatsapp)} target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp ${c.name ?? c.role}`}>
+                <Icon name="chat" /> WhatsApp
+              </a>
+            ) : (
+              <button class="nh__action" type="button" aria-disabled="true" data-disabled-message={NUMBER_SOON} aria-label={`WhatsApp: ${NUMBER_SOON}`}>
+                <Icon name="chat" /> WhatsApp
+              </button>
+            )}
+            <button class="nh__action" type="button" data-open-dialog={`contact-${c.id}`} aria-haspopup="dialog" aria-label={`Details for ${c.role}`}>
+              <Icon name="info" /> Details
+            </button>
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+</PageShell>
+
+<style is:global>
+  .nh {
+    background-image: var(--paper-texture), radial-gradient(ellipse at 50% 40%, rgba(255, 249, 239, 0.7), rgba(234, 216, 183, 0) 72%);
+  }
+
+  .nh__head {
+    display: grid;
+    gap: 0.6cqh;
+    margin-bottom: 1cqh;
+  }
+
+  .nh__cards {
+    display: grid;
+    gap: 2.2cqh;
+    width: 110%;
+  }
+
+  /* Gilt edge: a thin gold gradient frame around an ivory card, set slightly askew like a stack. */
+  .nh__card {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 1.2cqh 4cqw;
+    min-height: 120px;
+    padding: 2cqh 4.5cqw 1.6cqh;
+    text-align: left;
+    border: 1.5px solid transparent;
+    border-radius: 6px;
+    background:
+      linear-gradient(var(--jasmine), var(--jasmine)) padding-box,
+      linear-gradient(135deg, #e9d29a, var(--gold) 35%, #8f6a26 60%, #e9d29a) border-box;
+    box-shadow:
+      inset 0 0 0 4px var(--jasmine),
+      inset 0 0 0 4.75px rgba(196, 154, 69, 0.55),
+      0 8px 18px rgba(75, 48, 38, 0.16),
+      0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    rotate: calc((var(--i) - 1) * 0.7deg);
+    translate: calc((var(--i) - 1) * 1.2cqw) 0;
+  }
+
+  .nh__emblem {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    background: radial-gradient(circle at 40% 35%, #fffaf0, var(--sandal-light));
+    color: var(--gold-text);
+    box-shadow: 0 0 0 3px var(--jasmine), 0 0 0 4px rgba(196, 154, 69, 0.45);
+  }
+
+  .nh__emblem svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .nh__who {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .nh__role {
+    font: 600 11px/1.35 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .nh__name {
+    font: 600 19px/1.25 var(--font-display);
+    color: var(--brown);
+  }
+
+  .nh__soon {
+    font-size: 12px;
+    color: var(--brown-soft);
+  }
+
+  .nh__actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2cqw;
+  }
+
+  .nh__action {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 6px;
+    border: 1px solid var(--gold);
+    border-radius: 22px;
+    background: rgba(255, 253, 248, 0.85);
+    color: var(--maroon);
+    font: 600 13px/1 var(--font-body);
+    text-decoration: none;
+    transition: transform 120ms var(--ease-silk), background 120ms;
+  }
+
+  .nh__action svg {
+    width: 17px;
+    height: 17px;
+    flex: none;
+  }
+
+  .nh__action:active {
+    transform: scale(0.96);
+    background: var(--sandal-light);
+  }
+
+  .nh__action[aria-disabled='true'] {
+    border-color: var(--hairline);
+    color: var(--brown-soft);
+    opacity: 0.7;
+  }
+
+  @container app (max-height: 699px) {
+    .nh__card {
+      min-height: 0;
+      padding-block: 1.3cqh 1.2cqh;
+      gap: 0.8cqh 3cqw;
+    }
+
+    .nh__cards {
+      gap: 1.4cqh;
+    }
+
+    .nh__emblem {
+      width: 40px;
+      height: 40px;
+    }
+
+    .nh__emblem svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .nh__role {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+    }
+
+    .nh__name {
+      font-size: 16px;
+    }
+  }
+
+  @container app (max-width: 380px) {
+    .nh__action {
+      font-size: 12px;
+      gap: 4px;
+    }
+  }
+</style>

@@ -1,0 +1,68 @@
+---
+/**
+ * Privacy note linked from the RSVP and Wishing Wall forms (PRD §13.8): what is collected, who sees
+ * it and how long it is kept, in line with India's Digital Personal Data Protection Act, 2023.
+ */
+import Icon from './Icon.astro';
+import { wedding } from '../data/wedding';
+import { formatDateLong } from '../lib/format';
+import { RETENTION_UNTIL } from '../lib/backend-config';
+
+const { groom, bride } = wedding.couple;
+const until = formatDateLong(`${RETENTION_UNTIL}T12:00:00+05:30`);
+---
+
+<div id="privacy" class="sheet privacy-sheet" role="dialog" aria-modal="true" aria-labelledby="privacy-title" hidden>
+  <div class="sheet__panel">
+    <span class="sheet__handle" aria-hidden="true"></span>
+    <header class="sheet__header">
+      <h2 id="privacy-title" class="sheet__title">Your details</h2>
+      <button class="overlay__close" type="button" data-dialog-close data-autofocus aria-label="Close">
+        <Icon name="close" />
+      </button>
+    </header>
+    <div class="privacy-sheet__body">
+      <h3>What we collect</h3>
+      <p><strong>RSVP:</strong> your name, whether you can attend, the number of guests, the celebrations you will join, any dietary preferences and your optional message.</p>
+      <p><strong>Blessings:</strong> your name and your message.</p>
+      <p>We never ask for your phone number, email or address. To block spam, we keep a scrambled (one-way hashed) form of your internet address for two days.</p>
+
+      <h3>Who can see it</h3>
+      <p>RSVPs are seen only by the families of {groom.name} and {bride.name}, who receive them by email and on a private page. Blessings appear on this invitation only after a family member approves them, and can then be read by anyone who has the invitation link.</p>
+      <p>Your details are not sold, shared for advertising or used for anything other than planning the wedding. This invitation uses no advertising trackers.</p>
+
+      <h3>On this device</h3>
+      <p>Your browser keeps a copy of your RSVP and a private edit key so that you can change your response later. Drafts are kept so nothing you type is lost. Clearing your browser data removes them.</p>
+
+      <h3>How long we keep it</h3>
+      <p>All RSVPs and blessings are deleted on {until}, six months after the wedding.</p>
+
+      <h3>Your choices</h3>
+      <p>You can change your RSVP at any time with "Edit my response". To see, correct or delete anything you have shared, contact the families through the Need Help page and they will take care of it.</p>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .privacy-sheet__body {
+    display: grid;
+    gap: 8px;
+    padding: 4px 2px 8px;
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--brown);
+  }
+
+  .privacy-sheet__body h3 {
+    margin-top: 10px;
+    font: 600 11px/1.4 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .privacy-sheet__body h3:first-child {
+    margin-top: 0;
+  }
+</style>

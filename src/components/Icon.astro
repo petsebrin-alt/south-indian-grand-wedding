@@ -1,0 +1,49 @@
+---
+/** Line icons on a 24 px grid, 1.5 px stroke (THEME §6, S-10). */
+const paths = {
+  'chevron-left': '<path d="M15 5l-7 7 7 7"/>',
+  'chevron-right': '<path d="M9 5l7 7-7 7"/>',
+  close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  lotus:
+    '<path d="M12 4.5c2.2 2.6 2.2 6.2 0 9.5-2.2-3.3-2.2-6.9 0-9.5z"/><path d="M12 14c-1.6-3.2-4.6-4.8-8.2-4.2.2 4.2 3.6 6.6 8.2 4.2z"/><path d="M12 14c1.6-3.2 4.6-4.8 8.2-4.2-.2 4.2-3.6 6.6-8.2 4.2z"/><path d="M6 18.5h12"/>',
+  share: '<path d="M12 4v11M8 8l4-4 4 4"/><path d="M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6"/>',
+  book: '<path d="M4 5.5c2.5-1 5.5-1 8 .5 2.5-1.5 5.5-1.5 8-.5V19c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5z"/><path d="M12 6v13.5"/>',
+  calendar: '<rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>',
+  pin: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  phone: '<path d="M6.5 4h3l1.5 4-2 1.2a10 10 0 0 0 5.8 5.8L16 13l4 1.5v3a2 2 0 0 1-2.2 2A15.5 15.5 0 0 1 4.5 6.2 2 2 0 0 1 6.5 4z"/>',
+  chat: '<path d="M4.5 19.5l1.2-3.6A7.5 7.5 0 1 1 8.6 18.6z"/>',
+  jasmine:
+    '<path d="M12 10.2c-1.2-2-1.1-4.4.2-6.2 1.2 1.8 1.1 4.2-.2 6.2zM13.7 11.4c1.6-1.7 3.9-2.3 6-1.5-1.2 1.9-3.4 2.6-6 1.5zM13.1 13.5c2.2.7 3.6 2.6 3.7 4.8-2.1-.4-3.6-2.2-3.7-4.8zM10.9 13.5c-.1 2.6-1.6 4.4-3.7 4.8.1-2.2 1.5-4.1 3.7-4.8zM10.3 11.4c-2.6 1.1-4.8.4-6-1.5 2.1-.8 4.4-.2 6 1.5z"/><circle cx="12" cy="12" r="1.3"/>',
+  bell: '<path d="M12 3.5v1.5M7 16.5V12a5 5 0 0 1 10 0v4.5l1.5 2h-13z"/><path d="M10.2 20.5a1.9 1.9 0 0 0 3.6 0"/><path d="M9.5 3.5h5"/>',
+  copy: '<rect x="8" y="8" width="11" height="12" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>',
+  plane: '<path d="M3 13.5l7-2.5 3-7.5c.4-1 1.8-1 2 0l.5 6 5 2c.8.3.8 1.4 0 1.7l-5 1.8-.5 5.5h-2l-2-4.5-7 .5z"/>',
+  train: '<rect x="6" y="3.5" width="12" height="13" rx="3"/><path d="M6 10.5h12M9 20.5l1.5-4M15 20.5l-1.5-4"/><circle cx="9.5" cy="13.5" r=".6"/><circle cx="14.5" cy="13.5" r=".6"/>',
+  compass: '<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+  parking: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M10 16.5v-9h2.8a2.6 2.6 0 0 1 0 5.2H10"/>',
+  hotel: '<path d="M3.5 19.5v-12M3.5 15.5h17v4M20.5 15.5v-3a3 3 0 0 0-3-3H11v6"/><circle cx="7.5" cy="12" r="2"/>',
+  bus: '<rect x="5" y="3.5" width="14" height="14" rx="3"/><path d="M5 11h14M8 20.5v-3M16 20.5v-3"/><circle cx="8.5" cy="14.5" r=".6"/><circle cx="15.5" cy="14.5" r=".6"/>',
+  help: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.3 2.4c-.6.3-.9.8-.9 1.5v.5"/><circle cx="12" cy="16.8" r=".6"/>',
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r=".6"/>',
+  tree: '<path d="M12 21v-9M12 12C8 12 6 9 6 6M12 12c4 0 6-3 6-6M12 8V3"/><circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="12" cy="3" r="1.5"/>',
+} as const;
+
+interface Props {
+  name: keyof typeof paths;
+  class?: string;
+}
+
+const { name, class: className } = Astro.props;
+---
+
+<svg
+  class={className}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.5"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  focusable="false"
+  set:html={paths[name]}
+/>

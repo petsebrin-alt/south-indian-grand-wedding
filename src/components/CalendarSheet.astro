@@ -1,0 +1,56 @@
+---
+/** Add to Calendar bottom sheet (PRD §6.4.5, THEME §12.7). Rendered only for confirmed events. */
+import Icon from './Icon.astro';
+import { wedding } from '../data/wedding';
+import { calendarEntry, googleCalendarUrl, plainDetails } from '../lib/calendar';
+
+interface Props {
+  eventId: string;
+}
+
+const { eventId } = Astro.props;
+const event = wedding.events.find((e) => e.id === eventId)!;
+const entry = calendarEntry(event);
+const ics = `/calendar/${eventId}.ics`;
+---
+
+{
+  entry && (
+    <div id={`calendar-${eventId}`} class="sheet" role="dialog" aria-modal="true" aria-labelledby={`calendar-${eventId}-title`} hidden>
+      <div class="sheet__panel" data-sheet-panel>
+        <span class="sheet__handle" aria-hidden="true" />
+        <header class="sheet__header">
+          <h2 id={`calendar-${eventId}-title`} class="sheet__title">
+            Add to your calendar
+          </h2>
+          <button class="overlay__close" type="button" data-dialog-close data-autofocus aria-label="Close">
+            <Icon name="close" />
+          </button>
+        </header>
+        <p class="sheet__note">{entry.endISO ? entry.description : `${entry.title}. The entry marks the start of the Muhurtham; the end time will be confirmed.`}</p>
+        <ul class="sheet__list">
+          <li>
+            <a class="sheet__item" href={googleCalendarUrl(entry)} target="_blank" rel="noopener">
+              <Icon name="calendar" /> Google Calendar
+            </a>
+          </li>
+          <li>
+            <a class="sheet__item" href={ics} download="rahul-divya-wedding.ics">
+              <Icon name="calendar" /> Apple Calendar / iPhone
+            </a>
+          </li>
+          <li>
+            <a class="sheet__item" href={ics} download="rahul-divya-wedding.ics">
+              <Icon name="calendar" /> Outlook
+            </a>
+          </li>
+          <li>
+            <button class="sheet__item" type="button" data-copy={plainDetails(entry)}>
+              <Icon name="copy" /> Copy details
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  )
+}

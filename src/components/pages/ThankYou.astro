@@ -1,0 +1,290 @@
+---
+/**
+ * Page 19 — Thank You, the back cover (PRD §6.18, THEME §13 P19): a golden-hour temple courtyard,
+ * the thank-you message handwritten letter by letter, and an easy way back to the first page.
+ * Choreography: src/motion/pages/thank-you.ts
+ */
+import PageShell from '../PageShell.astro';
+import Decor from '../Decor.astro';
+import Icon from '../Icon.astro';
+import Lamp from '../Lamp.astro';
+import Ornament from '../Ornament.astro';
+import Draft from '../Draft.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+import { lettering } from '../../lib/handwriting';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const { groom, bride } = wedding.couple;
+const message = ['Thank You for', 'Blessing Our Journey'];
+const script = lettering(message);
+---
+
+<PageShell page={page} index={index} watermark={false} class="ty" note="Placeholder art: D-12 golden-hour gopuram, D-15 silk drape, D-03 jasmine, D-06 brass lamps. The handwriting is drawn from the Pinyon Script letterforms.">
+  <Fragment slot="architecture">
+    <div class="layer layer--architecture ty__sky" aria-hidden="true"></div>
+    <Decor name="gopuram-misty" asset="D-12" class="layer layer--architecture ty__gopuram" />
+    <div class="layer layer--architecture ty__tank" aria-hidden="true">
+      <span class="ty__reflection ty__reflection--l glow-breathe"></span>
+      <span class="ty__reflection ty__reflection--r glow-breathe"></span>
+      <span class="ty__ripple"></span>
+    </div>
+    <Decor name="silk-drape" asset="D-15" class="layer layer--architecture ty__drape" />
+  </Fragment>
+
+  <div class="ty__veil">
+    <h2 class="ty__message" tabindex="-1" data-page-heading>
+      <span class="sr-only">{message.join(' ')}</span>
+      <svg class="ty__script" viewBox={script.viewBox} aria-hidden="true" focusable="false">
+        {script.glyphs.map((g) => <path class="ty__glyph" d={g.d} />)}
+      </svg>
+    </h2>
+    <Ornament name="divider" class="ty__divider" />
+    <p class="ty__names">{groom.name} <span class="amp">&amp;</span> {bride.name}</p>
+    <p class="ty__signoff">With Love and Blessings</p>
+    <p class="ty__line"><Draft copy={wedding.copy.closingLine} /></p>
+  </div>
+
+  <div class="ty__actions">
+    <button class="btn-secondary" type="button" data-return-first>Return to First Page</button>
+    <button class="btn-primary" type="button" data-share data-share-url={wedding.site.url ?? ''} data-share-text={wedding.site.shareText}>
+      <Icon name="share" /> Share Invitation
+    </button>
+  </div>
+
+  <Fragment slot="foreground">
+    <Decor name="jasmine-cluster" asset="D-03" class="layer layer--foreground ty__jasmine ty__jasmine--l sway" style="--sway:1.2deg;--sway-dur:6.5s" />
+    <Decor name="jasmine-cluster" asset="D-03" class="layer layer--foreground ty__jasmine ty__jasmine--r sway" style="--sway:1.2deg;--sway-dur:7.2s;--sway-delay:-2.5s" />
+    <span class="layer layer--foreground ty__glow ty__glow--l glow-breathe" aria-hidden="true"></span>
+    <span class="layer layer--foreground ty__glow ty__glow--r glow-breathe" aria-hidden="true"></span>
+    <Lamp class="layer layer--foreground ty__lamp ty__lamp--l" />
+    <Lamp class="layer layer--foreground ty__lamp ty__lamp--r" />
+  </Fragment>
+</PageShell>
+
+<style is:global>
+  .ty {
+    background: var(--golden-hour);
+  }
+
+  /* Veil from about 22%, buttons toward the bottom (76–90%) with the temple tank between (THEME P19) */
+  .ty .page__content {
+    justify-content: flex-start;
+    padding-top: 8cqh;
+  }
+
+  /* Warm late-afternoon light from behind the gopuram */
+  .ty__sky {
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 38% at 50% 30%, rgba(255, 233, 176, 0.75), rgba(255, 233, 176, 0) 70%),
+      linear-gradient(180deg, rgba(241, 214, 150, 0.45) 0%, rgba(244, 234, 214, 0) 55%);
+  }
+
+  .ty__gopuram {
+    left: 50%;
+    top: 9cqh;
+    width: 74cqw;
+    translate: -50% 0;
+  }
+
+  /* Only the vector stand-in is tinted and hazed; the commissioned golden-hour art (D-12) shows as supplied */
+  .ty__gopuram[data-placeholder] {
+    opacity: 0.42;
+    filter: sepia(0.35) saturate(1.2) blur(0.6px);
+  }
+
+  /* Temple tank: still water with the lamps' light lying on it */
+  .ty__tank {
+    left: 0;
+    right: 0;
+    top: 62cqh;
+    height: 20cqh;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(222, 196, 140, 0.55) 0%, rgba(244, 234, 214, 0.35) 45%, rgba(255, 249, 239, 0) 100%);
+    border-top: 1px solid rgba(196, 154, 69, 0.45);
+  }
+
+  .ty__reflection {
+    position: absolute;
+    top: 6%;
+    width: 9cqw;
+    height: 70%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 20%, rgba(255, 205, 110, 0.75), rgba(255, 205, 110, 0) 70%);
+    filter: blur(3px);
+  }
+
+  .ty__reflection--l {
+    left: 8cqw;
+  }
+
+  .ty__reflection--r {
+    right: 8cqw;
+  }
+
+  .ty__ripple {
+    position: absolute;
+    inset: 22% 10% auto;
+    height: 40%;
+    background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0 1px, transparent 1px 9px);
+    mask-image: radial-gradient(ellipse at 50% 30%, #000 20%, transparent 70%);
+    opacity: 0.6;
+  }
+
+  .ty__drape {
+    left: -2cqw;
+    top: calc(var(--safe-top) - 1.5cqh);
+    width: 104cqw;
+    opacity: 0.9;
+  }
+
+  /* L3 veil card (S-03 border) */
+  .ty__veil {
+    position: relative;
+    width: 106%;
+    display: grid;
+    justify-items: center;
+    gap: 1.2cqh;
+    padding: 3.6cqh 5cqw 3.2cqh;
+    background: var(--veil);
+    border-radius: 6px;
+    box-shadow:
+      inset 0 0 0 1px var(--gold),
+      inset 0 0 0 5px rgba(255, 249, 239, 0.6),
+      inset 0 0 0 6px rgba(196, 154, 69, 0.5),
+      0 14px 30px rgba(75, 48, 38, 0.14);
+    backdrop-filter: blur(2px);
+  }
+
+  .ty__message {
+    width: 100%;
+    margin: 0;
+  }
+
+  .ty__script {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 22cqh;
+    overflow: visible;
+  }
+
+  /* Finished state (no JavaScript, revisits, reduced motion): solid ink */
+  .ty__glyph {
+    fill: var(--maroon);
+    stroke: var(--maroon);
+    stroke-width: 0.6;
+    stroke-linejoin: round;
+  }
+
+  .ty__divider {
+    width: 46%;
+    color: var(--gold);
+  }
+
+  .ty__names {
+    font: 600 clamp(26px, 8cqw, 34px) / 1.15 var(--font-display);
+    color: var(--brown);
+  }
+
+  .ty__names .amp {
+    font-style: italic;
+    color: var(--maroon);
+  }
+
+  .ty__signoff {
+    font: 500 12px/1.4 var(--font-royal);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .ty__line {
+    font: italic 500 17px/1.4 var(--font-display);
+    color: var(--brown-soft);
+  }
+
+  .ty__actions {
+    display: grid;
+    gap: 1.3cqh;
+    width: 100%;
+    margin-top: auto;
+  }
+
+  .ty__actions .btn-primary svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .ty__jasmine {
+    top: calc(var(--safe-top) + 3cqh);
+    width: 19cqw;
+    transform-origin: 50% 0;
+  }
+
+  .ty__jasmine--l {
+    left: 1cqw;
+  }
+
+  .ty__jasmine--r {
+    right: 1cqw;
+    scale: -1 1;
+  }
+
+  .ty__lamp {
+    bottom: calc(var(--safe-bottom) + 16cqh);
+    width: 10cqw;
+  }
+
+  .ty__lamp--l {
+    left: 2cqw;
+  }
+
+  .ty__lamp--r {
+    right: 2cqw;
+  }
+
+  /* Steady halo around each lamp, breathing slowly (8 s) */
+  .ty__glow {
+    bottom: calc(var(--safe-bottom) + 18cqh);
+    width: 30cqw;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 210, 120, 0.42), rgba(255, 210, 120, 0) 65%);
+    pointer-events: none;
+  }
+
+  .ty__glow--l {
+    left: -8cqw;
+  }
+
+  .ty__glow--r {
+    right: -8cqw;
+  }
+
+  @container app (max-height: 699px) {
+    .ty__veil {
+      gap: 0.8cqh;
+      padding-block: 2.8cqh 2.4cqh;
+    }
+
+    .ty__script {
+      max-height: 19cqh;
+    }
+
+    .ty__line {
+      font-size: 15px;
+    }
+
+    .ty__lamp,
+    .ty__glow {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,59 @@
+---
+/**
+ * Asset slot for a realistic decoration (THEME §7, §15.2).
+ * Uses the real file `src/assets/decor/<name>.{avif,webp,png}` when it exists, otherwise the
+ * vector placeholder `src/assets/placeholders/<name>.svg` (scripts/placeholders/generate.mjs).
+ * Supplied assets therefore replace placeholders without any layout change (PRD §10).
+ *
+ * Width and height attributes give every image its proportions before it loads, so
+ * height-sized decorations are never 0 px wide (which would stop lazy loading from firing).
+ */
+import type { ImageMetadata } from 'astro';
+
+const real = import.meta.glob<ImageMetadata>('../assets/decor/*.{avif,webp,png}', { eager: true, import: 'default' });
+const placeholderUrls = import.meta.glob<string>('../assets/placeholders/*.svg', { eager: true, query: '?url', import: 'default' });
+const placeholderSources = import.meta.glob<string>('../assets/placeholders/*.svg', { eager: true, query: '?raw', import: 'default' });
+
+interface Props {
+  name: string;
+  /** Asset checklist ID, e.g. "D-06". */
+  asset: string;
+  class?: string;
+  style?: string;
+  eager?: boolean;
+}
+
+const { name, asset, class: className, style, eager = false } = Astro.props;
+const baseName = (p: string) => p.replace(/^.*\//, '').replace(/\.\w+$/, '');
+const realAsset = Object.entries(real).find(([p]) => baseName(p) === name)?.[1];
+const placeholderPath = `../assets/placeholders/${name}.svg`;
+
+let src: string;
+let width: number;
+let height: number;
+if (realAsset) {
+  ({ src, width, height } = realAsset);
+} else {
+  const raw = placeholderSources[placeholderPath];
+  if (!raw) throw new Error(`Decor "${name}" (${asset}) has neither a real asset nor a placeholder`);
+  const box = raw.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+  src = placeholderUrls[placeholderPath];
+  width = box ? Number(box[1]) : 100;
+  height = box ? Number(box[2]) : 100;
+}
+---
+
+<img
+  class:list={['decor', className]}
+  src={src}
+  width={width}
+  height={height}
+  alt=""
+  aria-hidden="true"
+  decoding="async"
+  loading={eager ? 'eager' : 'lazy'}
+  draggable="false"
+  data-asset={asset}
+  data-placeholder={realAsset ? undefined : ''}
+  style={style}
+/>

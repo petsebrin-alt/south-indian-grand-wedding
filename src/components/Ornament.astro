@@ -1,0 +1,38 @@
+---
+/**
+ * Inline SVG ornaments (THEME §6). Colour comes from `currentColor`.
+ * Each ornament is defined once (OrnamentSprite.astro) and referenced here, so the 80-odd page
+ * corners and watermarks do not repeat their drawing in the HTML.
+ */
+import { animated, ornaments, type OrnamentName } from '../lib/ornaments';
+
+interface Props {
+  name: OrnamentName;
+  class?: string;
+}
+
+const { name, class: className } = Astro.props;
+---
+
+{
+  animated.includes(name) ? (
+    <span class:list={['ornament', className]} aria-hidden="true" set:html={ornaments[name].svg} />
+  ) : (
+    <span class:list={['ornament', className]} aria-hidden="true">
+      <svg viewBox={ornaments[name].viewBox} focusable="false">
+        <use href={`#orn-${name}`} />
+      </svg>
+    </span>
+  )
+}
+
+<style>
+  .ornament {
+    display: block;
+  }
+
+  .ornament :global(svg) {
+    width: 100%;
+    height: auto;
+  }
+</style>

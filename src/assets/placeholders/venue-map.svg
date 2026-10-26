@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 800 460" width="800" height="460"><defs><linearGradient id="pm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6ecd8"/><stop offset="1" stop-color="#e9d9b6"/></linearGradient></defs><rect width="800" height="460" rx="18" fill="url(#pm)"/><path d="M0 330C160 300 260 380 420 340S700 260 800 300V460H0Z" fill="#cfd8c4" opacity=".7"/>
+<g fill="#c7d3a9" opacity=".7"><ellipse cx="140" cy="120" rx="70" ry="40"/><ellipse cx="640" cy="150" rx="90" ry="46"/><ellipse cx="520" cy="400" rx="60" ry="28"/></g>
+<g fill="none" stroke="#fffaf0" stroke-width="16" stroke-linecap="round"><path d="M-10 210C200 190 360 260 520 210S760 120 810 140"/><path d="M380 -10C360 120 420 240 400 470"/><path d="M60 470C140 360 220 300 380 250"/></g>
+<g fill="none" stroke="#d8c39a" stroke-width="2"><path d="M-10 210C200 190 360 260 520 210S760 120 810 140"/><path d="M380 -10C360 120 420 240 400 470"/></g>
+<g transform="translate(720 70)" fill="none" stroke="#8a6420" stroke-width="2"><circle r="28"/><path d="M0-36V36M-36 0H36"/><path d="M0-28L6 0L0 28L-6 0Z" fill="#c49a45"/></g></svg>

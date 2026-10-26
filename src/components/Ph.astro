@@ -1,0 +1,25 @@
+---
+/**
+ * Renders a wedding-data value, or a placeholder when it is `null` (PRD §4.3).
+ * Preview: dashed "To be provided: …" label. Production: the graceful fallback, or nothing.
+ * Wrap a line in `data-hide-if-missing` to collapse it in production when the value is missing.
+ */
+interface Props {
+  value?: string | null;
+  label: string;
+  fallback?: string;
+}
+
+const { value, label, fallback } = Astro.props;
+---
+
+{
+  value ? (
+    <Fragment>{value}</Fragment>
+  ) : (
+    <span class="ph" data-empty={fallback ? undefined : ''}>
+      <span class="ph__label">To be provided: {label}</span>
+      {fallback && <span class="ph__fallback">{fallback}</span>}
+    </span>
+  )
+}

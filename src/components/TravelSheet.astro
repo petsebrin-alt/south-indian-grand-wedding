@@ -1,0 +1,92 @@
+---
+/** Detail sheet for one travel tile (PRD §6.14). Rendered at the app root. */
+import Icon from './Icon.astro';
+import { travelItem, type TravelKey } from '../lib/travel';
+
+interface Props {
+  item: TravelKey;
+  icon: string;
+}
+
+const { item: key, icon } = Astro.props;
+const item = travelItem(key);
+const pending = item.status === 'toBeConfirmed';
+---
+
+<div id={`travel-${key}`} class="sheet" role="dialog" aria-modal="true" aria-labelledby={`travel-${key}-title`} hidden>
+  <div class="sheet__panel">
+    <span class="sheet__handle" aria-hidden="true"></span>
+    <header class="sheet__header">
+      <h2 id={`travel-${key}-title`} class="sheet__title">{item.title}</h2>
+      <button class="overlay__close" type="button" data-dialog-close data-autofocus aria-label="Close">
+        <Icon name="close" />
+      </button>
+    </header>
+    <div class="travel-sheet">
+      <span class="travel-sheet__icon" aria-hidden="true"><Icon name={icon as 'plane'} /></span>
+      {
+        pending ? (
+          <p class="travel-sheet__lead">Details will be shared soon.</p>
+        ) : (
+          <Fragment>
+            {item.summary && <p class="travel-sheet__lead">{item.summary}</p>}
+            {item.details && <p class="travel-sheet__body">{item.details}</p>}
+          </Fragment>
+        )
+      }
+      {item.status === 'verifyBeforeLaunch' && <p class="travel-sheet__note preview-only">General information — to be verified before launch.</p>}
+      <p class="travel-sheet__help">For help with travel, please use the contact cards on the "Need Help" page.</p>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .travel-sheet {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 8px 4px 4px;
+    text-align: center;
+  }
+
+  .travel-sheet__icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    color: var(--gold-text);
+    background: var(--sandal-light);
+  }
+
+  .travel-sheet__icon svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .travel-sheet__lead {
+    font: 600 18px/1.35 var(--font-display);
+    color: var(--brown);
+  }
+
+  .travel-sheet__body {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--brown-soft);
+  }
+
+  .travel-sheet__note {
+    padding: 4px 10px;
+    border: 1px dashed var(--gold);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--gold-deep);
+  }
+
+  .travel-sheet__help {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--brown-soft);
+  }
+</style>

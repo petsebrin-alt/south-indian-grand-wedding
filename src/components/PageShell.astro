@@ -1,0 +1,45 @@
+---
+/**
+ * One page of the invitation book (THEME §9.1 layer stack).
+ * Slots: default → L4 content safe zone; "architecture" → L2; "foreground" → L5.
+ */
+import Ornament from './Ornament.astro';
+import { lastPageIndex, type BookPage } from '../data/pages';
+
+interface Props {
+  page: BookPage;
+  index: number;
+  /** Preview-only note describing the composition coming in a later phase. */
+  note?: string;
+  watermark?: boolean;
+  class?: string;
+}
+
+const { page, index, note, watermark = true, class: className } = Astro.props;
+const label = index === 0 ? `Cover: ${page.title}` : `Page ${index} of ${lastPageIndex}: ${page.title}`;
+---
+
+<section
+  id={page.id}
+  class:list={['page', `page--${page.id}`, className]}
+  data-tone={page.tone}
+  data-title={page.title}
+  role="group"
+  aria-roledescription="page"
+  aria-label={label}
+>
+  {watermark && <Ornament name="kolam-medallion" class="page__watermark" />}
+  <div class="page__frame" aria-hidden="true">
+    <Ornament name="kolam-corner" class="page__corner page__corner--tl" />
+    <Ornament name="kolam-corner" class="page__corner page__corner--tr" />
+    <Ornament name="kolam-corner" class="page__corner page__corner--bl" />
+    <Ornament name="kolam-corner" class="page__corner page__corner--br" />
+  </div>
+  <slot name="architecture" />
+  <div class="page__content">
+    <slot />
+    {note && <p class="phase-note preview-only">{note}</p>}
+  </div>
+  <slot name="foreground" />
+  <div class="page__particles" aria-hidden="true"></div>
+</section>

@@ -1,0 +1,52 @@
+{
+  "name": "rahul-divya-invitation",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "scripts": {
+    "predev": "npm run fonts",
+    "dev": "astro dev",
+    "build": "npm run content:check && npm run fonts && astro build",
+    "build:preview": "npm run fonts && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test": "vitest run",
+    "content:check": "tsx scripts/content-check.ts",
+    "content:check:prod": "tsx scripts/content-check.ts --production",
+    "build:production": "tsx scripts/content-check.ts --production && tsx scripts/env-check.ts && npm run fonts && SITE_MODE=production astro build",
+    "check": "astro check",
+    "qa:book": "tsx tests/e2e/book.qa.ts",
+    "placeholders": "node scripts/placeholders/generate.mjs",
+    "env:check": "tsx scripts/env-check.ts",
+    "backend:config": "tsx scripts/backend-config.ts",
+    "og": "tsx scripts/og/render.ts",
+    "fonts": "tsx scripts/fonts/telugu.ts",
+    "perf": "tsx scripts/perf/lighthouse.ts"
+  },
+  "dependencies": {
+    "@fontsource/cinzel": "^5.3.0",
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/manrope": "^5.3.0",
+    "@fontsource/noto-serif-telugu": "^5.3.0",
+    "@fontsource/pinyon-script": "^5.3.0",
+    "astro": "^7.4.2",
+    "gsap": "^3.15.0",
+    "qrcode": "^1.5.4",
+    "zod": "^4.6.7"
+  },
+  "description": "Rahul & Divya — Royal South Indian Hindu Wedding Invitation",
+  "private": true,
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@types/qrcode": "^1.5.6",
+    "axe-core": "^4.14.0",
+    "opentype.js": "^2.0.0",
+    "playwright-core": "^1.64.1",
+    "subset-font": "^2.9.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5"
+  }
+}

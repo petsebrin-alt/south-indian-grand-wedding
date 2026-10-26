@@ -1,0 +1,351 @@
+---
+/** Page 3 — Save the Date (PRD §6.4, THEME §13 P3). Motion: src/motion/pages/save-the-date.ts */
+import PageShell from '../PageShell.astro';
+import Decor from '../Decor.astro';
+import Ornament from '../Ornament.astro';
+import Icon from '../Icon.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+import { dateParts, formatDateLong, formatTime } from '../../lib/format';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const { groom, bride } = wedding.couple;
+const { startISO } = wedding.ceremony;
+const d = dateParts(startISO);
+const panels = [
+  { value: d.day, label: 'Date' },
+  { value: d.month, label: 'Month' },
+  { value: d.year, label: 'Year' },
+];
+
+// Mini month grid for the wedding month, Sunday first
+const [y, m, day] = startISO.slice(0, 10).split('-').map(Number);
+const firstWeekday = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+const cells = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+const monthName = d.month.charAt(0) + d.month.slice(1).toLowerCase();
+const corners = ['tl', 'tr', 'bl', 'br'];
+---
+
+<PageShell page={page} index={index} watermark={false} class="sd" note="Placeholder art: D-03 jasmine clusters at the card corners. The handmade-paper card (D-33) and foil are CSS/canvas until textures are supplied.">
+  <div class="sd__card">
+    {corners.map((c) => <Ornament name="kolam-corner" class={`sd__kolam sd__kolam--${c}`} />)}
+    <h2 class="script sd__title" tabindex="-1" data-page-heading>Save the Date</h2>
+    <p class="sr-only">{formatDateLong(startISO)}</p>
+    <div class="sd__panels" aria-hidden="true">
+      {
+        panels.map((p) => (
+          <div class="sd__panel" data-scratch data-gesture="scratch">
+            <span class="sd__value">{p.value}</span>
+            <span class="sd__label">{p.label}</span>
+            <canvas class="sd__foil" />
+            <span class="sd__sheen" />
+          </div>
+        ))
+      }
+    </div>
+    <p class="sd__hint">
+      <span class="sd__hint-text">Scratch to reveal</span>
+      <button class="sd__reveal" type="button" data-reveal-date>Reveal date</button>
+    </p>
+    <div class="sd__month" aria-hidden="true">
+      <p class="sd__month-name">{monthName} {d.year}</p>
+      <div class="sd__grid">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((w) => <span class="sd__wd">{w}</span>)}
+        {
+          cells.map((c) =>
+            c === day ? (
+              <span class="sd__day sd__day--wedding">
+                {c}
+                <svg class="sd__wreath" viewBox="0 0 40 40">
+                  <circle class="draw" cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="1.4" />
+                  {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+                    <ellipse class="bud" cx="20" cy="3.6" rx="1.6" ry="2.8" fill="#fffdf8" stroke="#c49a45" stroke-width=".6" transform={`rotate(${a} 20 20)`} />
+                  ))}
+                </svg>
+              </span>
+            ) : (
+              <span class="sd__day">{c ?? ''}</span>
+            ),
+          )
+        }
+      </div>
+    </div>
+    <p class="sd__when">{d.weekday} · Muhurtham {formatTime(startISO)} IST</p>
+    <p class="names names--l sd__names">{groom.name} <span class="amp">&amp;</span> {bride.name}</p>
+    <button class="btn-primary sd__cal" type="button" data-open-dialog="calendar-wedding" aria-haspopup="dialog">
+      <Icon name="calendar" /> Add to Calendar
+    </button>
+  </div>
+
+  <Fragment slot="foreground">
+    {corners.map((c) => <Decor name="jasmine-cluster" asset="D-03" class={`layer layer--foreground sd__jasmine sd__jasmine--${c}`} />)}
+  </Fragment>
+</PageShell>
+
+<style is:global>
+  .sd {
+    background-image: var(--paper-texture), radial-gradient(ellipse at 50% 30%, rgba(255, 249, 239, 0.55), rgba(234, 216, 183, 0) 70%);
+  }
+
+  .sd .page__content {
+    inset-inline: 6cqw;
+  }
+
+  .sd__card {
+    position: relative;
+    width: 88cqw;
+    max-width: 460px;
+    display: grid;
+    justify-items: center;
+    gap: 1.5cqh;
+    padding: 3.4cqh 7cqw 3cqh;
+    background-color: var(--jasmine);
+    background-image: var(--paper-texture);
+    background-blend-mode: multiply;
+    border-radius: 3px;
+    box-shadow:
+      inset 0 0 0 1.5px var(--gold),
+      inset 0 0 0 6px var(--jasmine),
+      inset 0 0 0 7px var(--gold),
+      0 18px 34px var(--shadow-deep);
+  }
+
+  .sd__kolam {
+    position: absolute;
+    width: 14cqw;
+    color: var(--gold);
+    opacity: 0.7;
+  }
+
+  .sd__kolam--tl {
+    top: 10px;
+    left: 10px;
+  }
+
+  .sd__kolam--tr {
+    top: 10px;
+    right: 10px;
+    transform: scaleX(-1);
+  }
+
+  .sd__kolam--bl {
+    bottom: 10px;
+    left: 10px;
+    transform: scaleY(-1);
+  }
+
+  .sd__kolam--br {
+    bottom: 10px;
+    right: 10px;
+    transform: scale(-1, -1);
+  }
+
+  /* Ink-wipe "handwriting" reveal of the script title */
+  .sd__title {
+    --wipe: 115%;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--wipe) - 15%), transparent var(--wipe));
+    mask-image: linear-gradient(90deg, #000 calc(var(--wipe) - 15%), transparent var(--wipe));
+  }
+
+  .sd__panels {
+    display: grid;
+    grid-template-columns: 1fr 1.45fr 1.2fr;
+    gap: 2.4cqw;
+    width: 100%;
+  }
+
+  .sd__panel {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    padding: 1.6cqh 0 1.2cqh;
+    overflow: hidden;
+    border: 1px solid var(--gold);
+    background: linear-gradient(180deg, var(--jasmine), var(--sandal-light));
+    box-shadow: inset 0 0 0 3px var(--jasmine), inset 0 0 0 4px var(--hairline);
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .sd__value {
+    font: 600 clamp(22px, 7cqw, 36px) / 1 var(--font-display);
+    font-variant-numeric: lining-nums;
+    color: var(--brown);
+  }
+
+  .sd__label {
+    font: 500 9px/1 var(--font-royal);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .sd__foil,
+  .sd__sheen {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .sd__foil {
+    transition: opacity 500ms var(--ease-silk);
+  }
+
+  .sd__sheen {
+    pointer-events: none;
+    background: linear-gradient(110deg, transparent 35%, rgba(255, 248, 222, 0.85) 50%, transparent 65%) no-repeat;
+    background-size: 250% 100%;
+    background-position: 150% 0;
+  }
+
+  .sd__panel.is-revealed {
+    cursor: default;
+  }
+
+  .sd__panel.is-revealed .sd__foil,
+  .sd__panel.is-revealed .sd__sheen {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sd__panel.no-anim .sd__foil {
+    transition: none;
+  }
+
+  .sd__hint {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font: 500 10px/1.4 var(--font-royal);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .is-date-revealed .sd__hint-text {
+    display: none;
+  }
+
+  .sd__reveal {
+    min-height: 44px;
+    padding: 0 6px;
+    border: 0;
+    background: none;
+    font: inherit;
+    letter-spacing: inherit;
+    color: var(--maroon);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .sd__month {
+    width: 78%;
+  }
+
+  .sd__month-name {
+    margin-bottom: 0.6cqh;
+    font: 500 11px/1 var(--font-royal);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .sd__grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    row-gap: 0.3cqh;
+  }
+
+  .sd__wd {
+    font: 500 9px/2 var(--font-royal);
+    color: var(--gold-text);
+  }
+
+  .sd__day {
+    position: relative;
+    font: 500 clamp(12px, 3.6cqw, 16px) / 1.8 var(--font-display);
+    color: var(--brown-soft);
+  }
+
+  .sd__day--wedding {
+    font-weight: 700;
+    color: var(--maroon);
+  }
+
+  .sd__wreath {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 200%;
+    translate: -50% -50%;
+    color: var(--gold);
+    overflow: visible;
+  }
+
+  .sd__when {
+    font: 500 clamp(10px, 2.9cqw, 13px) / 1.4 var(--font-royal);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    text-transform: uppercase;
+    color: var(--gold-text);
+  }
+
+  .sd__names {
+    font-size: clamp(28px, 8.6cqw, 42px);
+  }
+
+  .sd__cal {
+    width: 100%;
+  }
+
+  .sd__jasmine {
+    width: 22cqw;
+  }
+
+  .sd__jasmine--tl {
+    left: 2cqw;
+    top: calc(var(--safe-top) + 4cqh);
+  }
+
+  .sd__jasmine--tr {
+    right: 2cqw;
+    top: calc(var(--safe-top) + 4cqh);
+    transform: scaleX(-1);
+  }
+
+  .sd__jasmine--bl {
+    left: 2cqw;
+    bottom: calc(var(--safe-bottom) + 6cqh);
+    transform: scaleY(-1);
+  }
+
+  .sd__jasmine--br {
+    right: 2cqw;
+    bottom: calc(var(--safe-bottom) + 6cqh);
+    transform: scale(-1, -1);
+  }
+
+  @container app (max-height: 760px) {
+    .sd__month {
+      display: none;
+    }
+  }
+
+  @container app (max-height: 699px) {
+    .sd__card {
+      gap: 1.1cqh;
+      padding-block: 2.6cqh 2.2cqh;
+    }
+
+    .sd__jasmine {
+      width: 16cqw;
+    }
+  }
+</style>

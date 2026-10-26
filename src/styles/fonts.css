@@ -1,0 +1,12 @@
+/*
+ * Noto Serif Telugu, cut down to the Telugu characters the invitation uses (npm run fonts, which
+ * runs before `npm run dev` and every build). Replaces the full 51 KB @fontsource files.
+ */
+@font-face {
+  font-family: 'Noto Serif Telugu';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../assets/fonts/noto-serif-telugu-500-subset.woff2') format('woff2');
+  unicode-range: U+0020, U+0C00-0C7F, U+200C-200D, U+25CC;
+}

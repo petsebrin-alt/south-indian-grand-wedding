@@ -1,0 +1,216 @@
+/*
+ * Book layout and modes (PRD §2.4, §8.1).
+ * No JS: pages stack as a continuous vertical website.
+ * html.js: the app becomes a fixed page box and the controller turns pages.
+ * html.mode-scroll: Scroll View — pages stack inside the app box.
+ */
+
+.app {
+  position: relative;
+  container: app / inline-size;
+}
+
+html:not(.js) .app {
+  max-width: 480px;
+  margin-inline: auto;
+}
+
+.page {
+  position: relative;
+  min-height: 100svh;
+  overflow: clip;
+}
+
+/* ---------------------------------------------------------------- book mode */
+
+.js body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.js .app {
+  position: fixed;
+  inset: 0;
+  container-type: size;
+  overflow: hidden;
+  background: var(--ivory);
+}
+
+.js .book {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: pinch-zoom;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.js .page {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  visibility: hidden;
+  z-index: 0;
+}
+
+.js .book:not(.is-ready) > .page:first-child,
+.page[data-state='current'],
+.page[data-state='neighbour'],
+.page[data-state='under'],
+.page[data-state='turning'] {
+  visibility: visible;
+}
+
+.page[data-state='neighbour'] {
+  z-index: 1;
+  /* Laid out and painted-ready for an instant turn, but fully covered: transparent until a turn
+     starts, so it never counts as the first screen's largest paint (Lighthouse, AC-33). */
+  opacity: 0;
+}
+
+.page[data-state='under'] {
+  z-index: 2;
+}
+
+.page[data-state='current'] {
+  z-index: 3;
+}
+
+.page[data-state='turning'] {
+  z-index: 4;
+  will-change: clip-path;
+}
+
+.page[data-state='hidden'] {
+  content-visibility: hidden;
+}
+
+/* Until the book has set each page's state, lay out only the cover: otherwise all 20 pages are
+   laid out once at load and every font in the book is fetched before the first paint (AC-33). */
+.js .book:not(.is-ready) > .page:not(:first-child) {
+  content-visibility: hidden;
+}
+
+/* Selectable details (addresses, numbers) stay copyable despite swipe handling */
+.js .book [data-selectable] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ---------------------------------------------------------------- curl layers (THEME §11) */
+
+.book__shadow,
+.book__flap-wrap,
+.book__bloom {
+  position: absolute;
+  pointer-events: none;
+}
+
+.book__shadow {
+  left: 0;
+  top: 0;
+  z-index: 3;
+  transform-origin: 0 0;
+  visibility: hidden;
+  background: linear-gradient(90deg, rgba(75, 48, 38, 0.38) 0%, rgba(75, 48, 38, 0.16) 30%, rgba(75, 48, 38, 0) 100%);
+}
+
+.book__flap-wrap {
+  inset: 0;
+  z-index: 5;
+  visibility: hidden;
+}
+
+.book--hq .book__flap-wrap {
+  filter: drop-shadow(0 0 14px rgba(75, 48, 38, 0.22));
+}
+
+.book__shadow.is-on,
+.book__flap-wrap.is-on {
+  visibility: visible;
+}
+
+.book__flap {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  transform-origin: 0 0;
+  background-color: var(--paper-back);
+  background-image: var(--paper-texture);
+  background-blend-mode: multiply;
+}
+
+.book__flap-shade {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 253, 248, 0.75) 0,
+    rgba(255, 253, 248, 0) 2px,
+    rgba(75, 48, 38, 0.22) 3px,
+    rgba(75, 48, 38, 0.07) 30%,
+    rgba(75, 48, 38, 0) 75%
+  );
+}
+
+.book__bloom {
+  inset: 0;
+  z-index: 6;
+  opacity: 0;
+  background-color: var(--paper-back);
+  background-image: var(--paper-texture);
+  background-blend-mode: multiply;
+}
+
+.book__bloom.is-on {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------- Scroll View */
+
+.mode-scroll .book {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: auto;
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
+.mode-scroll .page {
+  position: relative;
+  inset: auto;
+  height: 100cqh;
+  visibility: visible;
+  clip-path: none !important;
+}
+
+.mode-scroll .book__shadow,
+.mode-scroll .book__flap-wrap,
+.mode-scroll .book__bloom {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- page-entry skeleton (PRD §8.2) */
+
+.js .page:not(.is-entered) [data-enter] {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.js .page.is-entered [data-enter] {
+  transition:
+    opacity var(--t-medium) var(--ease-silk),
+    transform var(--t-medium) var(--ease-silk);
+  transition-delay: calc(150ms + var(--i, 0) * var(--stagger));
+}
+
+.js .page.no-anim [data-enter],
+.reduce-motion .page [data-enter] {
+  transition: none !important;
+}

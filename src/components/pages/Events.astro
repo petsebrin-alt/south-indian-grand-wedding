@@ -1,0 +1,371 @@
+---
+/**
+ * Pages 9–10 — Wedding Events Timeline (PRD §6.9, THEME §13 P9/P10).
+ * Part 1: Mehndi, Haldi, Sangeet · Part 2: Wedding, Reception. Motion: src/motion/pages/events.ts
+ */
+import PageShell from '../PageShell.astro';
+import Decor from '../Decor.astro';
+import EventItem from '../EventItem.astro';
+import type { BookPage } from '../../data/pages';
+import { wedding } from '../../data/wedding';
+
+interface Props {
+  page: BookPage;
+  index: number;
+  part: 1 | 2;
+}
+
+const { page, index, part } = Astro.props;
+const ids = part === 1 ? ['mehndi', 'haldi', 'sangeet'] : ['wedding', 'reception'];
+const events = wedding.events.filter((e) => ids.includes(e.id));
+---
+
+<PageShell
+  page={page}
+  index={index}
+  watermark={false}
+  class:list={['ev', `ev--part${part}`]}
+  note={part === 1
+    ? 'Placeholder art: D-04 signboard and jasmine wreaths, D-05 marigolds, D-23 mehndi still-life, D-24 turmeric still-life, D-26 veena and mridangam, D-29 hanging lamp, S-05 golden thread.'
+    : 'Placeholder art: D-04 jasmine wreaths, D-22 thali plate, D-27 floral urn, D-08 bells, S-05 golden thread and sacred knot.'}
+>
+  <Fragment slot="architecture">
+    <svg class="ev__thread layer layer--architecture" aria-hidden="true">
+      <path class="ev__thread-main" />
+      <path class="ev__thread-hi" />
+    </svg>
+    {events.slice(1).map(() => <Decor name="temple-bell" asset="D-08" class="layer layer--architecture ev__bell" />)}
+  </Fragment>
+
+  {
+    part === 1 ? (
+      <div class="ev__sign">
+        <Decor name="celebration-signboard" asset="D-04" class="ev__sign-board" />
+        <h2 class="ev__sign-text" tabindex="-1" data-page-heading>
+          Wedding Celebrations
+        </h2>
+        <Decor name="marigold-strand" asset="D-05" class="ev__sign-swag ev__sign-swag--l sway" style="--sway:2deg;--sway-dur:5s" />
+        <Decor name="marigold-strand" asset="D-05" class="ev__sign-swag ev__sign-swag--r sway" style="--sway:2deg;--sway-dur:5.6s;--sway-delay:-1s" />
+      </div>
+    ) : (
+      <div class="stack-xs ev__head">
+        <p class="eyebrow">Wedding Celebrations</p>
+        <h2 class="page-title" tabindex="-1" data-page-heading>
+          The Wedding Day
+        </h2>
+      </div>
+    )
+  }
+
+  <ol class="ev__list">
+    {events.map((event, i) => <EventItem event={event} side={i % 2 === 0 ? 'left' : 'right'} />)}
+  </ol>
+
+  {
+    part === 2 && (
+      <div class="ev__end">
+        <svg class="ev__knot" viewBox="0 0 80 48" aria-hidden="true">
+          <path d="M40 22C28 4 8 8 12 20s20 10 28 2c8 8 24 10 28-2S52 4 40 22Z" fill="none" stroke="#c49a45" stroke-width="2.2" />
+          <path d="M40 22L32 44M40 22L48 44" stroke="#c49a45" stroke-width="2" stroke-linecap="round" />
+          <circle cx="40" cy="22" r="3.4" fill="#7a2635" />
+        </svg>
+        <p class="caption">All times IST · Proposed timings will be confirmed</p>
+      </div>
+    )
+  }
+</PageShell>
+
+<style is:global>
+  .ev .page__content {
+    inset-inline: 5cqw;
+    gap: 1.6cqh;
+  }
+
+  /* S-05 golden thread, path set at runtime from the medallion positions */
+  .ev__thread {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .ev__thread path {
+    fill: none;
+    stroke-linecap: round;
+  }
+
+  .ev__thread-main {
+    stroke: var(--gold);
+    stroke-width: 2.2;
+  }
+
+  .ev__thread-hi {
+    stroke: var(--gold-highlight);
+    stroke-width: 0.6;
+  }
+
+  .ev__bell {
+    width: 4.4cqw;
+    translate: -50% -15%;
+    transform-origin: 50% 0;
+  }
+
+  /* Carved signboard header (page 9) */
+  .ev__sign {
+    position: relative;
+    width: 76cqw;
+    max-width: 420px;
+    aspect-ratio: 900 / 250;
+    flex: none;
+  }
+
+  .ev__sign-board {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 6px 10px rgba(75, 48, 38, 0.25));
+  }
+
+  .ev__sign-text {
+    position: absolute;
+    inset: 32% 8% 12%;
+    display: grid;
+    place-items: center;
+    font: 600 clamp(14px, 4.4cqw, 22px) / 1 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-highlight);
+    text-shadow: 0 1px 0 rgba(75, 48, 38, 0.6);
+  }
+
+  .ev__sign-swag {
+    position: absolute;
+    top: 30%;
+    width: 4.5%;
+  }
+
+  .ev__sign-swag--l {
+    left: 1%;
+  }
+
+  .ev__sign-swag--r {
+    right: 1%;
+  }
+
+  /* Ivory backing so the golden thread passes behind the heading */
+  .ev__head {
+    position: relative;
+    z-index: 1;
+    flex: none;
+    padding: 0.8cqh 5cqw;
+    border-radius: 12px;
+    background: rgba(255, 249, 239, 0.94);
+  }
+
+  /* Rows */
+  .ev__list {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    display: grid;
+    gap: 1.1cqh;
+  }
+
+  .ev__item {
+    display: grid;
+    grid-template-columns: 36% 1fr;
+    align-items: center;
+    gap: 3cqw;
+  }
+
+  .ev__item--right {
+    grid-template-columns: 1fr 36%;
+  }
+
+  .ev__item--right .ev__medallion {
+    order: 2;
+  }
+
+  .ev__medallion {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: min(150px, 15cqh);
+    justify-self: center;
+  }
+
+  .ev__item--wedding .ev__medallion {
+    max-width: 170px;
+  }
+
+  .ev__wreath {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .ev__disc {
+    position: absolute;
+    inset: 22%;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 40%, var(--jasmine), var(--sandal-light));
+    box-shadow:
+      inset 0 0 0 1.5px var(--gold),
+      inset 0 0 0 4px var(--jasmine),
+      inset 0 0 0 5px var(--hairline);
+    color: var(--gold-text);
+  }
+
+  .ev__item--wedding .ev__disc {
+    box-shadow:
+      inset 0 0 0 2px var(--maroon),
+      inset 0 0 0 5px var(--jasmine),
+      inset 0 0 0 6px var(--gold);
+    color: var(--maroon);
+  }
+
+  .ev__emblem {
+    width: 58%;
+    height: 58%;
+  }
+
+  .ev__still {
+    position: absolute;
+    bottom: -8%;
+    width: 64%;
+    filter: drop-shadow(0 4px 6px rgba(75, 48, 38, 0.2));
+  }
+
+  .ev__item--left .ev__still {
+    right: -22%;
+  }
+
+  .ev__item--right .ev__still {
+    left: -22%;
+  }
+
+  .ev__hanging {
+    position: absolute;
+    left: 50%;
+    top: -24%;
+    width: 9%;
+    translate: -50% 0;
+  }
+
+  .ev__plate {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    gap: 3px;
+    padding: 1.2cqh 3.4cqw;
+    text-align: left;
+    background: rgba(255, 253, 248, 0.94);
+    box-shadow:
+      inset 0 0 0 1px var(--gold),
+      inset 0 0 0 4px var(--jasmine),
+      inset 0 0 0 5px var(--hairline),
+      0 6px 16px var(--shadow);
+  }
+
+  .ev__name {
+    font: 600 clamp(12px, 3.5cqw, 15px) / 1.25 var(--font-royal);
+    letter-spacing: 0.08em;
+    color: var(--brown);
+  }
+
+  .ev__when {
+    display: grid;
+    gap: 1px;
+  }
+
+  .ev__date {
+    font: 600 clamp(15px, 4.4cqw, 19px) / 1.2 var(--font-display);
+    color: var(--brown);
+  }
+
+  .ev__time {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--brown-soft);
+  }
+
+  /* One line; the full venue text is in the event's detail sheet */
+  .ev__venue {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--brown-soft);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ev__plate .ev-actions {
+    margin-top: 3px;
+  }
+
+  .ev__end {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+  }
+
+  .ev__knot {
+    width: 16cqw;
+    max-width: 80px;
+  }
+
+  @container app (max-height: 760px) {
+    .ev__medallion {
+      max-width: 112px;
+    }
+  }
+
+  @container app (max-height: 699px) {
+    .ev .page__content {
+      gap: 1cqh;
+    }
+
+    .ev__list {
+      gap: 0.8cqh;
+    }
+
+    .ev__medallion {
+      max-width: 96px;
+    }
+
+    .ev__plate {
+      padding-block: 0.8cqh;
+      gap: 1px;
+    }
+
+    .ev__when {
+      display: flex;
+      flex-wrap: wrap;
+      column-gap: 6px;
+      align-items: baseline;
+    }
+
+    .ev__date,
+    .ev__time {
+      white-space: nowrap;
+    }
+
+    .ev__date {
+      font-size: 14px;
+    }
+
+    .ev__time {
+      font-size: 12px;
+    }
+
+    .ev__hanging {
+      display: none;
+    }
+
+    .ev__sign {
+      width: 64cqw;
+    }
+  }
+</style>

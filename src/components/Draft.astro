@@ -1,0 +1,10 @@
+---
+/** Draft copy awaiting family approval (PRD §4.4) — shows a "Draft" badge in preview builds only. */
+interface Props {
+  copy: { text: string; status: 'draft' | 'approved' };
+}
+
+const { copy } = Astro.props;
+---
+
+<Fragment>{copy.text}</Fragment>{copy.status === 'draft' && <span class="badge badge--draft preview-only">Draft</span>}

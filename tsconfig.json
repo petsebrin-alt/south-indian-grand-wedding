@@ -1,0 +1,12 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [
+    ".astro/types.d.ts",
+    "**/*"
+  ],
+  "exclude": [
+    "dist",
+    "supabase/functions/*/index.ts",
+    "supabase/functions/_shared/supabase-adapter.ts"
+  ]
+}
