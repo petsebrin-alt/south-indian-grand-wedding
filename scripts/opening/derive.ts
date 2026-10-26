@@ -9,12 +9,14 @@
  *   courtyard       the view through the open doors (AVIF + WebP)
  *   bell            the hanging bell guests ring (resized to phone size; transparent; AVIF + WebP)
  *   chain.webp      one seamless repeat of the bell's chain, tiled up to the beam
+ *   card            the invitation card, its printed greeting cleared for live text (card.ts)
  * Re-run after replacing a source photograph or adjusting scene.json. Uses the installed Chrome.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
 import sharp from 'sharp';
+import { makeCard } from './card';
 
 const dir = join(process.cwd(), 'src/assets/opening');
 const scene = JSON.parse(readFileSync(join(dir, 'scene.json'), 'utf8'));
@@ -195,3 +197,4 @@ for (const name of ['frame', 'leaves', 'bell'] as const) await write(name, Buffe
 for (const name of ['hangings', 'chain'] as const) await write(name, Buffer.from(out[name], 'base64'), ['webp']);
 console.log(`  hanging pieces: ${out.decoPixels} px; layer box ${out.hangingsBox.join(', ')} (%)`);
 console.log(`  chain repeat: ${out.chainPeriod} px, columns ${out.chainCols.map((c: number) => (c * 100).toFixed(0)).join('–')}% of the bell's width`);
+await makeCard(dir, scene.card);

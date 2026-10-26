@@ -250,3 +250,24 @@ The client judged the vector stand-ins above "not looking real… like a cartoon
 - `npm run qa:book`: **71/71 checks pass.** **AC-01b** covers the full sequence: bell sound, doors swinging, birds, monogram, card, focus on "Open the Invitation", seal and flap, page curl. **AC-01d** (new) checks the personal `?to=` greeting and that it cannot inject markup.
 - Frame capture on the dev build: the doors, wind and walk-in hold 60 fps on this Mac.
 - **Not yet verified:** a real mid-range phone, and the sound on iOS with the silent switch on.
+
+## 26 October 2026 — The invitation card from the client's photograph
+
+The client found the drawn envelope card cartoon-like and the white "Dear …" above it hard to read over the sky. They supplied a photograph of a maroon velvet card with gold foil and asked for: "Dear Guest" on the card, the couple's names after it, then "Open the Invitation" as the button, which opens into the book with a smooth animation.
+
+### Decisions
+
+1. **The supplied card is used as photographed.** Its borders, paisleys, mandap and couple, and its printed "Open the Invitation", are not redrawn. `npm run opening:assets` makes the card layer from it.
+2. **The greeting sits on the card, in the card's own gold,** where the printed "Dear Guest" was. The printed words are painted out by rebuilding the velvet under each letter from the light around it plus grain from a plain patch, so no patch shows. Each guest's name is then set there in live text. This answers the request for a darker, more readable greeting: the old white line over the sky is gone, and gold on maroon matches the card's design (maroon text on the maroon card would not show).
+3. **Couple's names after the greeting:** the card's printed divider moves down slightly to make room, and "Rahul & Divya" is set beneath it in the same gold (Cormorant Garamond, as on the printed button text).
+4. **"Open the Invitation" is the button:** the printed words get a stamped-gold ring and a slow light sweep, a slight press when tapped, and a tap area of at least 44 px.
+5. **Gold foil in live text:** a gradient taken from the colours measured in the card's printing (pale highlight, rich gold, warm brown shadow), with a faint embossed edge.
+6. **Names of any length fit:** the greeting is measured once its font has loaded. A longer name is set smaller on one line; a very long name takes two lines. Without `?to=` the card reads "Dear Guest", as printed.
+7. **Sequence:** the monogram comes forward and gives way to the card with "Dear Guest". The couple's names appear about 0.7 s later, then the button ring about 0.65 s after that (card ready at about 11.3 s after the tap).
+8. **Opening:** tapping "Open the Invitation" swings the card's cover open on its left edge (0.95 s) while the card eases right, showing a cream inside with a gold border and the R·D monogram. The first page then turns with the book's page curl. Welcome is reached about 1.9 s after the tap. With reduced motion the book cross-fades.
+9. **Loading:** the card image (138 KB AVIF) is not requested until the bell is rung, so the first screen is unaffected (Lighthouse still 86). It also appears without JavaScript.
+
+### Results
+
+- `npm run qa:book`: **71/71 checks pass.** AC-01b covers the new card: the cover swings open, then the curl. AC-01d checks the greeting: plain text only, a medium name on one line, a 40-character name on two lines, kept inside the card.
+- `npm run perf`: mobile performance 86, accessibility 100, best practices 100.

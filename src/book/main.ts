@@ -3,7 +3,7 @@ import { DialogManager } from './dialogs';
 import { WheelGate } from './gestures';
 import { mountChoreos } from '../motion/choreo';
 import '../motion/pages';
-import { coverStage, enterTemple, greetGuest, openEnvelope, showBook, showDoors } from '../motion/pages/cover';
+import { coverStage, enterTemple, greetGuest, openCard, showBook, showDoors } from '../motion/pages/cover';
 import { ringBell, setSound, soundOn } from '../lib/bell';
 import { initForms } from '../forms';
 
@@ -146,6 +146,8 @@ function enterPage(page: HTMLElement, firstVisit: boolean) {
 
 book.addEventListener('page:enter', (e) => {
   enterPage(e.target as HTMLElement, (e as CustomEvent<PageEnterDetail>).detail.firstVisit);
+  // Back on the cover after opening the card: it is closed again, ready to open
+  if (e.target === pages[0] && pages[0].dataset.stage === 'book') showBook(pages[0]);
 });
 book.addEventListener('page:leave', (e) => {
   const page = e.target as HTMLElement;
@@ -296,7 +298,7 @@ async function openBook() {
   controller.enabled = false;
   app.classList.add('is-opening');
   try {
-    await openEnvelope(cover);
+    await openCard(cover);
     controller.goTo(controller.openTarget, 'curl', 'open');
   } finally {
     opening = false;

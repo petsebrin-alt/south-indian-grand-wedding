@@ -3,6 +3,8 @@
  * One of the opening's photographs: AVIF where the browser supports it, WebP otherwise.
  * `defer` leaves the files unrequested until src/motion/pages/cover.ts asks for them, so the
  * door photograph guests see first is not slowed by layers only needed after the bell is rung.
+ * `lazy` instead lets the browser fetch it once it is laid out (for layers hidden with display: none
+ * until later, which still need to appear without JavaScript).
  * Class and style go on the <img> (the <picture> is display: contents).
  */
 import type { ImageMetadata } from 'astro';
@@ -14,9 +16,10 @@ interface Props {
   style?: string;
   defer?: boolean;
   priority?: boolean;
+  lazy?: boolean;
 }
 
-const { avif, webp, class: className, style, defer = false, priority = false } = Astro.props;
+const { avif, webp, class: className, style, defer = false, priority = false, lazy = false } = Astro.props;
 ---
 
 <picture class="scene-photo">
@@ -30,6 +33,7 @@ const { avif, webp, class: className, style, defer = false, priority = false } =
     height={webp.height}
     alt=""
     decoding="async"
+    loading={lazy ? 'lazy' : undefined}
     fetchpriority={priority ? 'high' : undefined}
   />
 </picture>

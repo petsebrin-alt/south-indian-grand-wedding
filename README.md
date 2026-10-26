@@ -36,7 +36,7 @@ npm run content:check    # lists everything still missing
 
 ## Personal invitation links
 
-Add `?to=` and the guest's name to the site address and the opening card greets them by name, for example `https://your-site/?to=Meena%20%26%20Ravi` shows "Dear Meena & Ravi,". Without a name the card says "Dear Family & Friends,". In the link, write spaces as `%20` and `&` as `%26`.
+Add `?to=` and the guest's name to the site address and the invitation card greets them by name, for example `https://your-site/?to=Meena%20%26%20Ravi` shows "Dear Meena & Ravi" in the card's gold. Without a name the card says "Dear Guest". Longer names are set smaller to fit, and very long ones take two lines. In the link, write spaces as `%20` and `&` as `%26`.
 
 ## Add the realistic artwork
 

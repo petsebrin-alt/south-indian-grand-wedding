@@ -283,9 +283,9 @@ async function main() {
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/opening-book.png` });
     const o0 = Date.now();
     await openTheInvitation(page);
-    // The wax seal breaks and the flap opens, then the page turns with a curl
+    // The card's cover swings open on its hinge, then the page turns with a curl
     await page.waitForTimeout(500);
-    const flap = await page.evaluate(() => getComputedStyle(document.querySelector('#cover [data-flap]')!).transform !== 'none');
+    const flap = await page.evaluate(() => getComputedStyle(document.querySelector('#cover [data-cover]')!).transform !== 'none');
     await page.waitForFunction(() => document.querySelector('.book__flap-wrap')!.classList.contains('is-on'), null, { timeout: 3000, polling: 20 });
     const curl = true;
     await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'welcome', null, { timeout: 6000, polling: POLL });
@@ -293,7 +293,7 @@ async function main() {
     metrics.opening = { monogramSeconds: +monoAt.toFixed(2), bookSeconds: +bookAt.toFixed(2), openSeconds: +openSeconds.toFixed(2) };
     check(
       'AC-01b',
-      'Opening: tap the bell → it rings, the doors swing open, birds fly, the monogram descends and becomes the invitation (~10–11 s); Open breaks the seal, opens the flap and turns to Welcome',
+      'Opening: tap the bell → it rings, the doors swing open, birds fly, the monogram descends and becomes the invitation (~10–11 s); Open swings the card cover open and turns to Welcome',
       doorsFirst.stage === 'doors' &&
         doorsFirst.bookHidden &&
         doorsFirst.prompt &&
@@ -320,17 +320,33 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-01d personal link: ?to= names the guest above the card, as plain text only */
+  /* AC-01d personal link: ?to= names the guest on the card, as plain text, fitted to its place */
   {
-    const ctx = await mobileContext(browser);
+    const ctx = await mobileContext(browser, 375, 667);
+    await ctx.addInitScript({ content: 'sessionStorage.setItem("rdv:entered", "1");' });
     const page = await ctx.newPage();
-    await page.goto(`${BASE}?to=${encodeURIComponent('Meena & Ravi <img src=x>')}`);
-    await page.waitForFunction(() => document.getElementById('cover')?.dataset.stage === 'doors');
-    const guest = await page.evaluate(() => {
-      const el = document.querySelector('[data-guest]')!;
-      return { text: el.textContent, elements: el.children.length };
-    });
-    check('AC-01d', 'A personal link (?to=Name) greets the guest by name above the invitation, as plain text', guest.text === 'Meena & Ravi img srcx' && guest.elements === 0, JSON.stringify(guest));
+    const greet = async (to: string) => {
+      await page.goto(`${BASE}?to=${encodeURIComponent(to)}`);
+      await bookReady(page);
+      await page.evaluate(() => document.fonts.ready);
+      await page.waitForTimeout(300);
+      return page.evaluate(() => {
+        const el = document.querySelector('[data-guest]')!;
+        const text = document.querySelector('#cover .cv-inv__dear .cv-foil')!.getBoundingClientRect();
+        const card = document.querySelector('#cover [data-book]')!.getBoundingClientRect();
+        const lines = Math.round(text.height / (parseFloat(getComputedStyle(document.querySelector('#cover .cv-inv__dear')!).fontSize) * 1.02));
+        return { text: el.textContent, elements: el.children.length, lines, inside: text.left >= card.left + card.width * 0.15 && text.right <= card.right - card.width * 0.15 };
+      });
+    };
+    const markup = await greet('Meena & Ravi <img src=x>');
+    const short = await greet('Meena & Ravi');
+    const long = await greet('Dr. Lakshmi Narayanan & Family (Chennai)');
+    check(
+      'AC-01d',
+      'A personal link (?to=Name) greets the guest by name on the card, as plain text; long names shrink to fit (two lines at most)',
+      markup.text === 'Meena & Ravi img srcx' && markup.elements === 0 && short.lines === 1 && short.inside && long.lines <= 2 && long.inside,
+      JSON.stringify({ markup, short, long }),
+    );
     await ctx.close();
   }
 

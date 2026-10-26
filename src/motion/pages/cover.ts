@@ -15,7 +15,7 @@ const q = (page: HTMLElement, sel: string) => page.querySelector<HTMLElement>(se
 const qa = (page: HTMLElement, sel: string) => [...page.querySelectorAll<HTMLElement>(sel)];
 
 const DOOR_OPEN = 78; // degrees: wide open, still in view
-const SCENE_RESET = '[data-door], [data-front], [data-court], [data-mono], [data-book], .cv-open, [data-glow], [data-scrim], .op-bell, [data-seal] *, [data-flap]';
+const SCENE_RESET = '[data-door], [data-front], [data-court], [data-mono], [data-book], .cv-open, .cv-inv__names, [data-cover], [data-cover-shade], [data-glow], [data-scrim], .op-bell';
 
 export const coverStage = (page: HTMLElement) => (page.dataset.stage ?? 'book') as Stage;
 const setStage = (page: HTMLElement, stage: Stage) => {
@@ -121,6 +121,7 @@ export function showBook(page: HTMLElement) {
   loadDeferred(page);
   setStage(page, 'book');
   stopBreeze(page);
+  fitGreeting(page);
 }
 
 /** "Dear …": the guest's name from a personal link (…/?to=Lakshmi%20Aunty), otherwise everyone. */
@@ -132,6 +133,32 @@ export function greetGuest(page: HTMLElement) {
     .trim()
     .slice(0, 48);
   if (name) q(page, '[data-guest]').textContent = name;
+}
+
+/**
+ * Fit "Dear …" to its place on the card: one line, smaller for a longer name; a very long name
+ * wraps onto two. Measured once the card is laid out and its script face has loaded.
+ */
+function fitGreeting(page: HTMLElement) {
+  const box = q(page, '.cv-inv__dear');
+  const text = box.firstElementChild as HTMLElement;
+  void document.fonts.load(`400 40px ${getComputedStyle(box).fontFamily}`).then(() => {
+    if (!box.clientWidth) return;
+    box.style.setProperty('--dear-scale', '1');
+    box.classList.remove('is-two-lines');
+    text.style.whiteSpace = 'nowrap';
+    const room = box.clientWidth / text.scrollWidth;
+    text.style.whiteSpace = '';
+    let scale = Math.min(1, room * 0.98);
+    box.style.setProperty('--dear-scale', String(scale));
+    if (scale >= 0.6) return;
+    // Too long for one line: the largest size at which it breaks onto two
+    box.classList.add('is-two-lines');
+    for (scale = 0.6; scale > 0.36; scale -= 0.02) {
+      box.style.setProperty('--dear-scale', String(scale));
+      if (text.offsetHeight <= parseFloat(getComputedStyle(box).fontSize) * 1.02 * 2.3) break;
+    }
+  });
 }
 
 /** Request the layers held back so the door photograph loads first (ScenePhoto `defer`). */
@@ -183,6 +210,7 @@ function ringSwing(bell: HTMLElement) {
 export async function enterTemple(page: HTMLElement, bell: HTMLElement | null): Promise<void> {
   if (coverStage(page) !== 'doors') return;
   setStage(page, 'entering');
+  fitGreeting(page);
   const front = q(page, '[data-front]');
   const doors = qa(page, '[data-door]');
   const glow = q(page, '[data-glow]');
@@ -191,12 +219,13 @@ export async function enterTemple(page: HTMLElement, bell: HTMLElement | null): 
   const scrim = q(page, '[data-scrim]');
   const book = q(page, '[data-book]');
   const open = q(page, '.cv-open');
+  const names = q(page, '.cv-inv__names');
   const prompts = qa(page, '.cv-enter, .op-bell__halo');
   const h = page.clientHeight;
   const near = Number(getComputedStyle(court).getPropertyValue('--near')) || 1.44;
   const behind = Number(getComputedStyle(court).getPropertyValue('--behind')) || 1.3;
 
-  gsap.set([book, open, mono, scrim], { autoAlpha: 0 });
+  gsap.set([book, open, names, mono, scrim], { autoAlpha: 0 });
   const swing = bell && !isReducedMotion() ? ringSwing(bell) : null;
   await layersReady(page);
 
@@ -207,7 +236,7 @@ export async function enterTemple(page: HTMLElement, bell: HTMLElement | null): 
       .to(doors, { autoAlpha: 0, duration: 0.5 }, 0.1)
       .to(front, { autoAlpha: 0, duration: 0.5 }, 0.6)
       .to(scrim, { autoAlpha: 1, duration: 0.4 }, 0.9)
-      .to([book, open], { autoAlpha: 1, duration: 0.4 }, 1.0);
+      .to([book, open, names], { autoAlpha: 1, duration: 0.4 }, 1.0);
   } else {
     const wind = { v: 1 };
     const setGust = () => (gust = wind.v);
@@ -232,7 +261,9 @@ export async function enterTemple(page: HTMLElement, bell: HTMLElement | null): 
       .to(mono, { autoAlpha: 0, duration: 0.45, ease: 'power1.in' }, 8.95)
       .to(scrim, { autoAlpha: 1, duration: 1, ease: 'sine.inOut' }, 8.6)
       .fromTo(book, { autoAlpha: 0, scale: 0.86, y: h * 0.03 }, { autoAlpha: 1, scale: 1, y: 0, duration: 1.1, ease: 'power3.out' }, 9.25)
-      .fromTo(open, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.6 }, 10);
+      // "Dear Guest" arrives with the card; the couple's names follow, then the button
+      .fromTo(names, { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.9, ease: 'sine.out' }, 9.95)
+      .fromTo(open, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, ease: 'sine.out' }, 10.6);
   }
 
   await new Promise<void>((resolve) => {
@@ -254,17 +285,16 @@ export async function enterTemple(page: HTMLElement, bell: HTMLElement | null): 
   });
 }
 
-/** "Open the Invitation": the wax seal breaks and the flap swings open (then the page turns). */
-export function openEnvelope(page: HTMLElement): Promise<void> {
+/** "Open the Invitation": the card's cover opens on its hinge (then the first page turns). */
+export function openCard(page: HTMLElement): Promise<void> {
   if (isReducedMotion()) return Promise.resolve();
-  const [l, r] = qa(page, '.cv-env__seal-half');
   const tl = gsap.timeline();
-  tl.to(q(page, '.cv-env__seal-mono'), { opacity: 0, duration: 0.15 }, 0)
-    .to(l, { xPercent: -40, yPercent: 30, rotation: -28, opacity: 0, duration: 0.5, ease: 'power2.in' }, 0.05)
-    .to(r, { xPercent: 40, yPercent: 34, rotation: 24, opacity: 0, duration: 0.5, ease: 'power2.in' }, 0.05)
-    .to(q(page, '[data-flap]'), { rotationY: -168, duration: 0.85, ease: 'sine.inOut' }, 0.3);
+  // The card eases to the right as its cover swings open, so the inside comes into view
+  tl.to(q(page, '[data-book]'), { xPercent: 17, scale: 0.8, duration: 0.95, ease: 'sine.inOut' }, 0)
+    .to(q(page, '[data-cover]'), { rotationY: -168, duration: 0.95, ease: 'sine.inOut' }, 0)
+    .to(q(page, '[data-cover-shade]'), { opacity: 1, duration: 0.45, ease: 'sine.in' }, 0);
   return new Promise((resolve) => {
     tl.eventCallback('onComplete', () => resolve());
-    window.setTimeout(resolve, 1600);
+    window.setTimeout(resolve, 1500);
   });
 }
