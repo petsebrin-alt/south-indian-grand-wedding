@@ -50,6 +50,18 @@ const settle = (page: Page) =>
       throw new Error(`Book did not settle: ${JSON.stringify(state)}; page errors: ${JSON.stringify(pageErrors.slice(-5))}`, { cause: err });
     });
 
+/** The opening (PRD §6.1): ring the temple bell, wait for the invitation book, then open it. */
+// The bell sways in the breeze, so it is never "stable" for Playwright: tap it regardless.
+const ringTheBell = (page: Page) => page.getByRole('button', { name: 'Ring the temple bell to open the doors' }).tap({ force: true });
+const bookReady = (page: Page, timeout = 20000) =>
+  page.waitForFunction(() => document.getElementById('cover')?.dataset.stage === 'book', null, { timeout, polling: POLL });
+const openTheInvitation = (page: Page) => page.getByRole('link', { name: 'Open the Invitation' }).tap();
+async function enterAndOpen(page: Page) {
+  await ringTheBell(page);
+  await bookReady(page);
+  await openTheInvitation(page);
+}
+
 async function touchDrag(cdp: CDPSession, page: Page, from: [number, number], to: [number, number], steps = 10, stepMs = 16) {
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from[0], y: from[1] }] });
   for (let i = 1; i <= steps; i++) {
@@ -88,7 +100,7 @@ async function main() {
     await page.goto(`${BASE}#rsvp`);
     await settle(page);
     check('AC-05a', 'Fresh deep link shows the cover first', (await current(page)) === 'cover');
-    await page.getByRole('link', { name: 'Tap to Open Our Invitation' }).tap();
+    await enterAndOpen(page);
     await page.waitForTimeout(200);
     await settle(page);
     check('AC-05b', 'Opening the cover lands on the deep-linked page', (await current(page)) === 'rsvp', String(await current(page)));
@@ -206,11 +218,20 @@ async function main() {
     const page = await ctx.newPage();
     await page.goto(BASE);
     await settle(page);
-    await page.getByRole('link', { name: 'Tap to Open Our Invitation' }).tap();
+    const e0 = Date.now();
+    await ringTheBell(page);
+    await bookReady(page);
+    const entering = (Date.now() - e0) / 1000;
+    await openTheInvitation(page);
     await page.waitForTimeout(40);
     const curlUsed = await page.evaluate(() => document.querySelector('.book__flap-wrap')!.classList.contains('is-on'));
     await settle(page);
-    check('AC-32', 'Reduced motion replaces the curl with a cross-fade', !curlUsed && (await current(page)) === 'welcome');
+    check(
+      'AC-32',
+      'Reduced motion: the doors simply fade open (no walk, no 3D) and the book opens with a cross-fade, not a curl',
+      entering < 2.5 && !curlUsed && (await current(page)) === 'welcome',
+      JSON.stringify({ entering, curlUsed }),
+    );
     await ctx.close();
   }
 
@@ -227,19 +248,89 @@ async function main() {
 
   /* ================================================ Phase 2 pages ================================================ */
 
-  /* AC-01 opening animation duration */
+  /* AC-01 the temple entrance: bell, doors, walk-in, monogram from the sky, then the invitation book */
   {
     const ctx = await mobileContext(browser);
+    await ctx.addInitScript({
+      content: `window.__bells = 0; const A = window.AudioContext; window.AudioContext = class extends A { constructor(...a) { super(...a); window.__bells++; } };`,
+    });
     const page = await ctx.newPage();
     await page.goto(BASE);
     await settle(page);
     await page.waitForTimeout(1200);
+    const doorsFirst = await page.evaluate(() => ({
+      stage: document.getElementById('cover')!.dataset.stage,
+      bookHidden: getComputedStyle(document.querySelector('#cover [data-book]')!).visibility === 'hidden',
+      prompt: !!document.querySelector('#cover .cv-enter')?.textContent?.includes('Tap the bell'),
+    }));
     const started = Date.now();
-    await page.getByRole('link', { name: 'Tap to Open Our Invitation' }).tap();
+    await ringTheBell(page);
+    await page.waitForTimeout(1900);
+    const doors = await page.evaluate(() => {
+      const t = getComputedStyle(document.querySelector('#cover [data-door="l"]')!).transform;
+      return { swinging: t !== 'none' && t !== 'matrix(1, 0, 0, 1, 0, 0)', sound: (window as unknown as { __bells: number }).__bells };
+    });
+    await page.waitForFunction(() => Number(getComputedStyle(document.querySelector('#cover [data-mono]')!).opacity) > 0.9, null, { timeout: 12000, polling: POLL });
+    const monoAt = (Date.now() - started) / 1000;
+    const birds = await page.evaluate(() => document.querySelectorAll('.op-bird').length);
+    await bookReady(page);
+    const bookAt = (Date.now() - started) / 1000;
+    const book = await page.evaluate(() => ({
+      focus: document.activeElement?.textContent?.trim(),
+      entered: sessionStorage.getItem('rdv:entered'),
+      skipHidden: getComputedStyle(document.querySelector('[data-skip]')!).display === 'none',
+    }));
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/opening-book.png` });
+    const o0 = Date.now();
+    await openTheInvitation(page);
+    // The wax seal breaks and the flap opens, then the page turns with a curl
+    await page.waitForTimeout(500);
+    const flap = await page.evaluate(() => getComputedStyle(document.querySelector('#cover [data-flap]')!).transform !== 'none');
+    await page.waitForFunction(() => document.querySelector('.book__flap-wrap')!.classList.contains('is-on'), null, { timeout: 3000, polling: 20 });
+    const curl = true;
     await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'welcome', null, { timeout: 6000, polling: POLL });
-    const seconds = (Date.now() - started) / 1000;
-    metrics.openingSeconds = +seconds.toFixed(2);
-    check('AC-01b', 'Envelope opening lands on Welcome in about 2–3 seconds', seconds >= 1.8 && seconds <= 3.3, `${seconds.toFixed(2)} s`);
+    const openSeconds = (Date.now() - o0) / 1000;
+    metrics.opening = { monogramSeconds: +monoAt.toFixed(2), bookSeconds: +bookAt.toFixed(2), openSeconds: +openSeconds.toFixed(2) };
+    check(
+      'AC-01b',
+      'Opening: tap the bell → it rings, the doors swing open, birds fly, the monogram descends and becomes the invitation (~10–11 s); Open breaks the seal, opens the flap and turns to Welcome',
+      doorsFirst.stage === 'doors' &&
+        doorsFirst.bookHidden &&
+        doorsFirst.prompt &&
+        doors.swinging &&
+        doors.sound > 0 &&
+        birds > 0 &&
+        monoAt > 5.5 &&
+        monoAt < 9.5 &&
+        bookAt > 9 &&
+        bookAt < 13 &&
+        book.focus === 'Open the Invitation' &&
+        book.entered === '1' &&
+        book.skipHidden &&
+        flap &&
+        curl &&
+        openSeconds < 3,
+      JSON.stringify({ doorsFirst, doors, birds, monoAt, bookAt, book, flap, openSeconds }),
+    );
+    // Back to the cover later in the visit: the book is waiting, not the closed doors.
+    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(0));
+    await page.waitForTimeout(200);
+    const revisit = await page.evaluate(() => document.getElementById('cover')!.dataset.stage);
+    check('AC-01c', 'Returning to the cover in the same visit shows the invitation book, ready to open', revisit === 'book', String(revisit));
+    await ctx.close();
+  }
+
+  /* AC-01d personal link: ?to= names the guest above the card, as plain text only */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}?to=${encodeURIComponent('Meena & Ravi <img src=x>')}`);
+    await page.waitForFunction(() => document.getElementById('cover')?.dataset.stage === 'doors');
+    const guest = await page.evaluate(() => {
+      const el = document.querySelector('[data-guest]')!;
+      return { text: el.textContent, elements: el.children.length };
+    });
+    check('AC-01d', 'A personal link (?to=Name) greets the guest by name above the invitation, as plain text', guest.text === 'Meena & Ravi img srcx' && guest.elements === 0, JSON.stringify(guest));
     await ctx.close();
   }
 
@@ -999,7 +1090,7 @@ async function main() {
     const page = await ctx.newPage();
     await page.goto(BASE);
     await settle(page);
-    await page.getByRole('link', { name: 'Tap to Open Our Invitation' }).tap();
+    await enterAndOpen(page);
     await settle(page);
     await page.waitForTimeout(1200);
     const petals = await page.evaluate(() => document.querySelectorAll('.petal').length);
@@ -1109,6 +1200,16 @@ async function main() {
           if (img.naturalWidth && box.width && Math.abs(box.width / box.height - img.naturalWidth / img.naturalHeight) > 0.02 * (img.naturalWidth / img.naturalHeight))
             issues.push(`${img.dataset.asset}: stretched`);
         }
+      }
+      // The client's opening photographs, as shown before the doors move: unfiltered and in proportion
+      book.show(0);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      for (const img of document.querySelectorAll<HTMLImageElement>('#cover .op-frame--whole, #cover .op-court__img')) {
+        real++;
+        const style = getComputedStyle(img);
+        const box = img.getBoundingClientRect();
+        if (style.filter !== 'none') issues.push(`${img.className}: filter ${style.filter}`);
+        if (img.classList.contains('op-frame') && Math.abs(box.width / box.height - img.naturalWidth / img.naturalHeight) > 0.01) issues.push(`${img.className}: stretched`);
       }
       return { real, slots, issues };
     });
@@ -1252,7 +1353,7 @@ async function main() {
     await page.evaluate(() => localStorage.setItem('rdv:hint-seen', '1'));
     await page.waitForTimeout(1500);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-    // Envelope opening under the same 4× CPU slowdown
+    // The temple entrance under the same 4× CPU slowdown
     await page.evaluate(() => {
       const w = window as unknown as { __og: number[]; __orun: boolean };
       w.__og = [];
@@ -1265,13 +1366,15 @@ async function main() {
       };
       requestAnimationFrame(loop);
     });
-    await page.getByRole('link', { name: 'Tap to Open Our Invitation' }).tap();
-    await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'welcome', null, { timeout: 8000, polling: POLL });
+    await ringTheBell(page);
+    await bookReady(page, 25000);
     const openGaps = await page.evaluate(() => {
       const w = window as unknown as { __og: number[]; __orun: boolean };
       w.__orun = false;
       return w.__og;
     });
+    await openTheInvitation(page);
+    await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'welcome', null, { timeout: 8000, polling: POLL });
     const openAvg = openGaps.reduce((a, b) => a + b, 0) / openGaps.length;
     metrics.openingFrames = { averageFps: +(1000 / openAvg).toFixed(1), framesOver20ms: openGaps.filter((g) => g > 20).length, frames: openGaps.length };
     await settle(page);

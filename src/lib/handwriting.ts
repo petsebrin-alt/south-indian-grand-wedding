@@ -21,6 +21,24 @@ const loadFont = () => {
   return font;
 };
 
+const r = (n: number) => Math.round(n * 10) / 10;
+const ok = (...n: (number | undefined)[]) => n.every((v) => Number.isFinite(v));
+
+/**
+ * SVG path data written directly from the glyph's commands (y already points down). opentype.js 2's
+ * own toPathData flips Y by default and can emit NaN for a rounded control point.
+ */
+function pathData(path: opentype.Path): string {
+  return path.commands
+    .map((c) => {
+      if (c.type === 'Z') return 'Z';
+      if (c.type === 'Q' && ok(c.x1, c.y1)) return `Q${r(c.x1!)} ${r(c.y1!)} ${r(c.x)} ${r(c.y)}`;
+      if (c.type === 'C' && ok(c.x1, c.y1, c.x2, c.y2)) return `C${r(c.x1!)} ${r(c.y1!)} ${r(c.x2!)} ${r(c.y2!)} ${r(c.x)} ${r(c.y)}`;
+      return `${c.type === 'M' ? 'M' : 'L'}${r(c.x)} ${r(c.y)}`; // M, L, or a curve missing a control point
+    })
+    .join('');
+}
+
 export interface Lettering {
   viewBox: string;
   /** One path per visible letter, in writing order. */
@@ -47,8 +65,7 @@ export function lettering(lines: string[]): Lettering {
       bottom = Math.max(bottom, box.y2);
       left = Math.min(left, box.x1);
       right = Math.max(right, box.x2);
-      // opentype.js 2 flips Y by default when given an options object; these paths are already y-down.
-      glyphs.push({ d: path.toPathData({ decimalPlaces: 0, flipY: false }), line: i });
+      glyphs.push({ d: pathData(path), line: i });
     }
   });
   const pad = 4;

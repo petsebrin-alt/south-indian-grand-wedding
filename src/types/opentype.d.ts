@@ -6,10 +6,18 @@ declare module 'opentype.js' {
     x2: number;
     y2: number;
   }
+  interface PathCommand {
+    type: 'M' | 'L' | 'Q' | 'C' | 'Z';
+    x: number;
+    y: number;
+    x1?: number;
+    y1?: number;
+    x2?: number;
+    y2?: number;
+  }
   interface Path {
-    commands: unknown[];
+    commands: PathCommand[];
     getBoundingBox(): BoundingBox;
-    toPathData(options?: { decimalPlaces?: number; flipY?: boolean }): string;
   }
   interface Font {
     getAdvanceWidth(text: string, fontSize: number): number;

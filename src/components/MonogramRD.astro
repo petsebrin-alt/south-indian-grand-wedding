@@ -1,0 +1,60 @@
+---
+/**
+ * The R·D monogram (asset D-54). Shows the supplied `rd-monogram` artwork when it exists in
+ * src/assets/decor/; until then interlaced R and D in polished gold foil, bevelled with light.
+ */
+import Decor from './Decor.astro';
+import { hasRealDecor } from '../lib/decor-assets';
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+const real = hasRealDecor('rd-monogram');
+const id = `mono${Math.random().toString(36).slice(2, 7)}`;
+---
+
+{
+  real ? (
+    <Decor name="rd-monogram" asset="D-54" class={className} eager />
+  ) : (
+    <svg class:list={['monogram-rd', className]} viewBox="0 0 300 300" aria-hidden="true" focusable="false" data-asset="D-54" data-placeholder>
+      <defs>
+        <linearGradient id={`${id}-gold`} x1="0.1" y1="0" x2="0.9" y2="1">
+          <stop offset="0" stop-color="#fff3c8" />
+          <stop offset="0.18" stop-color="#e6c06a" />
+          <stop offset="0.38" stop-color="#a87a26" />
+          <stop offset="0.52" stop-color="#f6dc93" />
+          <stop offset="0.7" stop-color="#b98b33" />
+          <stop offset="0.86" stop-color="#7c5516" />
+          <stop offset="1" stop-color="#d9b25e" />
+        </linearGradient>
+        <filter id={`${id}-bevel`} x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="blur" />
+          <feSpecularLighting in="blur" surfaceScale="4" specularConstant="0.9" specularExponent="22" lighting-color="#fff6dc" result="spec">
+            <fePointLight x="60" y="-80" z="220" />
+          </feSpecularLighting>
+          <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn" />
+          <feComposite in="SourceGraphic" in2="specIn" operator="arithmetic" k1="0" k2="1" k3="0.65" k4="0" />
+        </filter>
+      </defs>
+      <g font-family="'Cormorant Garamond', serif" font-weight="600" fill={`url(#${id}-gold)`} stroke="#6b4812" stroke-width="1.4" paint-order="stroke" filter={`url(#${id}-bevel)`}>
+        <text x="58" y="204" font-size="196">R</text>
+        <text x="132" y="244" font-size="176">D</text>
+      </g>
+      <g fill={`url(#${id}-gold)`} stroke="#6b4812" stroke-width="0.8">
+        <path d="M150 268c-26 0-44-6-60-14 18 4 38 6 60 6s42-2 60-6c-16 8-34 14-60 14z" />
+        <circle cx="150" cy="276" r="3.4" />
+      </g>
+    </svg>
+  )
+}
+
+<style>
+  .monogram-rd {
+    display: block;
+    overflow: visible;
+    filter: drop-shadow(0 8px 12px rgba(60, 35, 10, 0.35));
+  }
+</style>

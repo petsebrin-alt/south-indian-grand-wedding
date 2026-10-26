@@ -34,9 +34,16 @@ Everything guests see — names, dates, venues, family, contacts, travel notes a
 npm run content:check    # lists everything still missing
 ```
 
+## Personal invitation links
+
+Add `?to=` and the guest's name to the site address and the opening card greets them by name, for example `https://your-site/?to=Meena%20%26%20Ravi` shows "Dear Meena & Ravi,". Without a name the card says "Dear Family & Friends,". In the link, write spaces as `%20` and `&` as `%26`.
+
 ## Add the realistic artwork
 
-Decorations (jasmine, brass lamps, pillars, doors, silk) currently show vector placeholders. Put a real image named after its slot in `src/assets/decor/` (for example `kuthuvilakku.webp`) and it replaces the placeholder everywhere. The slot list and art rules are in [src/assets/decor/README.md](src/assets/decor/README.md). `npm run placeholders` regenerates the stand-ins.
+The opening (temple doors, bell and courtyard) is built from the client's photographs in `src/assets/opening/source/`. After replacing one, run `npm run opening:assets` to remake the scene's layers; see [src/assets/decor/README.md](src/assets/decor/README.md#opening-screen-cover-the-clients-photographs).
+
+
+The other pages' decorations (jasmine, brass lamps, pillars, doors, silk) still show vector placeholders. Put a real image named after its slot in `src/assets/decor/` (for example `kuthuvilakku.webp`) and it replaces the placeholder everywhere. The slot list and art rules are in [src/assets/decor/README.md](src/assets/decor/README.md). `npm run placeholders` regenerates the stand-ins.
 
 ## Backend (RSVPs, blessings, family dashboard)
 
@@ -85,11 +92,12 @@ npm run perf               # Lighthouse mobile on the cover of the built site (r
 | `src/book/` | Page-curl engine, gestures, overlays and navigation |
 | `src/motion/` | Page choreographies, petals, scratch card, gallery ring, family-tree animation |
 | `src/components/pages/` | One component per page |
+| `src/assets/opening/` | The opening's photographs (`source/`), their measurements (`scene.json`) and the layers made from them |
 | `src/assets/decor/`, `src/assets/placeholders/` | Real decoration assets, and their vector stand-ins |
 | `src/lib/calendar.ts` | Add to Calendar links and `.ics` files |
 | `src/lib/venue.ts` | When Location and Get Directions switch on (public venues with a map link or coordinates) |
 | `src/lib/handwriting.ts` | Builds the Thank You page's handwritten lettering from the Pinyon Script font |
-| `scripts/og/`, `scripts/fonts/`, `scripts/perf/` | Link-preview image, Telugu font subset, Lighthouse check |
+| `scripts/og/`, `scripts/fonts/`, `scripts/perf/`, `scripts/opening/` | Link-preview image, Telugu font subset, Lighthouse check, opening layers |
 | `src/forms/` | Wishing Wall and RSVP behaviour (drafts, retries, success only after storage) |
 | `src/lib/api.ts` | Browser client for the RSVP and blessings API |
 | `src/admin/`, `src/pages/admin.astro` | Family dashboard and its sign-in |

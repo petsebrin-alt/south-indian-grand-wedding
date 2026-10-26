@@ -183,3 +183,31 @@
   color: var(--gold-deep);
   pointer-events: none;
 }
+
+/* Birds crossing the courtyard sky on the opening (src/motion/pages/cover.ts) */
+.op-bird {
+  position: absolute;
+  aspect-ratio: 40 / 18;
+  fill: #2f2520;
+}
+
+.op-bird svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.op-bird__wing {
+  transform-origin: 50% 55%;
+  animation: wingbeat var(--beat, 0.28s) ease-in-out infinite alternate;
+}
+
+@keyframes wingbeat {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(-0.55);
+  }
+}

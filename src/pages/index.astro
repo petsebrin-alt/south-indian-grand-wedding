@@ -7,7 +7,6 @@ import '@fontsource/cinzel/600.css';
 import '@fontsource/manrope/400.css';
 import '@fontsource/manrope/600.css';
 import '@fontsource/pinyon-script/400.css';
-import cormorantFont from '@fontsource/cormorant-garamond/files/cormorant-garamond-latin-600-normal.woff2?url';
 import cinzelFont from '@fontsource/cinzel/files/cinzel-latin-500-normal.woff2?url';
 import '../styles/fonts.css';
 import '../styles/tokens.css';
@@ -89,10 +88,8 @@ const p = (id: string) => {
     <meta property="og:image:alt" content={`Wedding invitation of ${g.name} and ${b.name}`} />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preload" href={cormorantFont} as="font" type="font/woff2" crossorigin />
+    <!-- The only face on the temple-door screen; everything else may follow the door photograph -->
     <link rel="preload" href={cinzelFont} as="font" type="font/woff2" crossorigin />
-    <!-- Handmade-paper texture behind every page, including the cover's envelope card (its largest paint) -->
-    <link rel="preload" href="/textures/paper-noise.webp" as="image" type="image/webp" fetchpriority="high" />
     <script is:inline>
       document.documentElement.classList.add('js');
       if (/[?&]preview=1\b/.test(location.search)) document.documentElement.classList.add('preview');

@@ -1,10 +1,37 @@
 ---
-/** Cover — Royal Temple Invitation Opening (PRD §6.1, THEME §13 P0). Motion: src/motion/pages/cover.ts */
+/**
+ * Cover — the temple entrance opening (PRD §6.1), built from the client's photographs
+ * (src/assets/opening/, measured in scene.json, layers made by `npm run opening:assets`).
+ * 1. Doors: the decorated entrance; garlands, swag and banana leaves stir in the breeze.
+ * 2. Entering: the hanging bell is rung, the doors swing open on their hinges, birds cross the
+ *    sky, we walk through into the courtyard, the R·D monogram descends and comes forward,
+ *    becoming the invitation envelope.
+ * 3. Invitation: "Dear …" (from the link's ?to= name) above the envelope and "Open the
+ *    Invitation", which breaks the seal, opens the flap and turns into the first page.
+ * Without JavaScript only the invitation is shown. Motion: src/motion/pages/cover.ts
+ */
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import PageShell from '../PageShell.astro';
-import Decor from '../Decor.astro';
-import Lamp from '../Lamp.astro';
+import Icon from '../Icon.astro';
+import MonogramRD from '../MonogramRD.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
+import { formatDateLong } from '../../lib/format';
+import ScenePhoto from '../ScenePhoto.astro';
+import scene from '../../assets/opening/scene.json';
+import entrance from '../../assets/opening/entrance.webp';
+import entranceAvif from '../../assets/opening/entrance.avif';
+import frameCut from '../../assets/opening/frame.webp';
+import frameCutAvif from '../../assets/opening/frame.avif';
+import leaves from '../../assets/opening/leaves.webp';
+import leavesAvif from '../../assets/opening/leaves.avif';
+import hangings from '../../assets/opening/hangings.webp';
+import courtyard from '../../assets/opening/courtyard.webp';
+import courtyardAvif from '../../assets/opening/courtyard.avif';
+import bellAvif from '../../assets/opening/bell.avif';
+import bell from '../../assets/opening/bell.webp';
+import chain from '../../assets/opening/chain.webp';
 
 interface Props {
   page: BookPage;
@@ -13,286 +40,686 @@ interface Props {
 
 const { page, index } = Astro.props;
 const { groom, bride } = wedding.couple;
-const bells = [20, 36, 64, 80];
+const bellRecording = existsSync(join(process.cwd(), 'public/audio/temple-bell.mp3')) ? '/audio/temple-bell.mp3' : '';
+
+const { door, court } = scene;
+const pct = (n: number) => `${+n.toFixed(3)}%`;
+const ratio = scene.photo.height / scene.photo.width;
+const box = ([x0, y0, x1, y1]: number[]) => `left:${pct(x0)};top:${pct(y0)};width:${pct(x1 - x0)};height:${pct(y1 - y0)}`;
+/** An element showing one region of the photograph: the full image, offset so the region shows. */
+const cropImg = ([x0, y0, x1, y1]: number[]) => `width:${pct((100 / (x1 - x0)) * 100)};left:${pct((-x0 / (x1 - x0)) * 100)};top:${pct((-y0 / (y1 - y0)) * 100)}`;
+
+// Each door leaf is half of the doorway, its top following the carved arch
+const leafClip = (side: 'l' | 'r') => {
+  const [a, b] = side === 'l' ? [door.x0, door.seam] : [door.seam, door.x1];
+  const top = door.arch.filter(([x]) => x >= a - 0.01 && x <= b + 0.01).map(([x, y]) => `${pct(((x - a) / (b - a)) * 100)} ${pct(((y - door.y0) / (door.y1 - door.y0)) * 100)}`);
+  return `polygon(${[...top, '100% 100%', '0% 100%'].join(', ')})`;
+};
+const bellHeight = scene.bell.height; // % of the scene height
+const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
 ---
 
-<PageShell page={page} index={index} note="Placeholder art: D-01 jasmine arch, D-08 bells, D-09 pillars, D-06 lamps, D-15 silk drape. Envelope D-19 is drawn in CSS until the silk envelope photograph is supplied.">
+<PageShell page={page} index={index} watermark={false} class="cover">
   <Fragment slot="architecture">
-    <Decor name="temple-pillar" asset="D-09" class="layer layer--architecture cover__pillar cover__pillar--l" eager />
-    <Decor name="temple-pillar" asset="D-09" class="layer layer--architecture cover__pillar cover__pillar--r" eager />
-    <Decor name="silk-drape" asset="D-15" class="layer layer--architecture cover__drape" eager />
-  </Fragment>
-
-  <div class="envelope" data-envelope>
-    <div class="envelope__back"></div>
-    <div class="envelope__card" data-card aria-hidden="true">
-      <span class="envelope__card-mono">R·D</span>
-    </div>
-    <div class="envelope__pocket">
-      <span class="envelope__zari" aria-hidden="true"></span>
-      <div class="envelope__front">
-        <p class="eyebrow">The wedding invitation of</p>
-        <h1 class="names names--l" tabindex="-1" data-page-heading>{groom.name} <span class="amp">&amp;</span> {bride.name}</h1>
+    <!-- The temple courtyard beyond the doors; the invitation rests here afterwards -->
+    <div class="layer layer--architecture op-scene op-scene--back" style={`--ratio:${ratio}`} aria-hidden="true">
+      <div class="op-court" data-court style={`--behind:${court.behind};--near:${court.near};transform-origin:${court.origin[0]}% ${court.origin[1]}%`}>
+        <ScenePhoto class="op-court__img" avif={courtyardAvif} webp={courtyard} defer />
+        <div class="op-birds" data-birds></div>
       </div>
     </div>
-    <div class="envelope__flap" data-flap aria-hidden="true">
-      <span class="envelope__flap-face envelope__flap-face--front"></span>
-      <span class="envelope__flap-face envelope__flap-face--back"></span>
-    </div>
-    <div class="envelope__seal" data-seal aria-hidden="true">
-      <span class="seal__half seal__half--l"></span>
-      <span class="seal__half seal__half--r"></span>
-      <span class="seal__mono">R·D</span>
+    <span class="layer layer--architecture op-scrim" data-scrim aria-hidden="true"></span>
+  </Fragment>
+
+  <!-- 3. The invitation (the only stage without JavaScript) -->
+  <div class="cv-card" data-book>
+    <p class="cv-card__dear">Dear <span data-guest>Family &amp; Friends</span>,</p>
+    <div class="cv-env" data-env>
+      <div class="cv-env__body">
+        <div class="cv-env__text">
+          <p class="cv-env__eyebrow">The wedding invitation of</p>
+          <h1 class="cv-env__names" tabindex="-1" data-page-heading>{groom.name} <span class="amp">&amp;</span> {bride.name}</h1>
+          <p class="cv-env__date">{formatDateLong(wedding.ceremony.startISO)}<br />{wedding.ceremony.city.split(',')[0]}</p>
+        </div>
+      </div>
+      <div class="cv-env__flap" data-flap aria-hidden="true">
+        <svg class="cv-env__flap-shape" viewBox="0 0 100 160" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="cv-foil" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#f6e2a4" />
+              <stop offset="0.4" stop-color="#c9a04e" />
+              <stop offset="0.6" stop-color="#f3d995" />
+              <stop offset="1" stop-color="#9b7228" />
+            </linearGradient>
+          </defs>
+          <path class="cv-env__flap-paper" d="M100 0H18C26 14 14 26 22 40C30 54 8 64 10 80C8 96 30 106 22 120C14 134 26 146 18 160H100Z" />
+          <path d="M18 0C26 14 14 26 22 40C30 54 8 64 10 80C8 96 30 106 22 120C14 134 26 146 18 160" fill="none" stroke="url(#cv-foil)" stroke-width="1.8" vector-effect="non-scaling-stroke" />
+        </svg>
+        <svg class="cv-env__flora" viewBox="0 0 220 140" aria-hidden="true">
+          <g fill="none" stroke="#6f7a3a" stroke-width="1.6" stroke-linecap="round">
+            <path d="M210 140C186 112 160 98 128 92" />
+            <path d="M176 112c-6-14-2-26 8-34" />
+            <path d="M152 98c-12-4-20-12-22-24" />
+          </g>
+          <g fill="#7b8a3e" opacity="0.9">
+            <path d="M184 78c8-6 18-6 22 0-8 6-16 6-22 0z" />
+            <path d="M130 74c-2-10 4-18 12-20 2 10-4 18-12 20z" />
+            <path d="M196 118c10-2 18 4 20 12-10 2-18-4-20-12z" />
+            <path d="M160 102c6-8 16-10 22-6-6 8-16 10-22 6z" />
+          </g>
+          <g fill="#7a2635">
+            {
+              [
+                [118, 88, 1],
+                [190, 64, 0.75],
+                [168, 124, 0.6],
+              ].map(([x, y, s]) => (
+                <g transform={`translate(${x} ${y}) scale(${s})`}>
+                  {[0, 72, 144, 216, 288].map((a) => (
+                    <ellipse cx="0" cy="-8" rx="5" ry="8" transform={`rotate(${a})`} opacity="0.92" />
+                  ))}
+                  <circle r="3.5" fill="#5a1b28" />
+                </g>
+              ))
+            }
+          </g>
+        </svg>
+      </div>
+      <div class="cv-env__ribbon" aria-hidden="true">
+        <span class="cv-env__band"></span>
+        <svg class="cv-env__bow" viewBox="0 0 80 150">
+          <defs>
+            <linearGradient id="cv-cord" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#5a1420" />
+              <stop offset="0.5" stop-color="#9b2c3c" />
+              <stop offset="1" stop-color="#5a1420" />
+            </linearGradient>
+            <linearGradient id="cv-cap" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#8a6420" />
+              <stop offset="0.5" stop-color="#f3d78e" />
+              <stop offset="1" stop-color="#8a6420" />
+            </linearGradient>
+          </defs>
+          <g fill="none" stroke="url(#cv-cord)" stroke-width="3.2" stroke-linecap="round">
+            <path d="M40 30C22 6 4 16 12 30S36 40 40 30" />
+            <path d="M40 30C58 6 76 16 68 30S44 40 40 30" />
+            <path d="M40 30C34 60 26 80 22 100" />
+            <path d="M40 30C46 62 52 82 54 98" />
+          </g>
+          <circle cx="40" cy="30" r="4.5" fill="#7a1f2e" />
+          {
+            [
+              [22, 100],
+              [54, 98],
+            ].map(([x, y]) => (
+              <g transform={`translate(${x} ${y})`}>
+                <path d="M-4 0h8l-1 9h-6z" fill="url(#cv-cap)" />
+                {Array.from({ length: 11 }, (_, i) => (
+                  <path d={`M${-3 + i * 0.6} 9 L${-6 + i * 1.2} 44`} stroke={i % 3 ? '#8e2435' : '#b5465a'} stroke-width="0.9" />
+                ))}
+              </g>
+            ))
+          }
+        </svg>
+      </div>
+      <div class="cv-env__seal" data-seal aria-hidden="true">
+        <span class="cv-env__seal-half cv-env__seal-half--l"></span>
+        <span class="cv-env__seal-half cv-env__seal-half--r"></span>
+        <span class="cv-env__seal-mono">R·D</span>
+      </div>
     </div>
   </div>
-  <a class="btn-primary cover__open" href="#welcome" data-open-book>Tap to Open Our Invitation</a>
+  <a class="btn-primary cv-open" href="#welcome" data-open-book>Open the Invitation</a>
 
   <Fragment slot="foreground">
-    <Decor name="jasmine-swag" asset="D-01" class="layer layer--foreground cover__swag sway" style="--sway:0.8deg;--sway-dur:7s" eager />
-    {
-      bells.map((x, i) => (
-        <Decor
-          name="temple-bell"
-          asset="D-08"
-          class="layer layer--foreground cover__bell sway"
-          style={`left:${x}%;--sway:2deg;--sway-dur:${5 + i * 0.6}s;--sway-delay:${-i * 0.8}s`}
-          eager
-        />
-      ))
-    }
-    <Lamp class="layer layer--foreground cover__lamp cover__lamp--l" eager />
-    <Lamp class="layer layer--foreground cover__lamp cover__lamp--r" eager />
-    <div class="cover__unfold" data-unfold aria-hidden="true"></div>
+    <!-- 2. The monogram that descends from the sky -->
+    <div class="layer layer--foreground cv-mono js-only" data-mono aria-hidden="true"><MonogramRD /></div>
+
+    <!-- 1. The temple entrance, from the photograph -->
+    <div class="layer layer--foreground op js-only" data-entrance data-gesture="none" data-bell-src={bellRecording}>
+      <div class="op-scene op-scene--front" style={`--ratio:${ratio}`}>
+        <div class="op-front" data-front>
+          <span class="op-lintel" style={box([door.x0, door.y0 - 1, door.x1, door.y0 + 9])}></span>
+          <span class="op-glow" data-glow style={box([door.x0, door.y0 - 2, door.x1, door.y1])}></span>
+          <div class="op-doorway" style={box([door.x0, door.y0, door.x1, door.y1])}>
+            {
+              (['l', 'r'] as const).map((side) => (
+                <div class:list={['op-leaf', `op-leaf--${side}`]} data-door={side} style={`clip-path:${leafClip(side)}`}>
+                  <ScenePhoto avif={leavesAvif} webp={leaves} defer style={side === 'l' ? 'width:200%;left:0' : 'width:200%;left:-100%'} />
+                </div>
+              ))
+            }
+          </div>
+          <ScenePhoto class="op-hangings" webp={hangings} defer style={box([door.x0, door.y0, door.x1, 22.6])} />
+          <!-- The whole photograph while the doors are shut; the same with the doorway cut out once they move -->
+          <ScenePhoto class="op-frame op-frame--whole" avif={entranceAvif} webp={entrance} priority />
+          <ScenePhoto class="op-frame op-frame--cut" avif={frameCutAvif} webp={frameCut} defer />
+          {
+            scene.wind.map((w) => (
+              <div
+                class:list={['op-wind', `op-wind--${w.feather}`]}
+                data-wind={w.amp}
+                style={`${box(w.box)};transform-origin:${pct(((w.pivot[0] - w.box[0]) / (w.box[2] - w.box[0])) * 100)} ${pct(((w.pivot[1] - w.box[1]) / (w.box[3] - w.box[1])) * 100)}`}
+              >
+                <ScenePhoto avif={entranceAvif} webp={entrance} style={cropImg(w.box)} />
+              </div>
+            ))
+          }
+          <button class="op-bell" type="button" data-ring aria-label="Ring the temple bell to open the doors" style={`left:${pct(scene.bell.x - bellWidth / 2)};top:${pct(scene.bell.top)};width:${pct(bellWidth)}`}>
+            <span class="op-bell__chain" style={`background-image:url(${chain.src})`} aria-hidden="true"></span>
+            <ScenePhoto avif={bellAvif} webp={bell} />
+            <span class="op-bell__halo" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+      <button class="cv-enter" type="button" data-ring>Tap the bell to enter</button>
+    </div>
+    <button class="cv-sound js-only" type="button" data-sound aria-pressed="true" aria-label="Bell sound">
+      <span class="cv-sound__on"><Icon name="sound-on" /></span>
+      <span class="cv-sound__off"><Icon name="sound-off" /></span>
+    </button>
   </Fragment>
 </PageShell>
 
 <style is:global>
-  .cover__pillar {
-    bottom: calc(var(--safe-bottom) + 3cqh);
-    height: min(70cqh, 125cqw);
-    width: auto;
+  /* ------------------------------------------------------------------ stages */
+
+  .cover .page__content {
+    gap: 2.4cqh;
   }
 
-  .cover__pillar--l {
-    left: 3cqw;
-  }
-
-  .cover__pillar--r {
-    right: 3cqw;
-    transform: scaleX(-1);
-  }
-
-  .cover__drape {
-    left: -2cqw;
-    top: calc(var(--safe-top) - 1cqh);
-    width: 104cqw;
-    opacity: 0.92;
-  }
-
-  .cover__swag {
-    left: -2cqw;
-    top: calc(var(--safe-top) + 1cqh);
-    width: 104cqw;
-  }
-
-  .cover__bell {
-    top: calc(var(--safe-top) + 6cqh);
-    width: 6.5cqw;
-    translate: -50% 0;
-  }
-
-  .cover__lamp {
-    bottom: calc(var(--safe-bottom) + 7cqh);
-    width: 15cqw;
-  }
-
-  .cover__lamp--l {
-    left: 17cqw;
-  }
-
-  .cover__lamp--r {
-    right: 17cqw;
-  }
-
-  .cover__open {
-    position: relative;
-    z-index: var(--z-content);
-    width: 70cqw;
-    max-width: 340px;
-    padding-inline: 16px;
-    white-space: nowrap;
-  }
-
-  .cover__unfold {
-    position: absolute;
-    inset: 0;
-    z-index: calc(var(--z-foreground) + 2);
+  .js .cover:not([data-stage='book']) :is(.cv-card, .cv-open, .page__frame, .op-scrim) {
     opacity: 0;
+    visibility: hidden;
+  }
+
+  /* Until the bell is rung the card is not laid out at all, so its fonts and artwork wait
+     until after the door photograph */
+  .js .cover:not([data-stage='entering'], [data-stage='book']) :is(.cv-card, .cv-open) {
+    display: none;
+  }
+
+  .js .cover[data-stage='book'] :is(.op, .cv-mono, .cv-sound) {
+    display: none;
+  }
+
+  .cv-mono {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* ------------------------------------------------------------------ the photographed scene */
+
+  /* A box with the photograph's proportions that covers the page; every layer inside is
+     positioned in percent of the photograph, so the pieces stay aligned on any screen. */
+  .op-scene {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    height: max(100cqh, calc(100cqw * var(--ratio)));
+    aspect-ratio: 1 / var(--ratio);
+    translate: -50% -50%;
+  }
+
+  .op-court {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    transform: scale(var(--behind));
+  }
+
+  .op-court__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* The walk ends nearer the gopuram (src/motion/pages/cover.ts) */
+  .js .cover[data-stage='book'] .op-court {
+    transform: scale(var(--near));
+  }
+
+  .op-scrim {
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(40, 20, 10, 0.2), rgba(40, 20, 10, 0.55));
+  }
+
+  .op-birds {
+    position: absolute;
+    inset: 0;
     pointer-events: none;
-    transform-origin: 0 0;
-    background-color: var(--jasmine);
-    background-image: var(--paper-texture);
-    background-blend-mode: multiply;
-    box-shadow: inset 0 0 0 1.5px var(--gold);
   }
 
-  /* ---------------------------------------------------------------- envelope (D-19, CSS stand-in) */
+  .op {
+    inset: 0;
+    overflow: hidden;
+    overflow: clip; /* never scrolled by focus: the scene must stay aligned */
+    z-index: calc(var(--z-foreground) + 2);
+    pointer-events: auto;
+  }
 
-  .envelope {
-    position: relative;
-    z-index: var(--z-hero);
-    width: 68cqw;
-    max-width: 420px;
-    aspect-ratio: 1.25;
+  .op-front {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 50%;
+  }
+
+  .op-front > *,
+  .op-doorway > * {
+    position: absolute;
+  }
+
+  .op-front img {
+    display: block;
+    max-width: none;
+  }
+
+  .op-glow {
+    background: radial-gradient(ellipse at 50% 45%, rgba(255, 250, 235, 0.95), rgba(255, 244, 220, 0.55) 45%, rgba(255, 244, 220, 0) 75%);
+    opacity: 0;
+  }
+
+  .op-doorway {
     perspective: 900px;
-    filter: drop-shadow(0 18px 24px rgba(75, 48, 38, 0.26));
+    perspective-origin: 50% 48%;
   }
 
-  .envelope__back,
-  .envelope__pocket,
-  .envelope__flap,
-  .envelope__card {
+  .op-leaf {
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    overflow: hidden;
+    will-change: transform;
+  }
+
+  .op-leaf img {
     position: absolute;
+    top: 0;
+    height: 100%;
   }
 
-  .envelope__back {
+  /* The leaves darken as they turn away from the light */
+  .op-leaf::after {
+    content: '';
+    position: absolute;
     inset: 0;
-    border-radius: 6px;
-    background: linear-gradient(180deg, #e7d6b4, #d8c299);
+    background: linear-gradient(90deg, rgba(20, 8, 4, 0.12), rgba(20, 8, 4, 0.6));
+    opacity: var(--shade, 0);
   }
 
-  .envelope__card {
-    inset: 7% 6% 10%;
-    z-index: 1;
+  .op-leaf--l {
+    left: 0;
+    transform-origin: 0 50%;
+  }
+
+  .op-leaf--r {
+    right: 0;
+    transform-origin: 100% 50%;
+  }
+
+  .op-leaf--r::after {
+    background: linear-gradient(270deg, rgba(20, 8, 4, 0.12), rgba(20, 8, 4, 0.6));
+  }
+
+  .op-hangings {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .op-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* Once the doors move, the photograph with the doorway cut out takes over (made in advance by
+     npm run opening:assets, so nothing is masked while the scene moves) */
+  .op-frame--cut,
+  .op-front.is-open .op-frame--whole {
+    visibility: hidden;
+  }
+
+  .op-front.is-open .op-frame--cut {
+    visibility: visible;
+  }
+
+  /* Garlands, swag and banana leaves: pieces of the photograph that stir in the breeze. Their
+     edges fade into the still photograph, so a moving piece reads as the flowers flexing. */
+  .op-wind {
+    overflow: hidden;
+    pointer-events: none;
+    will-change: transform;
+    mask-image: linear-gradient(90deg, transparent 0, #000 16%, #000 84%, transparent 100%), linear-gradient(180deg, #000 0, #000 72%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16%, #000 84%, transparent 100%), linear-gradient(180deg, #000 0, #000 72%, transparent 100%);
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
+  }
+
+  .op-wind--all {
+    mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+  }
+
+  /* The depth of the lintel above the doorway, seen as the doors draw back */
+  .op-lintel {
+    background: linear-gradient(180deg, rgba(36, 14, 6, 0.85), rgba(36, 14, 6, 0.45) 45%, rgba(36, 14, 6, 0));
+  }
+
+  .op-wind img {
+    position: absolute;
+    height: auto;
+  }
+
+  /* The bell hangs in the doorway on a long chain from the beam above */
+  .op-bell {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    transform-origin: 50% -60%;
+    z-index: 3;
+  }
+
+  .op-bell img {
+    position: relative;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 6px 6px rgba(40, 20, 5, 0.35));
+  }
+
+  /* The chain above the photographed bell: one repeat of its links, tiled up to the beam
+     (the tile is the middle 16% of the bell image's width; npm run opening:assets) */
+  .op-bell__chain {
+    position: absolute;
+    left: 42%;
+    width: 16%;
+    bottom: 99.5%;
+    height: 60%;
+    background-position: center bottom;
+    background-size: 100% auto;
+    background-repeat: repeat-y;
+  }
+
+  .op-bell__halo {
+    position: absolute;
+    left: 50%;
+    bottom: 2%;
+    width: 110%;
+    aspect-ratio: 1;
+    translate: -50% 0;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 236, 190, 0.85);
+    box-shadow: 0 0 16px rgba(255, 220, 150, 0.7);
+    animation: bell-call 2.6s ease-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes bell-call {
+    0% {
+      transform: scale(0.55);
+      opacity: 0.9;
+    }
+    100% {
+      transform: scale(1.15);
+      opacity: 0;
+    }
+  }
+
+  .reduce-motion .op-bell__halo {
+    animation: none;
+    opacity: 0.7;
+  }
+
+  .cv-enter {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 3.5cqh);
+    translate: -50% 0;
+    z-index: 4;
+    min-height: 46px;
+    padding: 0 26px;
+    border: 1px solid #e9c97f;
+    border-radius: 999px;
+    background: rgba(122, 38, 53, 0.9);
+    color: #fff4dc;
+    font: 600 12px/1 var(--font-royal);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(60, 20, 20, 0.4);
+    cursor: pointer;
+  }
+
+  /* Sound: bottom-left, clear of the page-curl corner on the right */
+  .cv-sound {
+    position: absolute;
+    left: calc(var(--safe-left) + 14px);
+    bottom: calc(var(--safe-bottom) + 3.5cqh);
+    z-index: calc(var(--z-foreground) + 3);
+    width: 44px;
+    height: 44px;
     display: grid;
-    place-items: start center;
-    padding-top: 6%;
-    background-color: var(--jasmine);
-    background-image: var(--paper-texture);
-    background-blend-mode: multiply;
-    box-shadow:
-      inset 0 0 0 1.5px var(--gold),
-      inset 0 0 0 5px var(--jasmine),
-      inset 0 0 0 6px var(--hairline);
+    place-items: center;
+    border: 1px solid rgba(233, 201, 127, 0.9);
+    border-radius: 50%;
+    background: rgba(122, 38, 53, 0.88);
+    color: #fff4dc;
+    padding: 0;
   }
 
-  .envelope__card-mono {
-    font: 600 clamp(14px, 4.4cqw, 22px) / 1 var(--font-display);
-    letter-spacing: 0.06em;
-    color: var(--gold-text);
+  .cv-sound svg {
+    width: 22px;
+    height: 22px;
   }
 
-  .envelope__pocket {
-    inset: 0;
-    z-index: 2;
-    border-radius: 6px;
-    clip-path: polygon(0 24%, 50% 60%, 100% 24%, 100% 100%, 0 100%);
-    background:
-      linear-gradient(120deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 40%),
-      repeating-linear-gradient(90deg, rgba(196, 154, 69, 0.05) 0 1px, transparent 1px 3px),
-      linear-gradient(180deg, var(--jasmine), var(--sandal-light));
-    box-shadow: inset 0 0 0 1.5px var(--gold), inset 0 0 0 5px rgba(255, 253, 248, 0.8), inset 0 0 0 6px var(--hairline);
+  .cv-sound[aria-pressed='true'] .cv-sound__off,
+  .cv-sound[aria-pressed='false'] .cv-sound__on {
+    display: none;
   }
 
-  .envelope__zari {
+  /* ------------------------------------------------------------------ the monogram */
+
+  .cv-mono {
+    left: 50%;
+    top: calc(var(--safe-top) + 12cqh);
+    width: 44cqw;
+    translate: -50% 0;
+    z-index: calc(var(--z-foreground) + 1);
+  }
+
+  .cv-mono > * {
+    width: 100%;
+    height: auto;
+  }
+
+  /* ------------------------------------------------------------------ the invitation envelope */
+
+  .cv-card {
+    position: relative;
+    width: 100%;
+    display: grid;
+    justify-items: center;
+    gap: 2.2cqh;
+  }
+
+  .cv-card__dear {
+    font: 400 clamp(26px, 8.4cqw, 36px) / 1.2 var(--font-script);
+    color: #fff6e3;
+    text-shadow: 0 2px 10px rgba(40, 15, 5, 0.6);
+    text-align: center;
+  }
+
+  .cv-env {
+    position: relative;
+    width: 118%;
+    aspect-ratio: 1.58;
+    rotate: -3deg;
+    perspective: 1200px;
+    filter: drop-shadow(0 18px 22px rgba(40, 20, 8, 0.38)) drop-shadow(0 3px 5px rgba(40, 20, 8, 0.25));
+  }
+
+  .cv-env__body {
     position: absolute;
-    left: 6%;
-    right: 6%;
-    bottom: 7%;
-    height: 10px;
-    background: url('../../assets/placeholders/zari-band.svg') repeat-x center / auto 100%;
+    inset: 0;
+    border-radius: 3px;
+    background-color: #f3ead6;
+    background-image:
+      linear-gradient(125deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 45%, rgba(120, 90, 50, 0.08)),
+      var(--paper-texture);
+    background-blend-mode: normal, multiply;
+    overflow: hidden;
+  }
+
+  /* Printed florals on the flap, as on the reference card */
+  .cv-env__flora {
+    position: absolute;
+    right: 2%;
+    bottom: 3%;
+    width: 120%;
+    mix-blend-mode: multiply;
     opacity: 0.9;
   }
 
-  .envelope__front {
+  .cv-env__text {
     position: absolute;
-    inset: auto 0 13%;
+    left: 21%;
+    width: 33%;
+    top: 50%;
+    translate: 0 -54%;
     display: grid;
-    gap: 2px;
+    gap: 3px;
+    text-align: center;
   }
 
-  .envelope__front .names {
-    font-size: clamp(25px, 7.8cqw, 40px);
+  .cv-env__eyebrow {
+    font: 500 7.5px/1.4 var(--font-royal);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #8a6420;
   }
 
-  .envelope__flap {
-    inset: 0 0 auto;
-    height: 50%;
-    z-index: 3;
-    transform-origin: 50% 0;
-    transform-style: preserve-3d;
+  .cv-env__names {
+    font: 600 clamp(19px, 6.2cqw, 26px) / 1.05 var(--font-display);
+    color: #6e1f2c;
   }
 
-  .envelope__flap-face {
+  .cv-env__names .amp {
+    display: block;
+    font-style: italic;
+    font-size: 0.75em;
+    color: #9b7228;
+  }
+
+  .cv-env__date {
+    margin-top: 2px;
+    font: 500 7.5px/1.5 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8a6420;
+  }
+
+  .cv-env__flap {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 44%;
+    transform-origin: 14% 50%;
+    filter: drop-shadow(-3px 2px 3px rgba(60, 40, 20, 0.18));
+  }
+
+  .cv-env__flap-shape {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .cv-env__flap-paper {
+    fill: #f6eedc;
+  }
+
+  .cv-env__ribbon {
+    position: absolute;
+    top: -2%;
+    bottom: -2%;
+    left: 9%;
+    width: 11%;
+  }
+
+  .cv-env__band {
     position: absolute;
     inset: 0;
-    clip-path: polygon(0 0, 100% 0, 50% 100%);
-    backface-visibility: hidden;
-  }
-
-  .envelope__flap-face--front {
     background:
-      linear-gradient(160deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 50%),
-      linear-gradient(180deg, var(--sandal-light), var(--sandal));
-    filter: drop-shadow(0 2px 0 var(--gold));
+      radial-gradient(circle at 50% 50%, #e9cf8e 0 1.1px, transparent 1.4px) 0 0 / 100% 7px repeat-y,
+      linear-gradient(90deg, #b8913f 0 8%, #5c1521 8% 14%, #7e2233 30%, #94303f 50%, #7e2233 70%, #5c1521 86% 92%, #b8913f 92%);
+    box-shadow: 1px 0 2px rgba(40, 10, 5, 0.3), -1px 0 2px rgba(40, 10, 5, 0.3);
   }
 
-  .envelope__flap-face--back {
-    transform: rotateX(180deg);
-    background: linear-gradient(180deg, #d8c299, #e9dbbd);
-  }
-
-  .envelope__seal {
+  .cv-env__bow {
     position: absolute;
-    z-index: 4;
-    left: 50%;
+    left: -60%;
+    width: 220%;
+    top: 34%;
+    filter: drop-shadow(0 2px 2px rgba(40, 10, 5, 0.35));
+  }
+
+  .cv-env__seal {
+    position: absolute;
+    left: 61.5%;
     top: 50%;
-    width: 15cqw;
-    max-width: 80px;
+    width: 15%;
     aspect-ratio: 1;
     translate: -50% -50%;
-    display: grid;
-    place-items: center;
   }
 
-  .seal__half {
+  .cv-env__seal-half {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: var(--foil-gold);
-    box-shadow: 0 6px 14px var(--shadow-deep);
+    background:
+      radial-gradient(circle at 38% 32%, #f7e2a4, rgba(247, 226, 164, 0) 40%),
+      radial-gradient(circle at 50% 50%, #c79a46 0 52%, #a37a2c 60%, #c9a254 66%, #8a6420 74%, #b58c3c 82%, #7a5418 100%);
+    box-shadow: 0 2px 4px rgba(50, 30, 10, 0.45), inset 0 -2px 3px rgba(60, 35, 10, 0.4);
   }
 
-  .seal__half--l {
-    clip-path: polygon(0 0, 52% 0, 47% 30%, 53% 55%, 48% 100%, 0 100%);
+  .cv-env__seal-half--l {
+    clip-path: polygon(0 0, 52% 0, 46% 50%, 54% 100%, 0 100%);
   }
 
-  .seal__half--r {
-    clip-path: polygon(52% 0, 100% 0, 100% 100%, 48% 100%, 53% 55%, 47% 30%);
+  .cv-env__seal-half--r {
+    clip-path: polygon(52% 0, 100% 0, 100% 100%, 54% 100%, 46% 50%);
   }
 
-  .seal__mono {
+  .cv-env__seal-mono {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font: 600 clamp(10px, 3.4cqw, 15px) / 1 var(--font-display);
+    color: #7a5418;
+    text-shadow: 0 1px 0 rgba(255, 240, 200, 0.7), 0 -1px 0 rgba(70, 40, 10, 0.5);
+  }
+
+  .cv-open {
     position: relative;
-    font: 600 clamp(14px, 4.4cqw, 22px) / 1 var(--font-display);
-    letter-spacing: 0.04em;
-    color: var(--maroon-deep);
+    z-index: 1;
+    min-height: 52px;
+    padding-inline: 28px;
+    margin-top: 1cqh;
   }
 
   @container app (max-height: 699px) {
-    .envelope {
-      width: 62cqw;
+    .cv-env {
+      width: 108%;
     }
 
-    .envelope__front .eyebrow {
-      display: none;
-    }
-
-    .cover__bell {
-      width: 5cqw;
-    }
-
-    .cover__lamp {
-      width: 12cqw;
+    .cv-card {
+      gap: 1.4cqh;
     }
   }
 </style>

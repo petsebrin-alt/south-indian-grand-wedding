@@ -46,6 +46,7 @@
   height: 18px;
 }
 
+.app.cover-book .chrome-skip,
 .app:not(.on-cover) .chrome-skip,
 .mode-scroll .chrome-skip,
 html:not(.mode-scroll) .chrome-book-view {

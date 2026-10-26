@@ -187,3 +187,66 @@ Built: the Thank You page (back cover) with handwritten lettering and the riffle
 - **Screen readers (part of AC-34):** manual VoiceOver and TalkBack passes through RSVP and a blessing.
 - **WhatsApp link preview:** needs the live domain.
 - **Real artwork:** every decoration is still a placeholder.
+
+## 26 October 2026 — New opening: the temple entrance
+
+At the client's request (with reference screenshots and the reference video), the cover's silk envelope (Q-A4 default) is replaced by a temple-entrance opening that ends on the invitation book.
+
+### Decisions
+
+1. **Sequence:**
+   - The decorated temple entrance with closed doors, bells and garlands.
+   - Tapping the centre bell (or "Tap the bell to enter") rings it.
+   - The doors swing open and stay in view.
+   - We walk forward through the doorway into the courtyard.
+   - The R·D monogram descends from the sky in a shaft of light, greeted by two rings of petals.
+   - It settles onto the invitation book as the book rises into place.
+   - "Open the Invitation" opens the book with a real page curl onto Welcome (or the deep-linked page).
+
+   About 9.7 s from the tap to the book; 0.9 s to open. Timing follows the reference: doors 2.3 s, walk about 3 s, monogram 1.8 s.
+2. **Everything stays one page (the cover),** so deep links, Skip, Contents, Scroll View and reduced motion behave as before. Skip still goes straight to Welcome; it hides once the book is showing. Within a visit, returning to the cover shows the book, not the closed doors. Without JavaScript only the book is shown.
+3. **Bell sound:** synthesised in the browser as a brass temple bell (clapper strike, then shimmering inharmonic partials over about 4 s, struck twice). Sound only follows the guest's own tap, and a sound button (bottom left, clear of the page-curl corner) turns it off and remembers the choice. A licensed recording at `public/audio/temple-bell.mp3` replaces the synthesis automatically. This is a sound effect, not music; the no-music default (Q-B5) still stands.
+4. **Reduced motion:** the doors fade away and the monogram and book appear in about 1 s, with no walk, 3D swing or petals. The book then opens with a cross-fade.
+5. **Photographic artwork:** realism ("every leaf, every flower very real") needs real photographs or photoreal renders, which cannot be drawn in code. The scene is built from asset slots (`src/assets/decor/README.md`): `temple-entrance` (frame with a transparent doorway), the door leaves, `temple-courtyard`, `rd-monogram`, `temple-bell` and the bell recording. Until they arrive, stand-ins assembled from the existing placeholders are shown. Their haze and tint adjustments apply only to placeholders, so supplied photographs appear unaltered (AC-36).
+6. **The reference reel's frames are not used as artwork:** they are another studio's watermarked, copyrighted design. They guided the staging and timing only.
+7. **Handwriting fix found on the way:** one curve in the Thank You lettering produced an invalid path (`NaN`) through opentype.js 2's path writer. The path data is now written directly from the glyph commands.
+
+### Results
+
+- `npm run qa:book`: **70/70 checks pass.**
+  - **AC-01b (rewritten for the new opening):** before the tap the doors are closed, the book is hidden, and "Tap the bell to enter" shows. After the tap the bell sounds and the doors swing open. The monogram is fully shown at 6.4 s, the petal rings appear, and the book is ready at 9.7 s with focus on "Open the Invitation". Open curls to Welcome in 0.9 s.
+  - **AC-01c:** returning to the cover shows the book.
+  - **AC-32:** with reduced motion the entrance completes in under 2.5 s with a cross-fade.
+  - **AC-05 deep links:** these and every earlier check still pass.
+
+## 26 October 2026 — The opening rebuilt from the client's photographs
+
+The client judged the vector stand-ins above "not looking real… like a cartoon" and supplied photographs: the decorated entrance with closed doors, the courtyard beyond, and the brass bell. The brief: tapping the hanging bell rings it and opens the doors very smoothly. Leaves, flowers and banana leaves move in the wind, and birds fly once the doors open. The R·D monogram comes close and is replaced by an invitation card, with "Dear (guest name)" above it, which opens into the book. Everything should look real and smooth, "not a cartoon, not cinematic". This section replaces decision 5 of the previous one.
+
+### Decisions
+
+1. **One photograph, cut apart.** The doors, the doorway, the pieces that hang in front of the doors and the pieces that move in the wind are all cut from the client's entrance photograph, so light and colour match exactly. Nothing is redrawn.
+   - `src/assets/opening/scene.json` records the measurements; `npm run opening:assets` makes the layers.
+   - The buds and bells hanging in front of the door top are lifted onto a still layer of their own and painted out of the door leaves, so they do not swing away with the doors.
+2. **Doors:** each leaf turns on its hinge in 3D (78°) over 2.6 s with a gentle ease-in-out, darkening as it turns away from the light. Warm light comes through the widening gap.
+3. **Wind:** the garlands, the top swag and the banana leaves are pieces of the photograph that sway from their tie points. Their edges fade into the still photograph, so the flowers appear to flex rather than slide. The bell sways a little too, and the breeze picks up while the doors open. Motion is slow and irregular, like a real breeze.
+4. **Birds:** small distant silhouettes with wingbeats cross the sky once the doors are open.
+5. **Walking in:** the doorway grows past us while the courtyard comes slowly closer.
+6. **Monogram to card:** the monogram descends from the sky, comes toward us and gives way to the invitation card. The petal rings of the earlier version are gone: they were not in the client's sequence and read as an effect rather than something real.
+7. **Invitation card:** an envelope in the style of the client's envelope reference: cream paper, a shaped flap, gold foil, a ribbon with tassels and a wax seal. All text is live. "Open the Invitation" breaks the seal, opens the flap and turns the page to Welcome (or the deep-linked page).
+8. **Guest name:** a personal link such as `?to=Meena%20%26%20Ravi` shows "Dear Meena & Ravi," above the card. Only letters, numbers, spaces and `.,'&()-` are kept, up to 48 characters, and the name is inserted as plain text. Without a name: "Dear Family & Friends,". No guest names are stored in the site.
+9. **Timing:** about 10.8 s from the tap to the card (monogram fully shown at about 7 s); "Open the Invitation" reaches Welcome in about 2.2 s. With reduced motion the doors cross-fade and the card appears in about 1.4 s.
+10. **Loading:** the closed-door photograph loads first, as AVIF at high priority. The other layers are requested only after it arrives.
+    - The bell is resized for phones (400 px wide, 10 KB).
+    - The card is not laid out until the bell is rung, so its fonts wait.
+    - Only the one font on the door screen is preloaded.
+    - WebP copies serve browsers without AVIF.
+11. **Third-party material is not used as artwork:** the frames of the reference reel and the reference envelope photograph are other studios' designs, used for style only.
+12. **Still to be supplied:** the R·D monogram artwork (D-54; gold-foil lettering is drawn in code until then) and a licensed bell recording (A-01; synthesised until then).
+
+### Results
+
+- `npm run perf`: mobile performance **86** (target 85), LCP 3.7 s, accessibility 100, best practices 100. Adding the photographs had dropped it to 71 before the loading work.
+- `npm run qa:book`: **71/71 checks pass.** **AC-01b** covers the full sequence: bell sound, doors swinging, birds, monogram, card, focus on "Open the Invitation", seal and flap, page curl. **AC-01d** (new) checks the personal `?to=` greeting and that it cannot inject markup.
+- Frame capture on the dev build: the doors, wind and walk-in hold 60 fps on this Mac.
+- **Not yet verified:** a real mid-range phone, and the sound on iOS with the silent switch on.

@@ -2,21 +2,52 @@
 
 Drop the photographed or commissioned artwork here (THEME.md §7 and §15.2). A file named after a slot replaces that slot's vector placeholder everywhere, with no layout change.
 
+## Opening screen (cover): the client's photographs
+
+The temple-entrance opening is built from three photographs the client supplied, kept in `src/assets/opening/source/`:
+
+| File | What it shows |
+|---|---|
+| `entrance.webp` | The decorated temple entrance with the doors closed: carved frame, garlands, banana leaves, brass lamps, steps with petals. The door leaves, the doorway, the hanging pieces in front of the doors and the pieces that move in the wind are all cut from this one photograph. |
+| `courtyard.webp` | The view through the open doors: the gopuram, the lamps and the petal path. |
+| `bell.webp` | The brass bell guests tap, on a transparent background. |
+
+`src/assets/opening/scene.json` records where things sit in the entrance photograph, in % of its width and height: the doorway outline, the hanging buds and bells, the garland, swag and banana-leaf pieces that sway (with their pivot and strength), the bell, and how far the courtyard zooms as we walk in.
+
+After replacing a photograph or changing `scene.json`, run:
+
+```bash
+npm run opening:assets
+```
+
+It writes the layers next to `scene.json`: AVIF with a WebP fallback for the large photographs (`entrance`, `frame`, `leaves`, `courtyard`, `bell`), and WebP for the small pieces (`hangings`, `chain`). A replacement entrance photograph with different framing needs `scene.json` measured again.
+
+Still to be supplied for the opening:
+
+| File | Asset ID | What it shows | Size and format |
+|---|---|---|---|
+| `rd-monogram.webp` (or `.png`) in this folder | D-54 | The gold R·D monogram that descends from the sky and becomes the invitation. Until it arrives, gold-foil lettering is drawn in code. | 1200 × 1200, transparent background |
+| `public/audio/temple-bell.mp3` | A-01 | A licensed temple-bell recording, 2–4 seconds, played on the tap. A synthesised bell is used until then. | MP3, under 150 KB |
+
+Other studios' work cannot be used as artwork: the frames of the reference reel and the reference envelope photograph are someone else's copyrighted designs. They guided the motion, staging and envelope style only.
+
+## All decoration slots
+
 | File name (`.webp`, `.avif` or `.png`) | Asset ID | Used on |
 |---|---|---|
-| `jasmine-swag` | D-01 | Cover, Welcome, Love Story |
+| `jasmine-swag` | D-01 | Welcome, Love Story, Venues, Wishing Wall |
 | `jasmine-strand-short`, `jasmine-strand-medium`, `jasmine-strand-long` | D-02 | Welcome, Blessings, Countdown, Bride |
 | `jasmine-cluster` (top-left corner bunch) | D-03 | Save the Date, Bride, Family |
 | `arch-garland` | D-04 | Family |
-| `kuthuvilakku` (no flames; flames are drawn in code) | D-06 | Cover, Welcome, Blessings, Countdown |
+| `kuthuvilakku` (no flames; flames are drawn in code) | D-06 | Welcome, Blessings, Countdown, Ceremony, Thank You |
 | `agal-diya` | D-07 | Family |
-| `temple-bell` | D-08 | Cover, Countdown |
-| `temple-pillar` | D-09 | Cover, Rahul, Divya |
+| `temple-bell` (one hanging brass bell, chain at top centre) | D-08 | Countdown, Events, Wishing Wall |
+| `temple-pillar` | D-09 | Rahul, Divya, Ceremony, Venues |
 | `temple-arch` | D-10 | Welcome, Blessings |
 | `temple-door-left`, `temple-door-right` | D-11 | Blessings |
 | `gopuram-misty` | D-12 | Blessings, Rahul, Divya |
 | `mango-toran` | D-13 | Blessings |
-| `silk-drape` | D-15 | Cover |
+| `silk-drape` | D-15 | Ceremony, Thank You |
 | `kalasam-crest`, `gold-filigree` | D-17 | Rahul |
 | `scroll-roller` | D-20 | Blessings |
 | `rose-petal-1…3`, `jasmine-petal-1…3` | D-30, D-31 | Falling petals |

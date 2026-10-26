@@ -3,7 +3,8 @@ import { DialogManager } from './dialogs';
 import { WheelGate } from './gestures';
 import { mountChoreos } from '../motion/choreo';
 import '../motion/pages';
-import { openInvitation, resetInvitation } from '../motion/pages/cover';
+import { coverStage, enterTemple, greetGuest, openEnvelope, showBook, showDoors } from '../motion/pages/cover';
+import { ringBell, setSound, soundOn } from '../lib/bell';
 import { initForms } from '../forms';
 
 /**
@@ -219,8 +220,18 @@ app.addEventListener('click', (e) => {
     return;
   }
 
-  const el = (e.target as Element).closest<HTMLElement>('[data-open-book], [data-skip], [data-return-first], [data-share], [data-open-dialog], [data-goto], [data-copy]');
+  const el = (e.target as Element).closest<HTMLElement>('[data-open-book], [data-skip], [data-return-first], [data-share], [data-open-dialog], [data-goto], [data-copy], [data-ring], [data-ring-any], [data-sound]');
   if (!el) return;
+
+  if (el.matches('[data-ring], [data-ring-any]')) {
+    void enterTemple_(el.matches('.op-bell') ? el : null);
+    return;
+  }
+  if (el.matches('[data-sound]')) {
+    setSound(!soundOn());
+    syncSound();
+    return;
+  }
 
   if (el.matches('[data-copy]')) {
     navigator.clipboard
@@ -235,6 +246,8 @@ app.addEventListener('click', (e) => {
     if (mode === 'scroll') scrollToPage(controller.openTarget);
     else void openBook();
   } else if (el.matches('[data-skip]')) {
+    session.set('rdv:entered', '1');
+    showBook(pages[0]);
     controller.goTo(controller.openTarget, 'instant', 'open');
   } else if (el.matches('[data-return-first]')) {
     // A quick riffle back to Welcome, not the cover (PRD §6.18); reduced motion fades instead.
@@ -251,18 +264,40 @@ app.addEventListener('click', (e) => {
   }
 });
 
-/** Tap to Open: the envelope opens and its card unfolds into the first page (PRD §6.1). */
+/**
+ * The temple entrance (PRD §6.1): ringing the bell opens the doors and plays the walk into the
+ * courtyard; the invitation book is then ready, and "Open the Invitation" opens it with a page
+ * curl (a cross-fade with reduced motion) onto Welcome, or the deep-linked page.
+ */
+const cover = pages[0];
+const entrance = cover.querySelector<HTMLElement>('[data-entrance]');
+const soundButton = cover.querySelector<HTMLElement>('[data-sound]');
+const syncSound = () => soundButton?.setAttribute('aria-pressed', String(soundOn()));
+syncSound();
+
+async function enterTemple_(bell: HTMLElement | null) {
+  if (coverStage(cover) !== 'doors' || controller.index !== 0 || controller.isBusy) return;
+  controller.enabled = false;
+  ringBell(entrance?.dataset.bellSrc || null);
+  try {
+    await enterTemple(cover, bell ?? cover.querySelector<HTMLElement>('.op-bell'));
+    session.set('rdv:entered', '1');
+    cover.querySelector<HTMLElement>('[data-open-book]')?.focus({ preventScroll: true });
+  } finally {
+    controller.enabled = mode === 'book' && !dialogs.isOpen;
+  }
+}
+
 let opening = false;
 async function openBook() {
   if (opening || controller.isBusy || controller.index !== 0) return;
+  if (coverStage(cover) === 'doors') return void enterTemple_(null);
   opening = true;
   controller.enabled = false;
   app.classList.add('is-opening');
   try {
-    if (!reducedMotion()) await openInvitation(pages[0]);
-    controller.goTo(controller.openTarget, reducedMotion() ? 'fade' : 'instant', 'open');
-    // The cover now sits hidden under the first page; close the envelope again for a later revisit.
-    requestAnimationFrame(() => resetInvitation(pages[0]));
+    await openEnvelope(cover);
+    controller.goTo(controller.openTarget, 'curl', 'open');
   } finally {
     opening = false;
     app.classList.remove('is-opening');
@@ -359,6 +394,10 @@ window.addEventListener('hashchange', () => {
 /* ------------------------------------------------------------------ start */
 
 initForms();
+
+greetGuest(cover);
+if (session.get('rdv:entered')) showBook(cover);
+else showDoors(cover);
 
 const linked = pageIndexById(decodeURIComponent(location.hash.slice(1)));
 if (linked > 0 && session.get('rdv:opened')) {
