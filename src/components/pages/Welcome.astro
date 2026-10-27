@@ -2,7 +2,7 @@
 /**
  * Page 1 — Welcome Invitation (PRD §6.2), staged like the client's reference: their temple
  * courtyard photograph (the seated figure taken out; src/assets/welcome/, npm run welcome:assets),
- * the couple seated at its foot, and above them their names written in script with the date,
+ * the couple standing together at its front, and above them their names written in script with the date,
  * time, place and welcome message. Garlands, bells, the banana leaf and the palms stir in the
  * breeze and red garland flowers drift down. Motion: src/motion/pages/welcome.ts
  */
@@ -71,9 +71,9 @@ const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100
   <p class="wl__message"><Draft copy={wedding.copy.welcomeMessage} /></p>
 
   <Fragment slot="foreground">
-    <!-- The couple, seated on the courtyard floor -->
-    <div class="layer layer--foreground wl-couple" style={`--h:${scene.couple.height}cqh;--b:${scene.couple.bottom}cqh`} aria-hidden="true">
-      <span class="wl-couple__shadow"></span>
+    <!-- The couple, standing together in the courtyard -->
+    <div class="layer layer--foreground wl-couple" style={`--h:${scene.couple.height}cqh;--b:${scene.couple.bottom}cqh;aspect-ratio:${couple.width} / ${couple.height}`} aria-hidden="true">
+      <span class="wl-couple__glow"></span>
       <div class="wl-couple__body">
         <ScenePhoto class="wl-couple__img" avif={coupleAvif} webp={couple} defer />
       </div>
@@ -132,14 +132,15 @@ const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100
     max-width: none;
   }
 
+  /* Only a light veil behind the lettering, so the courtyard stays clear */
   .wl-haze {
     inset: 0;
-    background: radial-gradient(ellipse 82% 30% at 50% 27%, rgba(255, 248, 238, 0.82), rgba(255, 248, 238, 0.5) 50%, rgba(255, 248, 238, 0) 78%);
+    background: radial-gradient(ellipse 70% 22% at 50% 25%, rgba(255, 248, 238, 0.5), rgba(255, 248, 238, 0.22) 55%, rgba(255, 248, 238, 0) 80%);
   }
 
   /* The lettering sits in the sky above the couple */
   .page--welcome .page__content {
-    inset-block: calc(var(--safe-top) + 6cqh) calc(var(--safe-bottom) + 45cqh);
+    inset-block: calc(var(--safe-top) + 5cqh) calc(var(--safe-bottom) + 47cqh);
     gap: 1.3cqh;
   }
 
@@ -198,23 +199,19 @@ const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100
     text-shadow: 0 0 10px rgba(255, 248, 236, 0.95), 0 0 2px rgba(255, 248, 236, 0.9);
   }
 
-  /* The couple, seated on the floor at the foot of the courtyard */
+  /* The couple, standing at the front of the courtyard */
   .wl-couple {
     left: 50%;
     bottom: var(--b);
     height: var(--h);
-    aspect-ratio: 728 / 1044;
     translate: -50% 0;
   }
 
-  /* Soft shade on the floor around where they sit */
-  .wl-couple__shadow {
+  /* Warm morning light behind them, brightening as they arrive */
+  .wl-couple__glow {
     position: absolute;
-    left: -6%;
-    right: -6%;
-    bottom: 0;
-    height: 22%;
-    background: radial-gradient(ellipse 50% 60% at 50% 70%, rgba(70, 35, 12, 0.32), rgba(70, 35, 12, 0) 75%);
+    inset: -8% -20% 10%;
+    background: radial-gradient(ellipse 50% 46% at 50% 40%, rgba(255, 226, 170, 0.5), rgba(255, 226, 170, 0) 70%);
   }
 
   /* A slow breath, so the couple is never quite still */
@@ -235,19 +232,15 @@ const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100
     animation: none;
   }
 
-  /* The supplied picture cuts his dhoti and her saree straight down at its sides: fade them into
-     the floor */
   .wl-couple__img {
     display: block;
     width: 100%;
     height: 100%;
-    mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
   }
 
   @container app (max-height: 700px) {
     .page--welcome .page__content {
-      inset-block-end: calc(var(--safe-bottom) + 42cqh);
+      inset-block-end: calc(var(--safe-bottom) + 44cqh);
       gap: 1cqh;
     }
 
@@ -256,7 +249,7 @@ const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100
     }
 
     .wl-couple {
-      --h: 43cqh;
+      --h: 44cqh;
     }
   }
 

@@ -3,6 +3,7 @@
 // site build (see tsconfig exclude); the shared handlers it feeds are.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import type { BackendConfig, Deps, NewRsvp, NewWish, Page, RsvpRecord, Store, WishRecord, WishStatus } from './types.ts';
+import { makeCursor, parseCursor } from './util.ts';
 
 const env = (name: string, fallback?: string) => {
   const v = Deno.env.get(name) ?? fallback;
@@ -25,13 +26,15 @@ function supabaseStore(db: SupabaseClient): Store {
     findWishByKey: (key) => one(db.from('wishes').select('*').eq('idempotency_key', key).maybeSingle()) as Promise<WishRecord | null>,
     insertWish: (row: NewWish) => one(db.from('wishes').insert(row).select('*').single()) as Promise<WishRecord>,
     listWishes: async ({ status, cursor, limit }): Promise<Page<WishRecord>> => {
-      let q = db.from('wishes').select('*').eq('status', status).order('created_at', { ascending: false }).limit(limit + 1);
-      if (cursor) q = q.lt('created_at', cursor);
+      // Newest first, ties broken by id, so two blessings saved in the same instant are never skipped
+      let q = db.from('wishes').select('*').eq('status', status).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit + 1);
+      const after = parseCursor(cursor);
+      if (after) q = after.id ? q.or(`created_at.lt."${after.at}",and(created_at.eq."${after.at}",id.lt."${after.id}")`) : q.lt('created_at', after.at);
       const rows = ((await one(q)) ?? []) as WishRecord[];
       const { count, error } = await db.from('wishes').select('id', { count: 'exact', head: true }).eq('status', status);
       if (error) throw error;
       const items = rows.slice(0, limit);
-      return { items, nextCursor: rows.length > limit ? items[items.length - 1].created_at : null, total: count ?? 0 };
+      return { items, nextCursor: rows.length > limit ? makeCursor(items[items.length - 1]) : null, total: count ?? 0 };
     },
     moderateWish: (id, status: WishStatus, by) =>
       one(db.from('wishes').update({ status, moderated_by: by, moderated_at: new Date().toISOString() }).eq('id', id).select('*').maybeSingle()) as Promise<WishRecord | null>,

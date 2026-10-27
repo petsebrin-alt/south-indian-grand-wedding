@@ -6,6 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { Mail, NewRsvp, NewWish, Page, RsvpRecord, Store, WishRecord, WishStatus } from '../../supabase/functions/_shared/types.ts';
+import { makeCursor, parseCursor } from '../../supabase/functions/_shared/util.ts';
 
 interface Db {
   rsvps: RsvpRecord[];
@@ -82,10 +83,12 @@ export class FileStore implements Store {
   }
 
   async listWishes({ status, cursor, limit }: { status: WishStatus; cursor?: string | null; limit: number }): Promise<Page<WishRecord>> {
-    const all = this.db.wishes.filter((w) => w.status === status).sort((a, b) => b.created_at.localeCompare(a.created_at));
-    const after = cursor ? all.filter((w) => w.created_at < cursor) : all;
+    // Newest first, ties broken by id (as in the Supabase adapter)
+    const all = this.db.wishes.filter((w) => w.status === status).sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id));
+    const c = parseCursor(cursor);
+    const after = c ? all.filter((w) => w.created_at < c.at || (c.id !== null && w.created_at === c.at && w.id < c.id)) : all;
     const items = after.slice(0, limit);
-    return { items, nextCursor: after.length > limit ? items[items.length - 1].created_at : null, total: all.length };
+    return { items, nextCursor: after.length > limit ? makeCursor(items[items.length - 1]) : null, total: all.length };
   }
 
   async moderateWish(id: string, status: WishStatus, by: string) {

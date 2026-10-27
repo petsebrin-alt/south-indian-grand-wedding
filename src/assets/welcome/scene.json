@@ -137,28 +137,42 @@
       [
         0,
         0,
-        262,
-        1260
+        120,
+        1536
       ],
       [
+        90,
+        560,
+        262,
+        1300
+      ],
+      [
+        904,
         0,
-        1180,
-        130,
+        1024,
         1536
       ],
       [
         762,
-        0,
-        1024,
-        1260
+        560,
+        934,
+        1300
       ],
       [
-        894,
-        1180,
-        1024,
-        1536
+        430,
+        230,
+        730,
+        600
       ]
-    ]
+    ],
+    "finest": 256,
+    "grain": 1.8,
+    "_note": "Measurements of source/courtyard.webp (1024 \u00d7 1536 px). outline: the seated figure to take out, grown by `grow` px. Its right side is replaced by the clean left side mirrored (from mirror.x rightwards, below mirror.y, feathered). The rest is rebuilt from the photograph (never from the noSource areas: pillars, lamps, the tower) twice, with copied detail and with large shapes only (up to `finest` px wide, plus `grain`), blended from `blend.near` to `blend.far` px in from the edge; the floor (from floorTop down) is then smoothed along its rows.",
+    "blend": {
+      "near": 18,
+      "far": 70
+    },
+    "floorTop": 1100
   },
   "wind": {
     "_note": "Pieces of the photograph that sway in the breeze: box [x0, y0, x1, y1] px, pivot [x%, y%] of the box, amp in degrees, feather: which edges fade into the still photograph.",
@@ -316,9 +330,9 @@
     ]
   },
   "couple": {
-    "_note": "Where the couple sits on the page: height and bottom in % of the page height (a negative bottom keeps the picture's cut lower edge just below the screen).",
-    "height": 45,
-    "bottom": -3
+    "_note": "Where the couple stands on the page: height in % of the page height, from the bottom edge (the photograph's lower edge, cut at the waist, sits on the page's edge).",
+    "height": 47,
+    "bottom": 0
   },
   "petals": {
     "_note": "Single rose petals lying on the path in the opening courtyard photograph (src/assets/opening/source/courtyard.webp), lifted off the stone by their redness for the falling petals (src/assets/decor/rose-petal-N.webp). Boxes in px.",
@@ -348,5 +362,337 @@
         1367
       ]
     ]
+  },
+  "hug": {
+    "_note": "source/couple-hug.webp (736 \u00d7 1104): the couple's outline, traced on the photograph (x, y px), clockwise from his elbow at the bottom left. The cut-out keeps everything inside it and settles the last few pixels of the edge by colour against the background (scripts/welcome/cutout.ts).",
+    "outline": [
+      [
+        56,
+        1104
+      ],
+      [
+        54,
+        1060
+      ],
+      [
+        50,
+        1000
+      ],
+      [
+        46,
+        950
+      ],
+      [
+        42,
+        890
+      ],
+      [
+        34,
+        840
+      ],
+      [
+        24,
+        790
+      ],
+      [
+        16,
+        740
+      ],
+      [
+        16,
+        700
+      ],
+      [
+        20,
+        665
+      ],
+      [
+        28,
+        640
+      ],
+      [
+        40,
+        618
+      ],
+      [
+        58,
+        598
+      ],
+      [
+        80,
+        580
+      ],
+      [
+        100,
+        565
+      ],
+      [
+        122,
+        548
+      ],
+      [
+        140,
+        528
+      ],
+      [
+        152,
+        505
+      ],
+      [
+        160,
+        480
+      ],
+      [
+        166,
+        445
+      ],
+      [
+        166,
+        410
+      ],
+      [
+        162,
+        370
+      ],
+      [
+        162,
+        330
+      ],
+      [
+        172,
+        300
+      ],
+      [
+        188,
+        278
+      ],
+      [
+        210,
+        262
+      ],
+      [
+        240,
+        252
+      ],
+      [
+        270,
+        248
+      ],
+      [
+        300,
+        250
+      ],
+      [
+        326,
+        256
+      ],
+      [
+        346,
+        268
+      ],
+      [
+        358,
+        286
+      ],
+      [
+        364,
+        310
+      ],
+      [
+        362,
+        340
+      ],
+      [
+        356,
+        370
+      ],
+      [
+        352,
+        400
+      ],
+      [
+        350,
+        430
+      ],
+      [
+        346,
+        460
+      ],
+      [
+        340,
+        480
+      ],
+      [
+        336,
+        500
+      ],
+      [
+        340,
+        520
+      ],
+      [
+        352,
+        538
+      ],
+      [
+        362,
+        560
+      ],
+      [
+        364,
+        600
+      ],
+      [
+        368,
+        636
+      ],
+      [
+        378,
+        646
+      ],
+      [
+        386,
+        630
+      ],
+      [
+        386,
+        590
+      ],
+      [
+        384,
+        556
+      ],
+      [
+        383,
+        520
+      ],
+      [
+        386,
+        480
+      ],
+      [
+        390,
+        440
+      ],
+      [
+        396,
+        405
+      ],
+      [
+        404,
+        380
+      ],
+      [
+        418,
+        358
+      ],
+      [
+        438,
+        340
+      ],
+      [
+        465,
+        330
+      ],
+      [
+        495,
+        328
+      ],
+      [
+        525,
+        334
+      ],
+      [
+        550,
+        346
+      ],
+      [
+        570,
+        362
+      ],
+      [
+        585,
+        382
+      ],
+      [
+        598,
+        408
+      ],
+      [
+        606,
+        440
+      ],
+      [
+        612,
+        470
+      ],
+      [
+        606,
+        520
+      ],
+      [
+        602,
+        560
+      ],
+      [
+        604,
+        600
+      ],
+      [
+        630,
+        640
+      ],
+      [
+        656,
+        680
+      ],
+      [
+        670,
+        720
+      ],
+      [
+        676,
+        760
+      ],
+      [
+        690,
+        800
+      ],
+      [
+        696,
+        840
+      ],
+      [
+        700,
+        880
+      ],
+      [
+        703,
+        920
+      ],
+      [
+        706,
+        960
+      ],
+      [
+        709,
+        1000
+      ],
+      [
+        712,
+        1050
+      ],
+      [
+        714,
+        1104
+      ]
+    ],
+    "band": 6
+  },
+  "sharpen": {
+    "_note": "Clarity for the courtyard photograph (sharp's unsharp mask), so its soft-focus background reads crisper.",
+    "sigma": 1.6,
+    "m1": 0.6,
+    "m2": 2.6
   }
 }

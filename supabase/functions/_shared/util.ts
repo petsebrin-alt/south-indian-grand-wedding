@@ -87,3 +87,14 @@ export function toCsv(rows: Record<string, unknown>[], columns: CsvColumn[]): st
 export function formatIst(iso: string): string {
   return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(iso)) + ' IST';
 }
+
+/**
+ * Paging through blessings: the cursor names the last one shown by its time and id, so the next
+ * page starts strictly after it even when several share the same instant. Opaque to the browser.
+ */
+export const makeCursor = (w: { created_at: string; id: string }) => `${w.created_at}|${w.id}`;
+export const parseCursor = (cursor: string | null | undefined): { at: string; id: string | null } | null => {
+  if (!cursor) return null;
+  const [at, id] = cursor.split('|');
+  return { at, id: id ?? null };
+};

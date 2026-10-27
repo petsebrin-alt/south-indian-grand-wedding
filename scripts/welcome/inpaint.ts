@@ -173,8 +173,12 @@ function level(img: Picture, hole: Uint8Array, avoid: Uint8Array, iters: number,
   return { nx, ny, w };
 }
 
-/** `avoid` marks pixels never to copy from (1 = avoid). */
-export function inpaint(img: Picture, hole: Uint8Array, avoid: Uint8Array, log: (msg: string) => void = () => {}) {
+/**
+ * `avoid` marks pixels never to copy from (1 = avoid). `finest`: the narrowest scale (width in px)
+ * at which patches are matched; finer scales only enlarge it smoothly (for an out-of-focus area),
+ * adding `grain` levels of fine noise so it matches the photograph's own grain.
+ */
+export function inpaint(img: Picture, hole: Uint8Array, avoid: Uint8Array, log: (msg: string) => void = () => {}, { finest = 0, grain = 0 } = {}) {
   const pics = [img], holes = [hole], avoids = [avoid];
   while (pics[pics.length - 1].w > 96) {
     const last = pics[pics.length - 1];
@@ -200,9 +204,19 @@ export function inpaint(img: Picture, hole: Uint8Array, avoid: Uint8Array, log: 
           }
         }
     }
+    if (pic.w > finest && finest) continue; // enlarged smoothly only
     const t0 = Date.now();
     nnf = level(pic, m, avoids[l], l === 0 ? 4 : l === 1 ? 6 : 16, nnf);
     log(`  scale ${pic.w}×${pic.h}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  }
+  if (grain) {
+    let seed = 9;
+    const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < img.w * img.h; i++) {
+      if (!hole[i]) continue;
+      const n = Math.sqrt(-2 * Math.log(rand() + 1e-9)) * Math.cos(2 * Math.PI * rand()) * grain;
+      for (let c = 0; c < 3; c++) img.d[i * 3 + c] += n;
+    }
   }
   return img;
 }

@@ -349,3 +349,26 @@ The client asked for the first page to be completely redone after their referenc
 
 - `npm run qa:book`: **71/71 checks pass** (including no overflow at every phone size).
 - `npm run perf`: mobile performance 87, accessibility 100, best practices 100.
+
+## 27 October 2026 — Welcome page: the couple in garlands
+
+The client replaced the seated couple, whose hands were cut off and blurred, with a photograph of the couple standing together in garlands, his arm around her. They asked for:
+- an animation of them coming to the centre, exchanging garlands (varmala), smiling and embracing;
+- a less blurred background.
+
+### Decisions
+
+1. **The new couple, cut out cleanly:** lifted off their photograph's blurred festival background along an outline traced on the photograph. Only the last few pixels of the edge are settled by colour, so hair, garlands and the saree's edge end naturally (`scripts/welcome/cutout.ts`).
+   - Picture size: 708 × 860 px (64 KB AVIF), about twice the detail of the previous couple picture.
+   - Placement: 47% of the page height, standing at the foot of the page with the photograph's own lower edge on the page's edge.
+2. **Their arrival:** they come forward from deeper in the courtyard to the front as the page comes to rest (2 s, growing as a person walking towards us would), into warm light behind them. Rose petals shower over them as they arrive, then keep falling gently. Their names are then written in, as before.
+3. **The garland exchange and embrace cannot be made from one photograph:** the photograph shows them already garlanded and embracing. Animating their arms raising and placing garlands, or turning to embrace, needs frames of them doing it. With a short video of the exchange, it can play in the same place.
+4. **Clearer background:**
+   - The milky haze behind the lettering is reduced to a light veil, and the courtyard photograph is sharpened slightly.
+   - Where the seated figure was, only the large shapes and colours are now rebuilt in the middle (this part lies out of focus behind the couple). Copied detail is kept near the edges, so the area joins the photograph without repeating patterns or a visible outline; the floor is smoothed like polished stone.
+5. **Wishing Wall paging fix found on the way:** "View All" pages by the time each blessing was saved. Two blessings saved in the same millisecond made "Load more" skip one. Pages now continue by time and then by id, in both the live database code and the local test store, with a unit test.
+
+### Results
+
+- `npm run qa:book`: **71/71 checks pass**. Unit tests: 58 pass.
+- `npm run perf`: mobile performance 87, accessibility 100, best practices 100.

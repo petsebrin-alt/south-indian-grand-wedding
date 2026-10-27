@@ -41,16 +41,16 @@ The Welcome page uses two pictures the client supplied, kept in `src/assets/welc
 
 | File | What it shows |
 |---|---|
-| `courtyard.webp` | A temple courtyard with garlands, bells, brass lamps and the gopuram, with a figure seated in the middle. The figure is taken out: the right side is replaced by the clean left side mirrored (the courtyard is symmetrical), and what remains is rebuilt from the photograph itself (`scripts/welcome/inpaint.ts`). |
-| `couple.png` | The couple seated together, on a transparent background (364 px wide, enlarged 2× with a Lanczos filter). |
+| `courtyard.webp` | A temple courtyard with garlands, bells, brass lamps and the gopuram, with a figure seated in the middle. The figure is taken out: the right side is replaced by the clean left side mirrored (the courtyard is symmetrical), and what remains is rebuilt from the photograph itself (`scripts/welcome/inpaint.ts`). It is also given a little extra sharpness. |
+| `couple-hug.webp` | The couple standing together in garlands, his arm around her. They are lifted off the photograph's blurred background along an outline traced in `scene.json` (`hug.outline`, `scripts/welcome/cutout.ts`). |
 
-`src/assets/welcome/scene.json` holds the figure's outline, the swaying pieces (garland strands, bells, banana leaf, palms), where the couple sits, and the rose petals taken from the opening's courtyard path. After changing a picture or `scene.json`, run:
+`src/assets/welcome/scene.json` holds the figure's outline, the couple's outline, the swaying pieces (garland strands, bells, banana leaf, palms), where the couple stands, and the rose petals taken from the opening's courtyard path. After changing a picture or `scene.json`, run:
 
 ```bash
 npm run welcome:assets
 ```
 
-A larger couple picture (at least 1100 px tall) would be sharper on high-resolution phones; the same file name replaces it.
+A different couple photograph needs its outline traced again in `scene.json` (`hug.outline`).
 
 ## All decoration slots
 

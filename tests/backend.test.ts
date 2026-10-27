@@ -181,6 +181,24 @@ describe('handleWishes and moderation', () => {
     expect(after.items[0]).toEqual({ id, name: 'Ravi', message: wish.message, created_at: expect.any(String) });
   });
 
+  it('pages through every blessing, even several saved in the same instant (AC-24)', async () => {
+    const at = '2026-10-27T11:02:35.892Z';
+    for (let i = 0; i < 5; i++) {
+      const w = await store.insertWish({ name: `Guest ${i}`, message: 'Blessings to you both!', status: 'approved', idempotency_key: `${KEY}w${i}` } as never);
+      w.created_at = at; // the same millisecond
+    }
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    do {
+      const res = await handleWishes(req('GET', `wishes?limit=2${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`), deps);
+      const page = (await res.json()) as { items: { id: string }[]; nextCursor: string | null; total: number };
+      seen.push(...page.items.map((w) => w.id));
+      cursor = page.nextCursor;
+    } while (cursor);
+    expect(seen).toHaveLength(5);
+    expect(new Set(seen).size).toBe(5);
+  });
+
   it('summarises headcount per celebration and exports CSV for admins only (AC-26)', async () => {
     await handleRsvp(req('POST', 'rsvp', rsvpBody, { 'Idempotency-Key': KEY }), deps);
     await handleRsvp(req('POST', 'rsvp', { ...rsvpBody, attendeeCount: 3, events: ['wedding', 'reception'] }, { 'Idempotency-Key': `${KEY}2` }), deps);
