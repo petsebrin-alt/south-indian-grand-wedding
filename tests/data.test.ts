@@ -60,9 +60,9 @@ describe('launch check', () => {
 });
 
 describe('book structure (PRD §5.1)', () => {
-  it('has a cover plus 19 pages covering all 18 sections', () => {
-    expect(bookPages).toHaveLength(20);
-    expect(new Set(bookPages.map((p) => p.section)).size).toBe(18);
-    expect(bookPages.filter((p) => p.contents)).toHaveLength(18);
+  it('has a cover plus 18 pages covering all 17 sections (Divine Blessings removed at the client\'s request)', () => {
+    expect(bookPages).toHaveLength(19);
+    expect(new Set(bookPages.map((p) => p.section)).size).toBe(17);
+    expect(bookPages.filter((p) => p.contents)).toHaveLength(17);
   });
 });

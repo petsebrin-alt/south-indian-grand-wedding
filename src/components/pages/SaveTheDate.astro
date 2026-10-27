@@ -3,8 +3,9 @@
  * Page 2 — Save the Date (PRD §6.4), as the client asked: the courtyard photograph behind, and in it
  * the couple holding a gold board (the client's picture, its middle opened; src/assets/save-the-date/,
  * npm run save-the-date:assets). Red curtains inside the board (made from their curtain photograph)
- * draw open to reveal "Save the Date" written in script and the wedding month, with red hearts on
- * the celebration days and Add to Calendar below. Rose petals lie at the board's foot.
+ * are tied with the photo's gold rope; tapping it (or waiting a few seconds) draws them open to
+ * reveal "Save the Date" written in script and the wedding month, with red hearts on the
+ * celebration days and Add to Calendar below. Rose petals lie at the board's foot.
  * Motion: src/motion/pages/save-the-date.ts
  */
 import PageShell from '../PageShell.astro';
@@ -20,6 +21,7 @@ import coupleBoard from '../../assets/save-the-date/couple-board.webp';
 import coupleBoardAvif from '../../assets/save-the-date/couple-board.avif';
 import boardInside from '../../assets/save-the-date/board-inside.png';
 import curtain from '../../assets/save-the-date/curtain.webp';
+import tie from '../../assets/save-the-date/tie.webp';
 import petal1 from '../../assets/decor/rose-petal-1.webp';
 import petal2 from '../../assets/decor/rose-petal-2.webp';
 import petal3 from '../../assets/decor/rose-petal-3.webp';
@@ -105,6 +107,12 @@ const petals = [petal1, petal2, petal3, petal4];
       <span class="sd__curtain sd__curtain--l" data-curtain style={`${opening.replace(/width:[^;]+/, `width:${((o.right - o.left) / 2 + 0.6).toFixed(2)}%`)};--curtain:url("${curtain.src}")`} aria-hidden="true"></span>
       <span class="sd__curtain sd__curtain--r" data-curtain style={`${opening.replace(/left:[^;]+;/, '').replace(/width:[^;]+/, `width:${((o.right - o.left) / 2 + 0.6).toFixed(2)}%`)};right:${(100 - o.right).toFixed(2)}%;--curtain:url("${curtain.src}")`} aria-hidden="true"></span>
     </div>
+    <!-- The gold rope that ties the curtains together: tap it to open them (they also open by
+         themselves after a few seconds) -->
+    <button class="sd__tie" type="button" data-tie aria-label="Open the curtains" style={`left:${((o.left + o.right) / 2).toFixed(2)}%;top:${(o.top + (o.bottom - o.top) * 0.3).toFixed(2)}%;height:${((o.bottom - o.top) * 0.36).toFixed(2)}%`}>
+      <img class="sd__tie-half" src={tie.src} width={tie.width} height={tie.height} alt="" decoding="async" loading="lazy" />
+      <img class="sd__tie-half sd__tie-half--r" src={tie.src} width={tie.width} height={tie.height} alt="" decoding="async" loading="lazy" />
+    </button>
     <ScenePhoto class="sd__frame" avif={coupleBoardAvif} webp={coupleBoard} defer />
     </div>
   </div>
@@ -349,6 +357,62 @@ const petals = [petal1, petal2, petal3, petal4];
 
   .sd__curtain--r::before {
     transform: scaleX(-1);
+  }
+
+  /* The rope tie: two of the photographed tie-backs, the second mirrored, crossing at the seam */
+  .sd__tie {
+    position: absolute;
+    display: flex;
+    align-items: flex-start;
+    padding: 0;
+    border: 0;
+    background: none;
+    translate: -50% 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    filter: drop-shadow(0 3px 3px rgba(50, 10, 5, 0.45));
+  }
+
+  /* A soft glow at the knot, breathing, to invite a tap */
+  .sd__tie::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 30%;
+    width: 140%;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 224, 150, 0.55), rgba(255, 224, 150, 0) 65%);
+    animation: sd-glow 2.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes sd-glow {
+    50% {
+      opacity: 0.35;
+    }
+  }
+
+  .reduce-motion .sd__tie::before {
+    animation: none;
+  }
+
+  .sd__tie-half {
+    position: relative;
+    height: 100%;
+    width: auto;
+  }
+
+  .sd__tie-half--r {
+    margin-left: -14%;
+    transform: scaleX(-1);
+  }
+
+  .sd__tie:focus-visible {
+    outline: 2px solid #fff3cf;
+    outline-offset: 4px;
+    border-radius: 8px;
   }
 
   .sd__defs {

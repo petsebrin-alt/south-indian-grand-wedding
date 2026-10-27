@@ -410,3 +410,33 @@ The client asked for:
 
 - `npm run qa:book`: **69/69 checks pass**. The three scratch-card checks became one AC-16 check: the curtains start closed and draw open, the month and hearts on 6 and 7 April appear, Add to Calendar is shown, and the date is readable by screen readers. The gesture checks now run from Save the Date and Blessings.
 - Unit tests: 58 pass. `npm run perf`: mobile performance 86, accessibility 100, best practices 100.
+
+## 27 October 2026 — The curtain tie, readable Welcome text, Divine Blessings removed
+
+The client asked for:
+- **Save the Date:** a rope or bow on the closed curtains, which opens them very gently when tapped, and opens them by itself after about 3 seconds if nobody taps.
+- **Welcome:** text that reads properly, in dark red or green; the quote in calligraphy; no DRAFT box.
+- **Divine Blessings:** remove the page, so Countdown follows Save the Date.
+
+### Decisions
+
+1. **The curtain tie:** the gold rope tie-back and tassel from the client's curtain photograph, cut out by colour (`tie.webp`). Two of them, one mirrored, cross where the curtains meet, so the rope reads as tied around both, with two tassels hanging. A soft glow breathes at the knot to invite a tap.
+   - **Opening:** tapping it, or 3 seconds after the couple settle, unties the rope (each half goes with its curtain and fades) and the curtains draw back slowly (2.6 s, gentle ease-in-out).
+   - **Then:** "Save the Date" is written, the month and hearts appear, and Add to Calendar follows.
+   - **Accessibility:** the tie is a button named "Open the curtains". Revisits and reduced motion show the page already open.
+2. **No focus ring around page headings:** each page's heading receives focus on a turn, so screen readers announce it. Its visible outline (the red lines around "Save the Date" after a keyboard turn) is removed, because headings are not controls; buttons and links keep theirs.
+3. **Welcome text:**
+   - **Colours:** the date and place are deep maroon, and the time is in temple green.
+   - **Quote:** "Two families, one sacred promise…" is set in Pinyon Script, the calligraphy face of the names, with its fine strokes made a touch fuller.
+   - **Contrast:** a soft ivory veil of morning light sits behind all the lettering, with a gentle ivory glow at the letter edges, so the dark ink reads over the palms and the tower.
+   - **DRAFT box:** the welcome wording is marked approved at the client's request (`site.copy.welcomeMessage`), so the box no longer shows in preview builds.
+4. **Divine Blessings removed:**
+   - The page, its motion and its three texts (the Telugu and English invocation and the blessing line) are gone, and their four decoration slots are dropped from the artwork list.
+   - The book is now a cover plus 18 pages in 17 sections.
+   - Countdown is page 3.
+5. **Faster first paint (found on the way):** the "Tap the bell to enter" prompt's font (Cinzel 600) is now preloaded with the Skip font. Otherwise the first paint sometimes waited for the page's script, and mobile speed dipped to 78.
+
+### Results
+
+- `npm run qa:book`: **70/70 checks pass.** AC-16 now taps the tie and checks the curtains open with the month, hearts and button. The new AC-16d checks that the curtains stay tied briefly and then open on their own. The gesture checks run Save the Date ↔ Countdown ↔ Rahul. Unit tests: 58 pass, including the new page count.
+- `npm run perf`: mobile performance 87 (first paint 1.9 s in all three runs), accessibility 100, best practices 100.

@@ -2,7 +2,6 @@
 import './cover';
 import './welcome';
 import './save-the-date';
-import './blessings';
 import './countdown';
 import './couple';
 import './family';

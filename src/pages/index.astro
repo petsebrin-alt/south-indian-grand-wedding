@@ -8,6 +8,7 @@ import '@fontsource/manrope/400.css';
 import '@fontsource/manrope/600.css';
 import '@fontsource/pinyon-script/400.css';
 import cinzelFont from '@fontsource/cinzel/files/cinzel-latin-500-normal.woff2?url';
+import cinzelBoldFont from '@fontsource/cinzel/files/cinzel-latin-600-normal.woff2?url';
 import '../styles/fonts.css';
 import '../styles/tokens.css';
 import '../styles/base.css';
@@ -36,7 +37,6 @@ import PrivacySheet from '../components/PrivacySheet.astro';
 import ShareSheet from '../components/ShareSheet.astro';
 import Cover from '../components/pages/Cover.astro';
 import Welcome from '../components/pages/Welcome.astro';
-import Blessings from '../components/pages/Blessings.astro';
 import SaveTheDate from '../components/pages/SaveTheDate.astro';
 import Countdown from '../components/pages/Countdown.astro';
 import Partner from '../components/pages/Partner.astro';
@@ -88,8 +88,9 @@ const p = (id: string) => {
     <meta property="og:image:alt" content={`Wedding invitation of ${g.name} and ${b.name}`} />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- The only face on the temple-door screen; everything else may follow the door photograph -->
+    <!-- The two faces on the temple-door screen ("Tap the bell to enter", Skip); everything else may follow the door photograph -->
     <link rel="preload" href={cinzelFont} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={cinzelBoldFont} as="font" type="font/woff2" crossorigin />
     <script is:inline>
       document.documentElement.classList.add('js');
       if (/[?&]preview=1\b/.test(location.search)) document.documentElement.classList.add('preview');
@@ -103,7 +104,6 @@ const p = (id: string) => {
           <Cover {...p('cover')} />
           <Welcome {...p('welcome')} />
           <SaveTheDate {...p('save-the-date')} />
-          <Blessings {...p('blessings')} />
           <Countdown {...p('countdown')} />
           <Partner {...p('groom')} role="groom" />
           <Partner {...p('bride')} role="bride" />

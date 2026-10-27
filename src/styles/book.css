@@ -86,7 +86,7 @@ html:not(.js) .app {
   content-visibility: hidden;
 }
 
-/* Until the book has set each page's state, lay out only the cover: otherwise all 20 pages are
+/* Until the book has set each page's state, lay out only the cover: otherwise all the pages are
    laid out once at load and every font in the book is fetched before the first paint (AC-33). */
 .js .book:not(.is-ready) > .page:not(:first-child) {
   content-visibility: hidden;

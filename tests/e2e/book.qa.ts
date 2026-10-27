@@ -136,15 +136,15 @@ async function main() {
     await touchDrag(cdp, page, [300, 420], [262, 420], 10, 40);
     check('AC-02a', 'Short slow drag springs back', (await current(page)) === 'save-the-date');
     await touchDrag(cdp, page, [200, 640], [200, 320]);
-    check('AC-02b', 'Swipe up turns forward', (await current(page)) === 'blessings');
+    check('AC-02b', 'Swipe up turns forward', (await current(page)) === 'countdown');
     await touchDrag(cdp, page, [330, 420], [70, 440]);
-    check('AC-02c', 'Swipe left turns forward', (await current(page)) === 'countdown');
+    check('AC-02c', 'Swipe left turns forward', (await current(page)) === 'groom');
     await touchDrag(cdp, page, [60, 420], [330, 420]);
-    check('AC-02d', 'Swipe right turns back', (await current(page)) === 'blessings');
+    check('AC-02d', 'Swipe right turns back', (await current(page)) === 'countdown');
     await touchDrag(cdp, page, [200, 260], [200, 620]);
     check('AC-02e', 'Swipe down turns back', (await current(page)) === 'save-the-date');
     await touchDrag(cdp, page, [372, 826], [150, 600], 14, 16);
-    check('AC-02f', 'Bottom-right corner drag turns forward', (await current(page)) === 'blessings');
+    check('AC-02f', 'Bottom-right corner drag turns forward', (await current(page)) === 'countdown');
     await touchDrag(cdp, page, [20, 826], [300, 780], 14, 16);
     check('AC-02g', 'Bottom-left corner drag turns back', (await current(page)) === 'save-the-date');
 
@@ -158,7 +158,7 @@ async function main() {
     check('AC-03a', 'Horizontal swipe on the gallery rotates it and does not turn the page', (await current(page)) === 'love-story');
     await touchDrag(cdp, page, [195, ringY + 60], [195, ringY - 260], 10, 14);
     check('AC-03b', 'Vertical swipe on the gallery still turns the page', (await current(page)) === 'events');
-    await page.evaluate(() => (location.hash = 'blessings'));
+    await page.evaluate(() => (location.hash = 'save-the-date'));
     await page.waitForTimeout(100);
     await settle(page);
 
@@ -169,7 +169,7 @@ async function main() {
     await page.getByRole('button', { name: 'Previous page' }).tap();
     await page.waitForTimeout(50);
     await settle(page);
-    check('AC-02i', 'Previous chevron turns back', (await current(page)) === 'blessings');
+    check('AC-02i', 'Previous chevron turns back', (await current(page)) === 'save-the-date');
     await page.getByRole('button', { name: 'Next page' }).first().tap();
     await page.waitForTimeout(50);
     await settle(page);
@@ -242,7 +242,7 @@ async function main() {
     await page.goto(BASE);
     const height = await page.evaluate(() => document.documentElement.scrollHeight);
     const sections = await page.locator('section.page').count();
-    check('AC-07c', 'Without JavaScript the pages read as one continuous scroll', sections === 20 && height > 844 * 19, `${sections} pages, ${height}px tall`);
+    check('AC-07c', 'Without JavaScript the pages read as one continuous scroll', sections === 19 && height > 844 * 18, `${sections} pages, ${height}px tall`);
     await ctx.close();
   }
 
@@ -389,7 +389,7 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-15 Add to Calendar, AC-16 Save the Date: curtains draw open on the month, hearts on the celebration days */
+  /* AC-15 Add to Calendar, AC-16 Save the Date: tied curtains open (on a tap or by themselves) on the month, hearts on the celebration days */
   {
     const ctx = await mobileContext(browser);
     const page = await ctx.newPage();
@@ -403,11 +403,19 @@ async function main() {
         const m = new DOMMatrix(getComputedStyle(document.querySelector('#save-the-date [data-curtain]')!).transform);
         return +m.a.toFixed(2);
       });
-    // Turn from Welcome: the curtains start closed, then draw open
+    // Turn from Welcome: the curtains arrive closed and tied; tapping the tie opens them
+    const tiedVisible = () =>
+      page.evaluate(() => {
+        const t = document.querySelector<HTMLElement>('#save-the-date [data-tie]')!;
+        return getComputedStyle(t).visibility === 'visible' && Number(getComputedStyle(t).opacity) > 0.9;
+      });
     await page.getByRole('button', { name: 'Next page' }).first().tap();
     await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'save-the-date', null, { timeout: 4000, polling: POLL });
+    await page.waitForTimeout(1500);
     const closedAt = await curtainScale();
-    await page.waitForTimeout(5200);
+    const tied = await tiedVisible();
+    await page.getByRole('button', { name: 'Open the curtains' }).tap();
+    await page.waitForTimeout(5600);
     const openAt = await curtainScale();
     const sd = await page.evaluate(() => {
       const root = document.querySelector('#save-the-date')!;
@@ -422,14 +430,34 @@ async function main() {
         hearts: hearts.map((h) => Number(h.dataset.heartDay)),
         heartsShown: hearts.every((h) => visible(h.querySelector('.sd__heart')!)),
         button: visible(root.querySelector('.sd__cal')!),
+        tieGone: getComputedStyle(root.querySelector('[data-tie]')!).visibility === 'hidden',
       };
     });
     check(
       'AC-16',
-      'Save the Date: the curtains start closed and draw open on April 2027, with red hearts on 6 and 7 April and Add to Calendar; the date is readable by screen readers',
-      closedAt > 0.8 && openAt < 0.35 && sd.sr.includes('Wednesday, 7 April 2027') && sd.month === 'April 2027' && JSON.stringify(sd.hearts) === '[6,7]' && sd.heartsShown && sd.button,
-      JSON.stringify({ closedAt, openAt, ...sd }),
+      'Save the Date: the curtains arrive closed and tied; tapping the tie opens them on April 2027, with red hearts on 6 and 7 April and Add to Calendar; the date is readable by screen readers',
+      closedAt > 0.8 && tied && openAt < 0.35 && sd.tieGone && sd.sr.includes('Wednesday, 7 April 2027') && sd.month === 'April 2027' && JSON.stringify(sd.hearts) === '[6,7]' && sd.heartsShown && sd.button,
+      JSON.stringify({ closedAt, tied, openAt, ...sd }),
     );
+    // Left alone, the curtains open by themselves a few seconds after the couple settle
+    {
+      const ctx2 = await mobileContext(browser);
+      const p2 = await ctx2.newPage();
+      await p2.goto(BASE);
+      await p2.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+      await p2.goto(`${BASE}#welcome`);
+      await settle(p2);
+      await p2.evaluate(() => localStorage.setItem('rdv:hint-seen', '1'));
+      await p2.getByRole('button', { name: 'Next page' }).first().tap();
+      await p2.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'save-the-date', null, { timeout: 4000, polling: POLL });
+      const scale = () => p2.evaluate(() => +new DOMMatrix(getComputedStyle(document.querySelector('#save-the-date [data-curtain]')!).transform).a.toFixed(2));
+      await p2.waitForTimeout(2500);
+      const stillClosed = await scale();
+      await p2.waitForTimeout(5000);
+      const opened = await scale();
+      check('AC-16d', 'Without a tap the curtains stay tied briefly, then open by themselves', stillClosed > 0.8 && opened < 0.35, JSON.stringify({ stillClosed, opened }));
+      await ctx2.close();
+    }
 
     await page.getByRole('button', { name: 'Add to Calendar' }).tap();
     await page.waitForTimeout(500);
@@ -1123,13 +1151,13 @@ async function main() {
       [...document.querySelectorAll<HTMLElement>('.sway, .flame, .glow-breathe')].filter((e) => getComputedStyle(e).animationName !== 'none').length,
     );
     // Love story ring: no automatic turning, and the cards lie flat.
-    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(8));
+    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(7));
     await page.waitForTimeout(300);
     const dotBefore = await page.evaluate(() => [...document.querySelectorAll('[data-ring-dot]')].findIndex((d) => d.classList.contains('is-active')));
     await page.waitForTimeout(6800);
     const dotAfter = await page.evaluate(() => [...document.querySelectorAll('[data-ring-dot]')].findIndex((d) => d.classList.contains('is-active')));
     // Thank You: the lettering is complete at once, and Return fades straight to Welcome.
-    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(19));
+    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(18));
     await page.waitForTimeout(200);
     const lettering = await page.evaluate(() => [...document.querySelectorAll<SVGPathElement>('#thank-you .ty__glyph')].every((p) => Number(getComputedStyle(p).fillOpacity) > 0.99));
     await page.getByRole('button', { name: 'Return to First Page' }).tap();

@@ -68,24 +68,20 @@ Kept in `src/assets/save-the-date/source/`:
 | File name (`.webp`, `.avif` or `.png`) | Asset ID | Used on |
 |---|---|---|
 | `jasmine-swag` | D-01 | Love Story, Venues, Wishing Wall |
-| `jasmine-strand-short`, `jasmine-strand-medium`, `jasmine-strand-long` | D-02 | Blessings, Countdown, Bride |
+| `jasmine-strand-short`, `jasmine-strand-medium`, `jasmine-strand-long` | D-02 | Countdown, Rahul, Divya, Ceremony |
 | `jasmine-cluster` (top-left corner bunch) | D-03 | Save the Date, Bride, Family |
 | `arch-garland` | D-04 | Family |
-| `kuthuvilakku` (no flames; flames are drawn in code) | D-06 | Blessings, Countdown, Ceremony, Thank You |
+| `kuthuvilakku` (no flames; flames are drawn in code) | D-06 | Countdown, Ceremony, Thank You |
 | `agal-diya` | D-07 | Family |
 | `temple-bell` (one hanging brass bell, chain at top centre) | D-08 | Countdown, Events, Wishing Wall |
 | `temple-pillar` | D-09 | Rahul, Divya, Ceremony, Venues |
-| `temple-arch` | D-10 | Blessings |
-| `temple-door-left`, `temple-door-right` | D-11 | Blessings |
-| `gopuram-misty` | D-12 | Blessings, Rahul, Divya |
-| `mango-toran` | D-13 | Blessings |
+| `gopuram-misty` | D-12 | Rahul, Divya, Thank You |
+| `mango-toran` | D-13 | Ceremony, Travel |
 | `silk-drape` | D-15 | Ceremony, Thank You |
 | `kalasam-crest`, `gold-filigree` | D-17 | Rahul |
-| `scroll-roller` | D-20 | Blessings |
 | `rose-petal-1…4` (made from the opening courtyard photograph by `npm run welcome:assets`), `jasmine-petal-1…3` | D-30, D-31 | Falling petals |
 | `arch-nameplate` | S-06 / D-18 | Family |
 | `oval-frame` | S-09 | Family |
-| `sacred-emblem` (family-approved, Q-C1) | S-12 | Blessings |
 | `jasmine-wreath` | D-04 | Events timeline medallions |
 | `celebration-signboard` (no lettering; text is live) | D-04 | Events timeline |
 | `marigold-swag`, `marigold-strand`, `marigold-cluster` | D-05 | Events, Venues, Travel |

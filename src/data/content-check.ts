@@ -64,9 +64,6 @@ export function checkContent(d: WeddingData): CheckItem[] {
 
   const copyIds: Record<keyof WeddingData['copy'], string> = {
     welcomeMessage: 'C-01',
-    invocationTe: 'C-02',
-    invocationEn: 'C-02',
-    blessing: 'C-03',
     teluguTitle: 'C-04',
     closingLine: 'C-05',
     countdownArrived: 'C-07',

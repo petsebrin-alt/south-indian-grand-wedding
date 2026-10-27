@@ -109,13 +109,7 @@ const data: WeddingData = {
   },
 
   copy: {
-    welcomeMessage: { text: 'Two families, one sacred promise. Your presence and blessings will make our celebration complete.', status: 'draft' },
-    invocationTe: { text: 'ఓం నమో వేంకటేశాయ', status: 'draft' },
-    invocationEn: { text: 'Om Namo Venkatesaya', status: 'draft' },
-    blessing: {
-      text: 'With the divine grace of Lord Sri Venkateswara and Goddess Padmavathi, and the loving blessings of our elders, we begin our journey together.',
-      status: 'draft',
-    },
+    welcomeMessage: { text: 'Two families, one sacred promise. Your presence and blessings will make our celebration complete.', status: 'approved' },
     teluguTitle: { text: 'శుభలేఖ', status: 'draft' },
     closingLine: { text: 'Until we see you in Tirupati.', status: 'draft' },
     countdownArrived: { text: 'Our Auspicious Wedding Day Has Arrived!', status: 'approved' },

@@ -63,9 +63,9 @@ svg {
   outline: none;
 }
 
+/* Headings receive focus on each page turn (for screen readers); they are not controls, so no ring */
 [data-page-heading]:focus-visible {
-  outline: 2px solid var(--maroon);
-  outline-offset: 4px;
+  outline: none;
 }
 
 .sr-only {

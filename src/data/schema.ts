@@ -126,9 +126,6 @@ export const weddingSchema = z.object({
   }),
   copy: z.object({
     welcomeMessage: draft,
-    invocationTe: draft,
-    invocationEn: draft,
-    blessing: draft,
     teluguTitle: draft,
     closingLine: draft,
     countdownArrived: draft,
