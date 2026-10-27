@@ -4,13 +4,15 @@ Drop the photographed or commissioned artwork here (THEME.md §7 and §15.2). A 
 
 ## Opening screen (cover): the client's photographs
 
-The temple-entrance opening is built from four pictures the client supplied, kept in `src/assets/opening/source/`:
+The temple-entrance opening is built from six pictures the client supplied, kept in `src/assets/opening/source/`:
 
 | File | What it shows |
 |---|---|
 | `entrance.webp` | The decorated temple entrance with the doors closed: carved frame, garlands, banana leaves, brass lamps, steps with petals. The door leaves, the doorway, the hanging pieces in front of the doors and the pieces that move in the wind are all cut from this one photograph. |
 | `courtyard.webp` | The view through the open doors: the gopuram, the lamps and the petal path. |
-| `bell.webp` | The brass bell guests tap, on a transparent background. |
+| `bell.webp` | The heritage brass bell guests tap (peacock handles), on white. It is cut out and kept from its last chain link down. |
+| `bell-chain.webp` | Two bells on beaded chains, on white. Only the chain is used: one repeat of it (bead and links) is tiled up from the bell to the beam, drawn 1.43× so its links match the bell's own. |
+| `monogram.webp` | The R·D logo (asset D-54): pink and gold letters with lotus, buds and a jhumka, on a transparent background. It comes out of the temple's shrine door after the walk-in, and shows inside the card when it opens. |
 | `card.webp` | The maroon velvet invitation card with gold foil, on a transparent background. Its printed "Dear Guest" is painted out so each guest's name can be set there in the same gold; the divider below it moves down a little to make room for the couple's names; everything else, including the printed "Open the Invitation" (the button), is used as printed. |
 
 `src/assets/opening/scene.json` records where things sit in the entrance photograph, in % of its width and height: the doorway outline, the hanging buds and bells, the garland, swag and banana-leaf pieces that sway (with their pivot and strength), the bell, and how far the courtyard zooms as we walk in. Its `card` entry gives, in pixels of `card.webp`, the card's edges, the lettering to clear, a plain patch of velvet to copy grain from, where the divider moves to, and where the greeting, names and button sit.
@@ -21,13 +23,12 @@ After replacing a photograph or changing `scene.json`, run:
 npm run opening:assets
 ```
 
-It writes the layers next to `scene.json`: AVIF with a WebP fallback for the large pictures (`entrance`, `frame`, `leaves`, `courtyard`, `bell`, `card`), and WebP for the small pieces (`hangings`, `chain`). A replacement photograph with different framing or a different card design needs `scene.json` measured again.
+It writes the layers next to `scene.json`: AVIF with a WebP fallback for the large pictures (`entrance`, `frame`, `leaves`, `courtyard`, `bell`, `card`, `monogram`), WebP for the small pieces (`hangings`, `chain`), and `bell.json` (where the chain sits on the bell). Pictures on white are cut out automatically (`scripts/opening/pieces.ts`). A replacement photograph with different framing or a different design needs `scene.json` measured again: `bell.crop`, `bell.link` and `bell.chain` for the bell and chain, `court.shrine` for the shrine door the logo comes from.
 
 Still to be supplied for the opening:
 
 | File | Asset ID | What it shows | Size and format |
 |---|---|---|---|
-| `rd-monogram.webp` (or `.png`) in this folder | D-54 | The gold R·D monogram that descends from the sky and becomes the invitation. Until it arrives, gold-foil lettering is drawn in code. | 1200 × 1200, transparent background |
 | `public/audio/temple-bell.mp3` | A-01 | A licensed temple-bell recording, 2–4 seconds, played on the tap. A synthesised bell is used until then. | MP3, under 150 KB |
 
 Other studios' work cannot be used as artwork: the frames of the reference reel and the reference envelope photograph are someone else's copyrighted designs. They guided the motion and staging only.

@@ -5,8 +5,9 @@ import { defineChoreo, gsap, isReducedMotion, timelineChoreo } from '../choreo';
  * Doors: a breeze stirs the garlands, swag and banana leaves; the bell sways on its chain.
  * Entering (~10 s): the bell swings and rings; the doorway is cut from the photograph as the
  * door leaves swing open on their hinges; birds cross the sky; we walk through the doorway into
- * the courtyard; the R·D monogram descends, then comes forward and becomes the invitation.
- * Opening: the wax seal breaks and the flap opens; main.ts then turns the page.
+ * the courtyard; the R·D logo comes out of the temple's shrine door towards us, then closer
+ * still, and gives way to the invitation card.
+ * Opening: the card's cover swings open on its hinge; main.ts then turns the page.
  * Reduced motion: no breeze, birds, swing or walk; the doors fade and the invitation appears.
  */
 type Stage = 'doors' | 'entering' | 'book';
@@ -70,6 +71,39 @@ function stopBreeze(page: HTMLElement) {
 const BIRD = `<svg viewBox="0 0 40 18" aria-hidden="true"><g class="op-bird__wing"><path d="M20 9C15 3 8 1 1 4c7 0 13 3 19 7z"/><path d="M20 9C25 3 32 1 39 4c-7 0-13 3-19 7z"/></g><ellipse cx="20" cy="10" rx="3.6" ry="1.9"/></svg>`;
 
 /** A loose flock crossing the courtyard sky, wings beating at their own pace. */
+/**
+ * The logo travels from the shrine door to where it rests, as a real object coming straight
+ * towards us would look: its size grows with 1 / distance and its path follows the perspective,
+ * so it lingers small at the door, then draws near and settles. The door is read from the
+ * courtyard photograph each frame, so the logo leaves it even while we are still walking in.
+ */
+function emerge(page: HTMLElement, mono: HTMLElement, duration: number) {
+  const court = q(page, '[data-court]');
+  const photo = q(page, '.op-court__img');
+  const [sx, sy] = (court.dataset.shrine ?? '50 60').split(' ').map(Number);
+  const far = 9; // the shrine door is this many times farther away than where the logo rests
+  const rest = { x: 0, y: 0 };
+  const travel = { p: 0 };
+  return gsap.to(travel, {
+    p: 1,
+    duration,
+    ease: 'sine.inOut',
+    onStart() {
+      gsap.set(mono, { x: 0, y: 0, scale: 1 });
+      const r = mono.getBoundingClientRect();
+      rest.x = r.left + r.width / 2;
+      rest.y = r.top + r.height / 2;
+    },
+    onUpdate() {
+      const r = photo.getBoundingClientRect();
+      const dx = r.left + (r.width * sx) / 100 - rest.x;
+      const dy = r.top + (r.height * sy) / 100 - rest.y;
+      const z = far + (1 - far) * travel.p; // distance, from the door to the resting place
+      gsap.set(mono, { x: (dx * far * (1 - travel.p)) / z, y: (dy * far * (1 - travel.p)) / z, scale: 1 / z });
+    },
+  });
+}
+
 function launchBirds(container: HTMLElement) {
   if (isReducedMotion()) return;
   const ltr = Math.random() < 0.5;
@@ -254,16 +288,17 @@ export async function enterTemple(page: HTMLElement, bell: HTMLElement | null): 
       .to(front, { scale: 2.6, duration: 3.4, ease: 'power2.in' }, 2.8)
       .to(front, { autoAlpha: 0, duration: 0.8, ease: 'power1.in' }, 5.4)
       .fromTo(court, { scale: behind }, { scale: near, duration: 4.8, ease: 'sine.inOut' }, 2.8)
-      // The monogram descends from the sky…
-      .fromTo(mono, { autoAlpha: 0, y: -h * 0.7, scale: 0.7, rotation: -4 }, { autoAlpha: 1, y: 0, scale: 1, rotation: 0, duration: 2, ease: 'power3.out' }, 6)
-      // …then comes forward toward us and gives way to the invitation
-      .to(mono, { scale: 2.2, y: h * 0.18, duration: 1.1, ease: 'power2.in' }, 8.3)
-      .to(mono, { autoAlpha: 0, duration: 0.45, ease: 'power1.in' }, 8.95)
-      .to(scrim, { autoAlpha: 1, duration: 1, ease: 'sine.inOut' }, 8.6)
-      .fromTo(book, { autoAlpha: 0, scale: 0.86, y: h * 0.03 }, { autoAlpha: 1, scale: 1, y: 0, duration: 1.1, ease: 'power3.out' }, 9.25)
+      // The logo comes out of the shrine door at the foot of the tower and towards us…
+      .add(emerge(page, mono, 2.8), 5.7)
+      .fromTo(mono, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, ease: 'sine.out' }, 5.7)
+      // …then closer still, and gives way to the invitation
+      .to(mono, { scale: 2.1, y: h * 0.12, duration: 1, ease: 'power2.in' }, 8.8)
+      .to(mono, { autoAlpha: 0, duration: 0.45, ease: 'power1.in' }, 9.4)
+      .to(scrim, { autoAlpha: 1, duration: 1, ease: 'sine.inOut' }, 9)
+      .fromTo(book, { autoAlpha: 0, scale: 0.86, y: h * 0.03 }, { autoAlpha: 1, scale: 1, y: 0, duration: 1.1, ease: 'power3.out' }, 9.55)
       // "Dear Guest" arrives with the card; the couple's names follow, then the button
-      .fromTo(names, { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.9, ease: 'sine.out' }, 9.95)
-      .fromTo(open, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, ease: 'sine.out' }, 10.6);
+      .fromTo(names, { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.9, ease: 'sine.out' }, 10.25)
+      .fromTo(open, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, ease: 'sine.out' }, 10.9);
   }
 
   await new Promise<void>((resolve) => {

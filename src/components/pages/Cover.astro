@@ -31,6 +31,7 @@ import courtyard from '../../assets/opening/courtyard.webp';
 import courtyardAvif from '../../assets/opening/courtyard.avif';
 import bellAvif from '../../assets/opening/bell.avif';
 import bell from '../../assets/opening/bell.webp';
+import bellFit from '../../assets/opening/bell.json';
 import chain from '../../assets/opening/chain.webp';
 import cardAvif from '../../assets/opening/card.avif';
 import cardWebp from '../../assets/opening/card.webp';
@@ -72,7 +73,7 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
   <Fragment slot="architecture">
     <!-- The temple courtyard beyond the doors; the invitation rests here afterwards -->
     <div class="layer layer--architecture op-scene op-scene--back" style={`--ratio:${ratio}`} aria-hidden="true">
-      <div class="op-court" data-court style={`--behind:${court.behind};--near:${court.near};transform-origin:${court.origin[0]}% ${court.origin[1]}%`}>
+      <div class="op-court" data-court data-shrine={court.shrine.join(' ')} style={`--behind:${court.behind};--near:${court.near};transform-origin:${court.origin[0]}% ${court.origin[1]}%`}>
         <ScenePhoto class="op-court__img" avif={courtyardAvif} webp={courtyard} defer />
         <div class="op-birds" data-birds></div>
       </div>
@@ -130,7 +131,7 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
             ))
           }
           <button class="op-bell" type="button" data-ring aria-label="Ring the temple bell to open the doors" style={`left:${pct(scene.bell.x - bellWidth / 2)};top:${pct(scene.bell.top)};width:${pct(bellWidth)}`}>
-            <span class="op-bell__chain" style={`background-image:url(${chain.src})`} aria-hidden="true"></span>
+            <span class="op-bell__chain" style={`background-image:url(${chain.src});left:${pct(bellFit.chainCenter - bellFit.chainWidth / 2)};width:${pct(bellFit.chainWidth)}`} aria-hidden="true"></span>
             <ScenePhoto avif={bellAvif} webp={bell} />
             <span class="op-bell__halo" aria-hidden="true"></span>
           </button>
@@ -356,14 +357,12 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
     filter: drop-shadow(0 6px 6px rgba(40, 20, 5, 0.35));
   }
 
-  /* The chain above the photographed bell: one repeat of its links, tiled up to the beam
-     (the tile is the middle 16% of the bell image's width; npm run opening:assets) */
+  /* The beaded chain above the bell: one repeat of it, tiled up to the beam, its links meeting
+     the bell's own (placed from bell.json; npm run opening:assets) */
   .op-bell__chain {
     position: absolute;
-    left: 42%;
-    width: 16%;
-    bottom: 99.5%;
-    height: 60%;
+    bottom: 99%;
+    height: 72%;
     background-position: center bottom;
     background-size: 100% auto;
     background-repeat: repeat-y;
@@ -448,17 +447,20 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
 
   /* ------------------------------------------------------------------ the monogram */
 
+  /* Where the logo comes to rest, having come out of the temple towards us (cover.ts, emerge) */
   .cv-mono {
     left: 50%;
-    top: calc(var(--safe-top) + 12cqh);
-    width: 44cqw;
-    translate: -50% 0;
+    top: 42%;
+    width: min(80cqw, 46cqh);
+    translate: -50% -50%;
     z-index: calc(var(--z-foreground) + 1);
   }
 
-  .cv-mono > * {
+  .cv-mono .monogram-rd {
+    display: block;
     width: 100%;
     height: auto;
+    filter: drop-shadow(0 10px 16px rgba(40, 20, 5, 0.35));
   }
 
   /* ------------------------------------------------------------------ the invitation card */
@@ -514,7 +516,7 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
 
   .cv-inv__mono {
     position: relative;
-    width: 34%;
+    width: 46%;
     height: auto;
   }
 

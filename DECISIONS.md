@@ -271,3 +271,20 @@ The client found the drawn envelope card cartoon-like and the white "Dear …" a
 
 - `npm run qa:book`: **71/71 checks pass.** AC-01b covers the new card: the cover swings open, then the curl. AC-01d checks the greeting: plain text only, a medium name on one line, a 40-character name on two lines, kept inside the card.
 - `npm run perf`: mobile performance 86, accessibility 100, best practices 100.
+
+## 27 October 2026 — The client's R·D logo and heritage bell
+
+The client supplied their R·D logo (pink and gold letters with lotus, buds and a jhumka), a heritage brass bell with peacock handles, and a picture of bells on beaded chains, asking: replace the monogram with the logo, which should come from the temple and grow big; replace the bell with the heritage bell; and take only the chain from the third picture.
+
+### Decisions
+
+1. **The logo replaces the code-drawn monogram everywhere it appeared:** in the opening and inside the card when it opens. It is used as supplied, only trimmed and encoded (1044 × 1002 px, 117 KB AVIF), and requested after the door photograph. The code-drawn gold lettering, and the helper that chose between it and a supplied file, are removed.
+2. **The logo comes out of the temple:** after the walk-in it appears in the lit shrine door at the foot of the gopuram and comes straight towards us. Its size grows as a real object's would (1 / distance) and its path follows the perspective, so it lingers small in the doorway, then draws near and settles large in the middle of the screen (2.8 s). It then comes closer still and gives way to the invitation card. It is fully shown about 6.2 s after the bell is rung; the card is ready at about 11.6 s.
+3. **The heritage bell:** cut out from its white background, keeping the bell from its last chain link down, with the hole in its ring left clear. It is sized for phones (360 px wide, 30 KB AVIF).
+4. **The chain from the third picture only:** one repeat of the beaded chain (bead and links, 210 px) is cut out and tiled from the bell up to the beam. It is drawn 1.43× so its links match the bell's own link, which also gives the beads the same proportion to the bell as in the client's picture. The join falls at a side-on link, so the two chains read as one.
+5. **Cut-outs:** the background is the near-white reached from the picture's edges, plus pure-white holes inside. Highlights on the brass stay solid, and edges get a soft two-pixel alpha.
+
+### Results
+
+- `npm run qa:book`: **71/71 checks pass** (monogram fully shown at 6.2 s, card ready at 11.6 s, Welcome 2.0 s after tapping Open).
+- `npm run perf`: mobile performance 87 (median of three runs), accessibility 100, best practices 100.

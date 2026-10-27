@@ -7,9 +7,9 @@
  *                   the door top painted out, so they do not swing open with the doors
  *   hangings.webp   those hanging pieces alone (transparent), kept still in front of the doors
  *   courtyard       the view through the open doors (AVIF + WebP)
- *   bell            the hanging bell guests ring (resized to phone size; transparent; AVIF + WebP)
- *   chain.webp      one seamless repeat of the bell's chain, tiled up to the beam
  *   card            the invitation card, its printed greeting cleared for live text (card.ts)
+ *   bell, chain     the heritage bell on the beaded chain (pieces.ts)
+ *   monogram        the R·D logo (pieces.ts)
  * Re-run after replacing a source photograph or adjusting scene.json. Uses the installed Chrome.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { chromium } from 'playwright-core';
 import sharp from 'sharp';
 import { makeCard } from './card';
+import { makeBell, makeMonogram } from './pieces';
 
 const dir = join(process.cwd(), 'src/assets/opening');
 const scene = JSON.parse(readFileSync(join(dir, 'scene.json'), 'utf8'));
@@ -28,7 +29,7 @@ const page = await browser.newPage();
 await page.evaluate('globalThis.__name = (f) => f');
 
 const out = await page.evaluate(
-  async ({ scene, entranceSrc, bellSrc }) => {
+  async ({ scene, entranceSrc }) => {
     const load = (s: string) => new Promise<HTMLImageElement>((r) => { const i = new Image(); i.onload = () => r(i); i.src = s; });
     const canvas = (w: number, h: number) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
     // Lossless here; the final AVIF and WebP files are encoded once, by sharp, in Node
@@ -141,60 +142,33 @@ const out = await page.evaluate(
     const hb = [dr.x0, dr.y0, dr.x1, 22.6];
     const hangings = crop(hang, hb[0], hb[1], hb[2], hb[3]);
 
-    const bell = await load(bellSrc);
-    // About 90 px wide on a phone: 400 px stays sharp at three device pixels per point
-    const bc = canvas(400, Math.round((400 * bell.height) / bell.width));
-    const bcg = bc.getContext('2d')!;
-    bcg.imageSmoothingQuality = 'high';
-    bcg.drawImage(bell, 0, 0, bc.width, bc.height);
-
-    // chain.webp: one repeat of the bell's chain links (found by self-similarity down the chain),
-    // tiled up from the bell to the beam above the doorway.
-    const bd = bcg.getImageData(0, 0, bc.width, bc.height).data;
-    const colA = Math.round(bc.width * 0.42), colB = Math.round(bc.width * 0.58);
-    const rowAlpha = (y: number) => { let a = 0; for (let x = colA; x < colB; x++) a += bd[(y * bc.width + x) * 4 + 3]; return a; };
-    const chainEnd = Math.round(bc.height * 0.3);
-    const profile = Array.from({ length: chainEnd }, (_, y) => rowAlpha(y));
-    let period = 0, best = Infinity;
-    for (let p = Math.round(bc.height * 0.06); p < Math.round(bc.height * 0.18); p++) {
-      let diff = 0;
-      for (let y = 0; y + p < chainEnd; y++) diff += Math.abs(profile[y] - profile[y + p]);
-      diff /= chainEnd - p;
-      if (diff < best) { best = diff; period = p; }
-    }
-    const chain = canvas(colB - colA, period);
-    chain.getContext('2d')!.drawImage(bc, colA, 0, colB - colA, period, 0, 0, colB - colA, period);
-
     return {
-      chain: encode(chain),
-      chainPeriod: period,
-      chainCols: [colA / bc.width, colB / bc.width],
       frame: encode(frame),
       leaves: encode(leaves),
       hangings: encode(hangings),
-      bell: encode(bc),
       hangingsBox: hb,
       decoPixels: deco.reduce((n, v) => n + v, 0),
     };
   },
-  { scene, entranceSrc: src('entrance.webp'), bellSrc: src('bell.webp') },
+  { scene, entranceSrc: src('entrance.webp') },
 );
 await browser.close();
 
 // The large photographs get AVIF (about half the size at the same quality) plus a WebP fallback
-// for older phones; the small transparent pieces are WebP only.
+// for older phones; the small transparent piece is WebP only.
 const write = async (name: string, input: Buffer | string, formats: ('avif' | 'webp')[]) => {
   for (const f of formats) {
     const img = sharp(input);
-    const buf = await (f === 'avif' ? img.avif({ quality: 52, effort: 6 }) : img.webp({ quality: name === 'hangings' || name === 'bell' || name === 'chain' ? 90 : 76, effort: 6, smartSubsample: true, alphaQuality: 90 })).toBuffer();
+    const buf = await (f === 'avif' ? img.avif({ quality: 52, effort: 6 }) : img.webp({ quality: name === 'hangings' ? 90 : 76, effort: 6, smartSubsample: true, alphaQuality: 90 })).toBuffer();
     writeFileSync(join(dir, `${name}.${f}`), buf);
     console.log(`✓ ${name}.${f}  ${(buf.length / 1024).toFixed(0)} KB`);
   }
 };
 await write('entrance', join(dir, 'source/entrance.webp'), ['avif', 'webp']);
 await write('courtyard', join(dir, 'source/courtyard.webp'), ['avif', 'webp']);
-for (const name of ['frame', 'leaves', 'bell'] as const) await write(name, Buffer.from(out[name], 'base64'), ['avif', 'webp']);
-for (const name of ['hangings', 'chain'] as const) await write(name, Buffer.from(out[name], 'base64'), ['webp']);
+for (const name of ['frame', 'leaves'] as const) await write(name, Buffer.from(out[name], 'base64'), ['avif', 'webp']);
+await write('hangings', Buffer.from(out.hangings, 'base64'), ['webp']);
 console.log(`  hanging pieces: ${out.decoPixels} px; layer box ${out.hangingsBox.join(', ')} (%)`);
-console.log(`  chain repeat: ${out.chainPeriod} px, columns ${out.chainCols.map((c: number) => (c * 100).toFixed(0)).join('–')}% of the bell's width`);
 await makeCard(dir, scene.card);
+await makeBell(dir, scene.bell);
+await makeMonogram(dir);

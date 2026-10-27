@@ -344,7 +344,27 @@
   "bell": {
     "x": 50,
     "top": 8,
-    "height": 17
+    "height": 17,
+    "crop": [
+      63,
+      150,
+      667,
+      1079
+    ],
+    "link": 365,
+    "chain": {
+      "columns": [
+        130,
+        237
+      ],
+      "search": [
+        150,
+        700
+      ],
+      "start": 305,
+      "scale": 1.43
+    },
+    "_note": "x, top, height: where the bell hangs, in % of the scene. crop, link, chain: source pixels of source/bell.webp and source/bell-chain.webp (see scripts/opening/pieces.ts)."
   },
   "court": {
     "origin": [
@@ -352,7 +372,12 @@
       52
     ],
     "behind": 1.3,
-    "near": 1.44
+    "near": 1.44,
+    "shrine": [
+      49.1,
+      61.4
+    ],
+    "_note": "origin: the point we walk towards; behind/near: the courtyard's scale as the doors open and once inside; shrine: the lit shrine door at the foot of the tower, where the logo comes from (% of courtyard.webp)."
   },
   "card": {
     "_note": "Source pixels of source/card.webp (x0, y0, x1, y1): the card's edges, the printed greeting and divider to clear, a plain velvet patch, where the divider moves to, and the live-text areas. top: where the card's top edge starts and ends, in % of its width.",
