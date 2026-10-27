@@ -1,6 +1,5 @@
-import { breeze, type Breeze } from '../breeze';
 import { defineChoreo, timelineChoreo } from '../choreo';
-import { dropPetals } from '../petals';
+import { courtyardLife } from '../courtyard';
 
 /**
  * Welcome (PRD §6.2), after the client's reference: the courtyard settles and the couple walk
@@ -13,9 +12,7 @@ import { dropPetals } from '../petals';
 const WRITE_S = 1.8;
 const LETTER_S = 0.3;
 
-let wind: Breeze | null = null;
-let shower = 0;
-let arrival = 0;
+let life: ReturnType<typeof courtyardLife> | null = null;
 
 defineChoreo(
   'welcome',
@@ -25,7 +22,7 @@ defineChoreo(
       const glyphs = $('.wl__glyph');
       const gap = glyphs.length > 1 ? (WRITE_S - LETTER_S) / (glyphs.length - 1) : 0;
       const write = 0.7;
-      tl.fromTo($('[data-wl-scene]'), { scale: 1.05 }, { scale: 1, duration: 2.6, ease: 'sine.out' }, 0)
+      tl.fromTo($('[data-courtyard]'), { scale: 1.05 }, { scale: 1, duration: 2.6, ease: 'sine.out' }, 0)
         // The couple walk forward from deeper in the courtyard: smaller and higher at first (farther
         // away), coming to the front as the page comes to rest
         .from($('.wl-couple__body'), { scale: 0.84, yPercent: -7, transformOrigin: '50% 100%', duration: 2, ease: 'power2.out' }, 0.2)
@@ -39,24 +36,9 @@ defineChoreo(
         .from($('.wl__message'), { opacity: 0, y: 6, duration: 0.6 }, write + WRITE_S + 0.4);
     },
     {
-      enter(page, animate) {
-        wind ??= breeze([...page.querySelectorAll<HTMLElement>('[data-wind]')]);
-        if (!shower) {
-          const particles = page.querySelector<HTMLElement>('.page__particles')!;
-          const fall = () => dropPetals(particles, { count: 2, kinds: ['rose'], from: [0.04, 0.96] });
-          // A shower of petals over the couple as they arrive, then a gentle steady fall
-          if (animate) arrival = window.setTimeout(() => dropPetals(particles, { count: 8, kinds: ['rose'], from: [0.22, 0.78] }), 1500);
-          else fall();
-          shower = window.setInterval(fall, 1500);
-        }
-      },
-      leave() {
-        wind?.stop();
-        wind = null;
-        window.clearInterval(shower);
-        window.clearTimeout(arrival);
-        shower = 0;
-      },
+      // A shower of petals over the couple as they arrive, then a gentle steady fall
+      enter: (page, animate) => (life ??= courtyardLife(page)).start(animate),
+      leave: () => life?.stop(),
     },
   ),
 );

@@ -1,0 +1,84 @@
+---
+/**
+ * The temple courtyard photograph behind the Welcome and Save the Date pages (the client's photo
+ * with the seated figure taken out; src/assets/welcome/, npm run welcome:assets). It covers the
+ * page at its own proportions; garland strands, bells, a banana leaf and the palms are pieces of
+ * it that sway in the breeze (src/motion/courtyard.ts). Requested after the door photograph.
+ */
+import ScenePhoto from './ScenePhoto.astro';
+import scene from '../assets/welcome/scene.json';
+import courtyard from '../assets/welcome/courtyard.webp';
+import courtyardAvif from '../assets/welcome/courtyard.avif';
+
+const { width: PW, height: PH } = scene.photo;
+const pct = (n: number) => `${+n.toFixed(3)}%`;
+const box = ([x0, y0, x1, y1]: number[]) => `left:${pct((x0 / PW) * 100)};top:${pct((y0 / PH) * 100)};width:${pct(((x1 - x0) / PW) * 100)};height:${pct(((y1 - y0) / PH) * 100)}`;
+/** The whole photograph inside a piece's box, offset so the piece's region shows. */
+const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100)};left:${pct((-x0 / (x1 - x0)) * 100)};top:${pct((-y0 / (y1 - y0)) * 100)}`;
+---
+
+<div class="layer layer--architecture courtyard" style={`--ratio:${PH / PW}`} aria-hidden="true">
+  <div class="courtyard__inner" data-courtyard>
+    <ScenePhoto class="courtyard__photo" avif={courtyardAvif} webp={courtyard} defer />
+    {
+      scene.wind.pieces.map((w) => (
+        <div class={`courtyard__wind courtyard__wind--${w.feather}`} data-wind={w.amp} style={`${box(w.box)};transform-origin:${w.pivot[0]}% ${w.pivot[1]}%`}>
+          <ScenePhoto avif={courtyardAvif} webp={courtyard} style={crop(w.box)} defer />
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<style is:global>
+  /* The photograph covers the page at its own proportions (wider screens crop its sides) */
+  .courtyard {
+    left: 50%;
+    top: 50%;
+    height: max(100cqh, calc(100cqw * var(--ratio)));
+    aspect-ratio: 1 / var(--ratio);
+    translate: -50% -50%;
+    overflow: hidden;
+  }
+
+  .courtyard__inner {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 70%;
+  }
+
+  .courtyard__photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Pieces of the photograph that sway; their edges fade into the still photograph */
+  .courtyard__wind {
+    position: absolute;
+    overflow: hidden;
+    will-change: transform;
+    mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%), linear-gradient(180deg, #000 0, #000 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%), linear-gradient(180deg, #000 0, #000 80%, transparent 100%);
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
+  }
+
+  .courtyard__wind--all {
+    mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+  }
+
+  /* While a page is being turned the swaying pieces step aside (the still photograph beneath shows
+     the same thing), so the curl does not have to redraw ten masked layers on every frame */
+  .book.is-turning .courtyard__wind {
+    visibility: hidden;
+  }
+
+  .courtyard__wind img {
+    position: absolute;
+    height: auto;
+    max-width: none;
+  }
+</style>

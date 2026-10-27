@@ -1,0 +1,58 @@
+{
+  "_note": "Measurements for scripts/save-the-date/derive.ts. board (source/couple-board.webp px): a point inside the board's opening, the opening's paper colour, how far the opening mask reaches under the frame, and the frame's outer left and right edges (bottom ornaments). curtain: the source rows of the photographed left panel above its tie-back, where its fabric starts on the left (behind the gold pilaster), its embroidered leading edge as [row, x] points (source/curtain.webp px), and the size of the closed panel to make.",
+  "board": {
+    "centre": [
+      510,
+      1000
+    ],
+    "paper": [
+      248,
+      247,
+      243
+    ],
+    "grow": 4,
+    "frame": [
+      118,
+      930
+    ]
+  },
+  "curtain": {
+    "rows": [
+      104,
+      360
+    ],
+    "from": 46,
+    "edge": [
+      [
+        104,
+        194
+      ],
+      [
+        150,
+        188
+      ],
+      [
+        200,
+        178
+      ],
+      [
+        250,
+        164
+      ],
+      [
+        300,
+        148
+      ],
+      [
+        340,
+        134
+      ],
+      [
+        360,
+        126
+      ]
+    ],
+    "width": 420,
+    "height": 1200
+  }
+}

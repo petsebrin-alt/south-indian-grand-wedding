@@ -129,24 +129,24 @@ async function main() {
     await page.goto(`${BASE}`);
     await settle(page);
     await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
-    await page.goto(`${BASE}#blessings`);
+    await page.goto(`${BASE}#save-the-date`);
     await settle(page);
     await page.evaluate(() => localStorage.setItem('rdv:hint-seen', '1'));
 
     await touchDrag(cdp, page, [300, 420], [262, 420], 10, 40);
-    check('AC-02a', 'Short slow drag springs back', (await current(page)) === 'blessings');
+    check('AC-02a', 'Short slow drag springs back', (await current(page)) === 'save-the-date');
     await touchDrag(cdp, page, [200, 640], [200, 320]);
-    check('AC-02b', 'Swipe up turns forward', (await current(page)) === 'save-the-date');
+    check('AC-02b', 'Swipe up turns forward', (await current(page)) === 'blessings');
     await touchDrag(cdp, page, [330, 420], [70, 440]);
     check('AC-02c', 'Swipe left turns forward', (await current(page)) === 'countdown');
     await touchDrag(cdp, page, [60, 420], [330, 420]);
-    check('AC-02d', 'Swipe right turns back', (await current(page)) === 'save-the-date');
+    check('AC-02d', 'Swipe right turns back', (await current(page)) === 'blessings');
     await touchDrag(cdp, page, [200, 260], [200, 620]);
-    check('AC-02e', 'Swipe down turns back', (await current(page)) === 'blessings');
+    check('AC-02e', 'Swipe down turns back', (await current(page)) === 'save-the-date');
     await touchDrag(cdp, page, [372, 826], [150, 600], 14, 16);
-    check('AC-02f', 'Bottom-right corner drag turns forward', (await current(page)) === 'save-the-date');
+    check('AC-02f', 'Bottom-right corner drag turns forward', (await current(page)) === 'blessings');
     await touchDrag(cdp, page, [20, 826], [300, 780], 14, 16);
-    check('AC-02g', 'Bottom-left corner drag turns back', (await current(page)) === 'blessings');
+    check('AC-02g', 'Bottom-left corner drag turns back', (await current(page)) === 'save-the-date');
 
     // The love-story gallery owns horizontal swipes; vertical swipes on it still turn the page.
     await page.evaluate(() => (location.hash = 'love-story'));
@@ -158,7 +158,7 @@ async function main() {
     check('AC-03a', 'Horizontal swipe on the gallery rotates it and does not turn the page', (await current(page)) === 'love-story');
     await touchDrag(cdp, page, [195, ringY + 60], [195, ringY - 260], 10, 14);
     check('AC-03b', 'Vertical swipe on the gallery still turns the page', (await current(page)) === 'events');
-    await page.evaluate(() => (location.hash = 'save-the-date'));
+    await page.evaluate(() => (location.hash = 'blessings'));
     await page.waitForTimeout(100);
     await settle(page);
 
@@ -169,7 +169,7 @@ async function main() {
     await page.getByRole('button', { name: 'Previous page' }).tap();
     await page.waitForTimeout(50);
     await settle(page);
-    check('AC-02i', 'Previous chevron turns back', (await current(page)) === 'save-the-date');
+    check('AC-02i', 'Previous chevron turns back', (await current(page)) === 'blessings');
     await page.getByRole('button', { name: 'Next page' }).first().tap();
     await page.waitForTimeout(50);
     await settle(page);
@@ -389,38 +389,47 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-15 Add to Calendar, AC-16 scratch-to-reveal */
+  /* AC-15 Add to Calendar, AC-16 Save the Date: curtains draw open on the month, hearts on the celebration days */
   {
     const ctx = await mobileContext(browser);
     const page = await ctx.newPage();
-    const cdp = await ctx.newCDPSession(page);
     await page.goto(BASE);
-    await page.evaluate(() => {
-      sessionStorage.setItem('rdv:opened', '1');
-      localStorage.removeItem('rdv:date-revealed');
-    });
-    await page.goto(`${BASE}#save-the-date`);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#welcome`);
     await settle(page);
-    await page.waitForTimeout(1600);
-    const srDate = await page.evaluate(() => document.querySelector('#save-the-date .sr-only')?.textContent ?? '');
-    check('AC-16a', 'The date is readable by screen readers before scratching', srDate.includes('Wednesday, 7 April 2027'), srDate);
-
-    const panel = (await page.locator('#save-the-date [data-scratch]').first().boundingBox())!;
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: panel.x + 6, y: panel.y + 8 }] });
-    for (let row = 0; row < 4; row++)
-      for (let k = 0; k <= 8; k++) {
-        const x = panel.x + 6 + ((row % 2 ? 8 - k : k) / 8) * (panel.width - 12);
-        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: panel.y + 8 + row * (panel.height / 4) }] });
-        await page.waitForTimeout(8);
-      }
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    await page.waitForTimeout(500);
-    const states = await page.evaluate(() => [...document.querySelectorAll('#save-the-date [data-scratch]')].map((p) => p.classList.contains('is-revealed')));
-    check('AC-16b', 'Scratching a gold panel reveals it (and leaves the page in place)', states[0] && (await current(page)) === 'save-the-date', JSON.stringify(states));
-    await page.getByRole('button', { name: 'Reveal date' }).tap();
-    await page.waitForTimeout(500);
-    const all = await page.evaluate(() => [...document.querySelectorAll('#save-the-date [data-scratch]')].every((p) => p.classList.contains('is-revealed')));
-    check('AC-16c', '"Reveal date" reveals every panel with one tap', all);
+    await page.evaluate(() => localStorage.setItem('rdv:hint-seen', '1'));
+    const curtainScale = () =>
+      page.evaluate(() => {
+        const m = new DOMMatrix(getComputedStyle(document.querySelector('#save-the-date [data-curtain]')!).transform);
+        return +m.a.toFixed(2);
+      });
+    // Turn from Welcome: the curtains start closed, then draw open
+    await page.getByRole('button', { name: 'Next page' }).first().tap();
+    await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'save-the-date', null, { timeout: 4000, polling: POLL });
+    const closedAt = await curtainScale();
+    await page.waitForTimeout(5200);
+    const openAt = await curtainScale();
+    const sd = await page.evaluate(() => {
+      const root = document.querySelector('#save-the-date')!;
+      const hearts = [...root.querySelectorAll<HTMLElement>('[data-heart-day]')];
+      const visible = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && Number(getComputedStyle(el).opacity) > 0.9;
+      };
+      return {
+        sr: root.querySelector('.sr-only')?.textContent ?? '',
+        month: root.querySelector('.sd__month')?.textContent?.trim(),
+        hearts: hearts.map((h) => Number(h.dataset.heartDay)),
+        heartsShown: hearts.every((h) => visible(h.querySelector('.sd__heart')!)),
+        button: visible(root.querySelector('.sd__cal')!),
+      };
+    });
+    check(
+      'AC-16',
+      'Save the Date: the curtains start closed and draw open on April 2027, with red hearts on 6 and 7 April and Add to Calendar; the date is readable by screen readers',
+      closedAt > 0.8 && openAt < 0.35 && sd.sr.includes('Wednesday, 7 April 2027') && sd.month === 'April 2027' && JSON.stringify(sd.hearts) === '[6,7]' && sd.heartsShown && sd.button,
+      JSON.stringify({ closedAt, openAt, ...sd }),
+    );
 
     await page.getByRole('button', { name: 'Add to Calendar' }).tap();
     await page.waitForTimeout(500);

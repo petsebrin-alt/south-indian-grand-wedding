@@ -1,8 +1,8 @@
 /** Registers every page choreography (PRD §8.2). Pages without one use the generic [data-enter] fade. */
 import './cover';
 import './welcome';
-import './blessings';
 import './save-the-date';
+import './blessings';
 import './countdown';
 import './couple';
 import './family';

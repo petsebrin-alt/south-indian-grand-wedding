@@ -143,7 +143,7 @@
   }
 }
 
-.page:not([data-state='current']):not([data-state='flow']) :is(.sway, .flame, .glow-breathe) {
+.page:not([data-state='current']):not([data-state='flow']) :is(.sway, .flame, .glow-breathe, .wl-couple__body, .sd__heart svg, .cv-open) {
   animation-play-state: paused;
 }
 

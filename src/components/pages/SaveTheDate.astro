@@ -1,12 +1,29 @@
 ---
-/** Page 3 — Save the Date (PRD §6.4, THEME §13 P3). Motion: src/motion/pages/save-the-date.ts */
+/**
+ * Page 2 — Save the Date (PRD §6.4), as the client asked: the courtyard photograph behind, and in it
+ * the couple holding a gold board (the client's picture, its middle opened; src/assets/save-the-date/,
+ * npm run save-the-date:assets). Red curtains inside the board (made from their curtain photograph)
+ * draw open to reveal "Save the Date" written in script and the wedding month, with red hearts on
+ * the celebration days and Add to Calendar below. Rose petals lie at the board's foot.
+ * Motion: src/motion/pages/save-the-date.ts
+ */
 import PageShell from '../PageShell.astro';
-import Decor from '../Decor.astro';
-import Ornament from '../Ornament.astro';
 import Icon from '../Icon.astro';
+import ScenePhoto from '../ScenePhoto.astro';
+import CourtyardScene from '../CourtyardScene.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
-import { dateParts, formatDateLong, formatTime } from '../../lib/format';
+import { dateParts, formatDateLong } from '../../lib/format';
+import { lettering } from '../../lib/handwriting';
+import boardFit from '../../assets/save-the-date/board.json';
+import coupleBoard from '../../assets/save-the-date/couple-board.webp';
+import coupleBoardAvif from '../../assets/save-the-date/couple-board.avif';
+import boardInside from '../../assets/save-the-date/board-inside.png';
+import curtain from '../../assets/save-the-date/curtain.webp';
+import petal1 from '../../assets/decor/rose-petal-1.webp';
+import petal2 from '../../assets/decor/rose-petal-2.webp';
+import petal3 from '../../assets/decor/rose-petal-3.webp';
+import petal4 from '../../assets/decor/rose-petal-4.webp';
 
 interface Props {
   page: BookPage;
@@ -14,338 +31,352 @@ interface Props {
 }
 
 const { page, index } = Astro.props;
-const { groom, bride } = wedding.couple;
 const { startISO } = wedding.ceremony;
 const d = dateParts(startISO);
-const panels = [
-  { value: d.day, label: 'Date' },
-  { value: d.month, label: 'Month' },
-  { value: d.year, label: 'Year' },
-];
+const title = lettering(['Save the Date']);
 
-// Mini month grid for the wedding month, Sunday first
-const [y, m, day] = startISO.slice(0, 10).split('-').map(Number);
+// The wedding month, Sunday first
+const [y, m] = startISO.slice(0, 10).split('-').map(Number);
 const firstWeekday = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
 const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
 const cells = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
 const monthName = d.month.charAt(0) + d.month.slice(1).toLowerCase();
-const corners = ['tl', 'tr', 'bl', 'br'];
+
+// Hearts on the celebration days the client chose: the Haldi and Sangeet day, and the wedding day
+const HEART_EVENTS = ['haldi', 'sangeet', 'wedding', 'reception'];
+const heartDays = [...new Set(wedding.events.filter((e) => HEART_EVENTS.includes(e.id) && e.startISO.startsWith(`${y}-${String(m).padStart(2, '0')}`)).map((e) => Number(e.startISO.slice(8, 10))))].sort((a, b) => a - b);
+const daysLine = `${heartDays.join(' & ')} ${monthName} ${y}`;
+
+const o = boardFit.opening;
+const opening = `left:${o.left}%;top:${o.top}%;width:${(o.right - o.left).toFixed(2)}%;height:${(o.bottom - o.top).toFixed(2)}%`;
+const HEART = 'M16 29C6.4 21.6 0 16 0 9.1 0 4 3.9 0 8.8 0c3 0 5.6 1.5 7.2 3.9C17.6 1.5 20.2 0 23.2 0 28.1 0 32 4 32 9.1 32 16 25.6 21.6 16 29z';
+// Petals lying on the floor at the board's foot: [left %, bottom %, width px, rotation, which]
+const strewn: [number, number, number, number, number][] = [
+  [9, 7.2, 15, -20, 0], [17, 5.4, 18, 35, 1], [24, 7.8, 12, 70, 2], [31, 4.6, 16, -50, 3], [40, 6.4, 13, 15, 1],
+  [58, 5.8, 14, -35, 0], [66, 7.4, 12, 55, 3], [73, 4.8, 17, -10, 2], [82, 6.6, 15, 40, 1], [90, 5.2, 13, -60, 0],
+];
+const petals = [petal1, petal2, petal3, petal4];
 ---
 
-<PageShell page={page} index={index} watermark={false} class="sd" note="Placeholder art: D-03 jasmine clusters at the card corners. The handmade-paper card (D-33) and foil are CSS/canvas until textures are supplied.">
-  <div class="sd__card">
-    {corners.map((c) => <Ornament name="kolam-corner" class={`sd__kolam sd__kolam--${c}`} />)}
-    <h2 class="script sd__title" tabindex="-1" data-page-heading>Save the Date</h2>
-    <p class="sr-only">{formatDateLong(startISO)}</p>
-    <div class="sd__panels" aria-hidden="true">
-      {
-        panels.map((p) => (
-          <div class="sd__panel" data-scratch data-gesture="scratch">
-            <span class="sd__value">{p.value}</span>
-            <span class="sd__label">{p.label}</span>
-            <canvas class="sd__foil" />
-            <span class="sd__sheen" />
-          </div>
-        ))
-      }
-    </div>
-    <p class="sd__hint">
-      <span class="sd__hint-text">Scratch to reveal</span>
-      <button class="sd__reveal" type="button" data-reveal-date>Reveal date</button>
-    </p>
-    <div class="sd__month" aria-hidden="true">
-      <p class="sd__month-name">{monthName} {d.year}</p>
-      <div class="sd__grid">
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((w) => <span class="sd__wd">{w}</span>)}
-        {
-          cells.map((c) =>
-            c === day ? (
-              <span class="sd__day sd__day--wedding">
-                {c}
-                <svg class="sd__wreath" viewBox="0 0 40 40">
-                  <circle class="draw" cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="1.4" />
-                  {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
-                    <ellipse class="bud" cx="20" cy="3.6" rx="1.6" ry="2.8" fill="#fffdf8" stroke="#c49a45" stroke-width=".6" transform={`rotate(${a} 20 20)`} />
-                  ))}
-                </svg>
-              </span>
-            ) : (
-              <span class="sd__day">{c ?? ''}</span>
-            ),
-          )
-        }
+<PageShell page={page} index={index} watermark={false} class="sd">
+  <Fragment slot="architecture">
+    <CourtyardScene />
+  </Fragment>
+
+  <!-- The couple holding the board; the curtains and the card show through its opening -->
+  <div class="sd__board" style={`--board-ratio:${boardFit.ratio};--frame-l:${boardFit.frame.left / 100};--frame-r:${boardFit.frame.right / 100}`}>
+    <div class="sd__scene">
+    <!-- Everything inside the arch, clipped to its shape -->
+    <div class="sd__inside" style={`mask-image:url("${boardInside.src}");-webkit-mask-image:url("${boardInside.src}")`}>
+      <div class="sd__card" style={opening}>
+        <h2 class="sd__title" tabindex="-1" data-page-heading>
+          <span class="sr-only">Save the Date: {formatDateLong(startISO)}</span>
+          <svg class="sd__script" viewBox={title.viewBox} aria-hidden="true" focusable="false">
+            {title.glyphs.map((g) => <path class="sd__glyph" d={g.d} />)}
+          </svg>
+        </h2>
+        <p class="sd__month">{monthName} {d.year}</p>
+        <div class="sd__grid" aria-hidden="true">
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((w) => <span class="sd__wd">{w}</span>)}
+          {
+            cells.map((c) =>
+              c !== null && heartDays.includes(c) ? (
+                <span class="sd__day sd__day--heart" data-heart-day={c}>
+                  <span class="sd__heart">
+                    <svg viewBox="0 -1 32 32">
+                      <path d={HEART} fill="#6d0614" opacity=".28" transform="translate(0 1.6)" />
+                      <path d={HEART} fill="url(#sd-heart-fill)" />
+                      <ellipse cx="9.5" cy="7.5" rx="4.6" ry="2.6" fill="#fff" opacity=".38" transform="rotate(-32 9.5 7.5)" />
+                    </svg>
+                  </span>
+                  <span class="sd__num">{c}</span>
+                </span>
+              ) : (
+                <span class="sd__day">{c ?? ''}</span>
+              ),
+            )
+          }
+        </div>
+        <p class="sd__days">{daysLine}</p>
+        <button class="btn-primary sd__cal" type="button" data-open-dialog="calendar-wedding" aria-haspopup="dialog">
+          <Icon name="calendar" /> Add to Calendar
+        </button>
       </div>
+      <span class="sd__curtain sd__curtain--l" data-curtain style={`${opening.replace(/width:[^;]+/, `width:${((o.right - o.left) / 2 + 0.6).toFixed(2)}%`)};--curtain:url("${curtain.src}")`} aria-hidden="true"></span>
+      <span class="sd__curtain sd__curtain--r" data-curtain style={`${opening.replace(/left:[^;]+;/, '').replace(/width:[^;]+/, `width:${((o.right - o.left) / 2 + 0.6).toFixed(2)}%`)};right:${(100 - o.right).toFixed(2)}%;--curtain:url("${curtain.src}")`} aria-hidden="true"></span>
     </div>
-    <p class="sd__when">{d.weekday} · Muhurtham {formatTime(startISO)} IST</p>
-    <p class="names names--l sd__names">{groom.name} <span class="amp">&amp;</span> {bride.name}</p>
-    <button class="btn-primary sd__cal" type="button" data-open-dialog="calendar-wedding" aria-haspopup="dialog">
-      <Icon name="calendar" /> Add to Calendar
-    </button>
+    <ScenePhoto class="sd__frame" avif={coupleBoardAvif} webp={coupleBoard} defer />
+    </div>
   </div>
 
+  <svg class="sd__defs" aria-hidden="true" focusable="false">
+    <defs>
+      <radialGradient id="sd-heart-fill" cx="0.38" cy="0.3" r="0.85">
+        <stop offset="0" stop-color="#ff5a6a" />
+        <stop offset="0.45" stop-color="#d81b33" />
+        <stop offset="1" stop-color="#8e0a1c" />
+      </radialGradient>
+    </defs>
+  </svg>
+
   <Fragment slot="foreground">
-    {corners.map((c) => <Decor name="jasmine-cluster" asset="D-03" class={`layer layer--foreground sd__jasmine sd__jasmine--${c}`} />)}
+    <div class="layer layer--foreground sd__floor" aria-hidden="true">
+      <span class="sd__shadow"></span>
+      {strewn.map(([l, b, w, r, k]) => <img class="sd__petal" src={petals[k].src} alt="" width={w} style={`left:${l}%;bottom:${b}%;rotate:${r}deg`} loading="lazy" decoding="async" />)}
+    </div>
   </Fragment>
 </PageShell>
 
 <style is:global>
-  .sd {
-    background-image: var(--paper-texture), radial-gradient(ellipse at 50% 30%, rgba(255, 249, 239, 0.55), rgba(234, 216, 183, 0) 70%);
+  .page--save-the-date .page__frame {
+    display: none;
   }
 
-  .sd .page__content {
-    inset-inline: 6cqw;
+  /* The board stands on the courtyard floor, the content area spanning the page */
+  .page--save-the-date .page__content {
+    inset: 0;
+    display: block;
   }
 
-  .sd__card {
-    position: relative;
-    width: 88cqw;
-    max-width: 460px;
-    display: grid;
-    justify-items: center;
-    gap: 1.5cqh;
-    padding: 3.4cqh 7cqw 3cqh;
-    background-color: var(--jasmine);
-    background-image: var(--paper-texture);
-    background-blend-mode: multiply;
-    border-radius: 3px;
-    box-shadow:
-      inset 0 0 0 1.5px var(--gold),
-      inset 0 0 0 6px var(--jasmine),
-      inset 0 0 0 7px var(--gold),
-      0 18px 34px var(--shadow-deep);
-  }
-
-  .sd__kolam {
+  /* The picture is sized so the board takes 92% of the page width (or the picture 86% of its
+     height, on short screens). The element itself is just the board, centred; the whole picture
+     (.sd__scene) extends from it, so the couple's outer sides may run past the page edges */
+  .sd__board {
+    --frame-w: calc(var(--frame-r) - var(--frame-l));
+    --bw: min(calc(92cqw / var(--frame-w)), calc(86cqh / var(--board-ratio)));
     position: absolute;
-    width: 14cqw;
-    color: var(--gold);
-    opacity: 0.7;
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 1.5cqh);
+    width: calc(var(--bw) * var(--frame-w));
+    height: calc(var(--bw) * var(--board-ratio));
+    translate: -50% 0;
   }
 
-  .sd__kolam--tl {
-    top: 10px;
-    left: 10px;
+  .sd__scene {
+    position: absolute;
+    top: 0;
+    left: calc(var(--bw) * var(--frame-l) * -1);
+    width: var(--bw);
+    height: 100%;
   }
 
-  .sd__kolam--tr {
-    top: 10px;
-    right: 10px;
-    transform: scaleX(-1);
-  }
-
-  .sd__kolam--bl {
-    bottom: 10px;
-    left: 10px;
-    transform: scaleY(-1);
-  }
-
-  .sd__kolam--br {
-    bottom: 10px;
-    right: 10px;
-    transform: scale(-1, -1);
-  }
-
-  /* Ink-wipe "handwriting" reveal of the script title */
-  .sd__title {
-    --wipe: 115%;
-    -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--wipe) - 15%), transparent var(--wipe));
-    mask-image: linear-gradient(90deg, #000 calc(var(--wipe) - 15%), transparent var(--wipe));
-  }
-
-  .sd__panels {
-    display: grid;
-    grid-template-columns: 1fr 1.45fr 1.2fr;
-    gap: 2.4cqw;
-    width: 100%;
-  }
-
-  .sd__panel {
-    position: relative;
-    display: grid;
-    gap: 4px;
-    padding: 1.6cqh 0 1.2cqh;
-    overflow: hidden;
-    border: 1px solid var(--gold);
-    background: linear-gradient(180deg, var(--jasmine), var(--sandal-light));
-    box-shadow: inset 0 0 0 3px var(--jasmine), inset 0 0 0 4px var(--hairline);
-    touch-action: none;
-    cursor: grab;
-  }
-
-  .sd__value {
-    font: 600 clamp(22px, 7cqw, 36px) / 1 var(--font-display);
-    font-variant-numeric: lining-nums;
-    color: var(--brown);
-  }
-
-  .sd__label {
-    font: 500 9px/1 var(--font-royal);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--gold-text);
-  }
-
-  .sd__foil,
-  .sd__sheen {
+  .sd__frame {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-  }
-
-  .sd__foil {
-    transition: opacity 500ms var(--ease-silk);
-  }
-
-  .sd__sheen {
-    pointer-events: none;
-    background: linear-gradient(110deg, transparent 35%, rgba(255, 248, 222, 0.85) 50%, transparent 65%) no-repeat;
-    background-size: 250% 100%;
-    background-position: 150% 0;
-  }
-
-  .sd__panel.is-revealed {
-    cursor: default;
-  }
-
-  .sd__panel.is-revealed .sd__foil,
-  .sd__panel.is-revealed .sd__sheen {
-    opacity: 0;
     pointer-events: none;
   }
 
-  .sd__panel.no-anim .sd__foil {
-    transition: none;
+  .sd__inside {
+    position: absolute;
+    inset: 0;
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
   }
 
-  .sd__hint {
+  /* Ivory card behind the curtains, lit softly from the front */
+  .sd__card {
+    position: absolute;
+    container-type: size;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    font: 500 10px/1.4 var(--font-royal);
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--gold-text);
+    text-align: center;
+    background-color: #f8f0e0;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% 45%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%),
+      linear-gradient(90deg, rgba(110, 40, 20, 0.16), rgba(110, 40, 20, 0) 14%, rgba(110, 40, 20, 0) 86%, rgba(110, 40, 20, 0.16)),
+      var(--paper-texture);
+    background-blend-mode: normal, normal, multiply;
   }
 
-  .is-date-revealed .sd__hint-text {
-    display: none;
+  /* Spacing inside the card is set on its children, whose cq units measure the card itself */
+  .sd__title {
+    width: 100%;
+    margin-top: 14cqh;
   }
 
-  .sd__reveal {
-    min-height: 44px;
-    padding: 0 6px;
-    border: 0;
-    background: none;
-    font: inherit;
-    letter-spacing: inherit;
-    color: var(--maroon);
-    text-decoration: underline;
-    text-underline-offset: 3px;
+  .sd__script {
+    display: block;
+    width: 68cqw;
+    height: auto;
+    max-height: 10cqh;
+    margin-inline: auto;
+    overflow: visible;
+  }
+
+  /* Finished state (no JavaScript, revisits, reduced motion): solid ink */
+  .sd__glyph {
+    fill: #7a1f2b;
+    stroke: #7a1f2b;
+    stroke-width: 0.6;
+    stroke-linejoin: round;
   }
 
   .sd__month {
-    width: 78%;
-  }
-
-  .sd__month-name {
-    margin-bottom: 0.6cqh;
-    font: 500 11px/1 var(--font-royal);
-    letter-spacing: 0.18em;
+    margin-top: 2.6cqh;
+    font: 600 max(11px, 4.8cqw) / 1 var(--font-royal);
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: var(--gold-text);
+    color: #8a5a1c;
   }
 
   .sd__grid {
+    /* Clear of the gathered curtains (each about 14% of the card wide when drawn back) */
+    width: 70cqw;
+    margin-top: 1.6cqh;
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    row-gap: 0.3cqh;
+    row-gap: 0.8cqh;
+    font: 600 max(13px, 5.8cqw) / 1 var(--font-display);
+    color: #4a2418;
   }
 
   .sd__wd {
-    font: 500 9px/2 var(--font-royal);
-    color: var(--gold-text);
+    font: 600 max(10px, 3.9cqw) / 1 var(--font-royal);
+    color: #a8782a;
+    padding-bottom: 0.6cqh;
   }
 
   .sd__day {
     position: relative;
-    font: 500 clamp(12px, 3.6cqw, 16px) / 1.8 var(--font-display);
-    color: var(--brown-soft);
+    display: grid;
+    place-items: center;
+    height: 6.2cqh;
   }
 
-  .sd__day--wedding {
-    font-weight: 700;
-    color: var(--maroon);
-  }
-
-  .sd__wreath {
+  /* A glossy red heart behind the celebration days, beating gently */
+  .sd__heart {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 200%;
-    translate: -50% -50%;
-    color: var(--gold);
-    overflow: visible;
+    width: min(12.4cqw, 7.4cqh);
+    translate: -50% -48%;
   }
 
-  .sd__when {
-    font: 500 clamp(10px, 2.9cqw, 13px) / 1.4 var(--font-royal);
-    letter-spacing: 0.08em;
-    white-space: nowrap;
-    text-transform: uppercase;
-    color: var(--gold-text);
+  .sd__heart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    transform-origin: 50% 55%;
+    animation: sd-beat 1.8s ease-in-out infinite;
   }
 
-  .sd__names {
-    font-size: clamp(28px, 8.6cqw, 42px);
+  .sd__day--heart:nth-of-type(odd) .sd__heart svg {
+    animation-delay: -0.3s;
+  }
+
+  @keyframes sd-beat {
+    0%,
+    48%,
+    100% {
+      transform: scale(1);
+    }
+
+    12% {
+      transform: scale(1.12);
+    }
+
+    24% {
+      transform: scale(1);
+    }
+
+    36% {
+      transform: scale(1.07);
+    }
+  }
+
+  .reduce-motion .sd__heart svg {
+    animation: none;
+  }
+
+  .sd__num {
+    position: relative;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 1px rgba(90, 0, 10, 0.5);
+  }
+
+  .sd__days {
+    margin-top: 1.6cqh;
+    font: italic 600 max(15px, 6.4cqw) / 1.2 var(--font-display);
+    color: #7a1f2b;
   }
 
   .sd__cal {
-    width: 100%;
+    margin-top: auto;
+    margin-bottom: 5.5cqh;
+    min-height: 44px;
+    padding-inline: 18px;
+    font-size: max(12px, 4.4cqw);
+    gap: 6px;
   }
 
-  .sd__jasmine {
-    width: 22cqw;
-  }
-
-  .sd__jasmine--tl {
-    left: 2cqw;
-    top: calc(var(--safe-top) + 4cqh);
-  }
-
-  .sd__jasmine--tr {
-    right: 2cqw;
-    top: calc(var(--safe-top) + 4cqh);
-    transform: scaleX(-1);
-  }
-
-  .sd__jasmine--bl {
-    left: 2cqw;
-    bottom: calc(var(--safe-bottom) + 6cqh);
-    transform: scaleY(-1);
-  }
-
-  .sd__jasmine--br {
-    right: 2cqw;
-    bottom: calc(var(--safe-bottom) + 6cqh);
-    transform: scale(-1, -1);
-  }
-
-  @container app (max-height: 760px) {
-    .sd__month {
+  /* In a short board the hearts already say it: leave out the date line */
+  @container (max-height: 420px) {
+    .sd__days {
       display: none;
     }
   }
 
-  @container app (max-height: 699px) {
-    .sd__card {
-      gap: 1.1cqh;
-      padding-block: 2.6cqh 2.2cqh;
-    }
+  /* Curtains, drawn back and gathered at the sides (their finished state); a soft shade along
+     the leading edge gives them depth (a gradient, not a filter, so turning the page stays light) */
+  .sd__curtain {
+    position: absolute;
+    pointer-events: none;
+    transform: scaleX(0.27);
+  }
 
-    .sd__jasmine {
-      width: 16cqw;
-    }
+  .sd__curtain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(40, 0, 0, 0) 82%, rgba(40, 0, 0, 0.35) 100%),
+      var(--curtain) center / 100% 100% no-repeat;
+  }
+
+  .sd__curtain--l {
+    transform-origin: 0 50%;
+  }
+
+  .sd__curtain--r {
+    transform-origin: 100% 50%;
+  }
+
+  .sd__curtain--r::before {
+    transform: scaleX(-1);
+  }
+
+  .sd__defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  /* The floor at the board's foot: its shadow and a few rose petals */
+  .sd__floor {
+    left: 0;
+    right: 0;
+    bottom: calc(var(--safe-bottom) - 2cqh);
+    height: 10cqh;
+  }
+
+  .sd__shadow {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    top: 26%;
+    height: 34%;
+    background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(60, 28, 8, 0.38), rgba(60, 28, 8, 0) 72%);
+  }
+
+  .sd__petal {
+    position: absolute;
+    height: auto;
+    filter: drop-shadow(0 1px 1px rgba(60, 20, 10, 0.35));
   }
 </style>

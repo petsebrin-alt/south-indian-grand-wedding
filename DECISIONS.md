@@ -372,3 +372,41 @@ The client replaced the seated couple, whose hands were cut off and blurred, wit
 
 - `npm run qa:book`: **71/71 checks pass**. Unit tests: 58 pass.
 - `npm run perf`: mobile performance 87, accessibility 100, best practices 100.
+
+## 27 October 2026 — Save the Date with curtains and hearts; cleaner desktop; ivory Welcome text
+
+The client asked for:
+- **Desktop:** only the design beside the phone, with no names, date or QR caption.
+- **Welcome:** the date, time, place and message in white or ivory, instead of dark brown.
+- **Save the Date as the second page:** their gold board standing in the courtyard. Red curtains (from their curtain photograph) open inside it, "Save the Date" is written, and the month calendar appears with red hearts popping onto 6 and 7 April, with Add to Calendar below.
+
+### Decisions
+
+1. **Desktop:** the names, the date and divider, and the QR caption are removed. The QR code itself still appears on the right once the site's address is set (a real code guests can scan).
+2. **Welcome text:**
+   - The date, time, place and message are ivory and pale gold, with a soft dark shadow and a light warm shade behind them, so they read over sky and greenery alike.
+   - The names stay maroon script over a light veil of sky.
+3. **Page order:** Save the Date is now page 2, straight after Welcome, and Divine Blessings page 3. The scratch-to-reveal card is replaced, so its code is removed.
+4. **Save the Date:**
+   - **Setting:** the Welcome page's courtyard photograph behind (now a shared component, with the same breeze and falling rose petals), and the client's gold arch board standing in it.
+   - **Curtains:** made from the client's curtain photograph. Its fabric above the tie-back is widened into a closed panel, and the right panel is its mirror image. They are closed as the page arrives, then draw back to the sides (1.8 s).
+   - **Writing and calendar:** "Save the Date" is written in script letter by letter, then April 2027 and the month grid appear.
+   - **Hearts:** glossy red hearts pop onto 6 April (Haldi and Sangeet day) and 7 April (the wedding), one after the other, and beat gently.
+   - **Below the calendar:** "6 & 7 April 2027" and Add to Calendar (the wedding ceremony entry, unchanged).
+   - **Extra decoration:** rose petals lie on the floor at the board's foot.
+   - **Without JavaScript or with reduced motion:** the finished page, curtains open.
+5. **The couple holding the board** (supplied afterwards, replacing the separate gold board):
+   - The client's picture of the couple leaning on and holding a gold arch board is used as supplied. Its background was already transparent; the board's off-white middle is opened, so the curtains and the calendar sit inside the board, behind the frame and their hands (`couple-board.webp`).
+   - Size and position: the board takes 92% of the page width, or the picture 86% of its height on short screens. The board, not the picture, is centred, so his angavastram and her saree may run past the page edges.
+   - On arrival the couple and board step forward slightly; then the curtains open.
+   - Inside the board the calendar sits clear of the gathered curtains.
+   - The repeated date line ("6 & 7 April 2027") is left out when the board is short (small phones), where the hearts already show the days.
+6. **Smooth page turns on photograph pages (found on the way):** turning a courtyard page was slow enough in testing that a quick corner drag sprang back. Now, during a turn:
+   - the swaying pieces are hidden (the still photograph beneath shows the same thing) and the breeze pauses;
+   - looping animations on pages that are not showing (the couple's breath, the beating hearts) pause;
+   - the board, curtains and hearts carry no filter shadows (gradients and a drawn shadow instead).
+
+### Results
+
+- `npm run qa:book`: **69/69 checks pass**. The three scratch-card checks became one AC-16 check: the curtains start closed and draw open, the month and hearts on 6 and 7 April appear, Add to Calendar is shown, and the date is readable by screen readers. The gesture checks now run from Save the Date and Blessings.
+- Unit tests: 58 pass. `npm run perf`: mobile performance 86, accessibility 100, best practices 100.

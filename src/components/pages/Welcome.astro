@@ -10,13 +10,12 @@ import PageShell from '../PageShell.astro';
 import Ornament from '../Ornament.astro';
 import Draft from '../Draft.astro';
 import ScenePhoto from '../ScenePhoto.astro';
+import CourtyardScene from '../CourtyardScene.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
 import { formatDateLong, formatTime } from '../../lib/format';
 import { lettering } from '../../lib/handwriting';
 import scene from '../../assets/welcome/scene.json';
-import courtyard from '../../assets/welcome/courtyard.webp';
-import courtyardAvif from '../../assets/welcome/courtyard.avif';
 import couple from '../../assets/welcome/couple.webp';
 import coupleAvif from '../../assets/welcome/couple.avif';
 
@@ -29,30 +28,12 @@ const { page, index } = Astro.props;
 const { groom, bride } = wedding.couple;
 const { startISO, city } = wedding.ceremony;
 const names = lettering([`${groom.name} & ${bride.name}`]);
-
-const { width: PW, height: PH } = scene.photo;
-const pct = (n: number) => `${+n.toFixed(3)}%`;
-const box = ([x0, y0, x1, y1]: number[]) => `left:${pct((x0 / PW) * 100)};top:${pct((y0 / PH) * 100)};width:${pct(((x1 - x0) / PW) * 100)};height:${pct(((y1 - y0) / PH) * 100)}`;
-/** The whole photograph inside a piece's box, offset so the piece's region shows. */
-const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100)};left:${pct((-x0 / (x1 - x0)) * 100)};top:${pct((-y0 / (y1 - y0)) * 100)}`;
 ---
 
 <PageShell page={page} index={index} watermark={false} class="wl">
   <Fragment slot="architecture">
-    <!-- The temple courtyard; pieces of it stir in the breeze -->
-    <div class="layer layer--architecture wl-scene" style={`--ratio:${PH / PW}`} aria-hidden="true">
-      <div class="wl-scene__inner" data-wl-scene>
-        <ScenePhoto class="wl-scene__photo" avif={courtyardAvif} webp={courtyard} defer />
-        {
-          scene.wind.pieces.map((w) => (
-            <div class={`wl-wind wl-wind--${w.feather}`} data-wind={w.amp} style={`${box(w.box)};transform-origin:${w.pivot[0]}% ${w.pivot[1]}%`}>
-              <ScenePhoto avif={courtyardAvif} webp={courtyard} style={crop(w.box)} defer />
-            </div>
-          ))
-        }
-      </div>
-    </div>
-    <!-- Soft morning haze behind the lettering, so it reads over the photograph -->
+    <CourtyardScene />
+    <!-- A soft shade behind the lettering, so pale text reads over the bright photograph -->
     <span class="layer layer--architecture wl-haze" aria-hidden="true"></span>
   </Fragment>
 
@@ -87,55 +68,13 @@ const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100
     display: none;
   }
 
-  /* The photograph covers the page at its own proportions (wider screens crop its sides) */
-  .wl-scene {
-    left: 50%;
-    top: 50%;
-    height: max(100cqh, calc(100cqw * var(--ratio)));
-    aspect-ratio: 1 / var(--ratio);
-    translate: -50% -50%;
-    overflow: hidden;
-  }
-
-  .wl-scene__inner {
-    position: absolute;
-    inset: 0;
-    transform-origin: 50% 70%;
-  }
-
-  .wl-scene__photo {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  /* Pieces of the photograph that sway; their edges fade into the still photograph */
-  .wl-wind {
-    position: absolute;
-    overflow: hidden;
-    will-change: transform;
-    mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%), linear-gradient(180deg, #000 0, #000 80%, transparent 100%);
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%), linear-gradient(180deg, #000 0, #000 80%, transparent 100%);
-    mask-composite: intersect;
-    -webkit-mask-composite: source-in;
-  }
-
-  .wl-wind--all {
-    mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
-  }
-
-  .wl-wind img {
-    position: absolute;
-    height: auto;
-    max-width: none;
-  }
-
-  /* Only a light veil behind the lettering, so the courtyard stays clear */
+  /* A light veil of sky behind the names (maroon script), and a soft warm shade behind the
+     details and message (ivory), so each reads over the bright photograph */
   .wl-haze {
     inset: 0;
-    background: radial-gradient(ellipse 70% 22% at 50% 25%, rgba(255, 248, 238, 0.5), rgba(255, 248, 238, 0.22) 55%, rgba(255, 248, 238, 0) 80%);
+    background:
+      radial-gradient(ellipse 66% 9% at 50% 18%, rgba(255, 248, 238, 0.55), rgba(255, 248, 238, 0) 100%),
+      radial-gradient(ellipse 72% 17% at 50% 36%, rgba(48, 20, 8, 0.42), rgba(48, 20, 8, 0.2) 55%, rgba(48, 20, 8, 0) 100%);
   }
 
   /* The lettering sits in the sky above the couple */
@@ -167,36 +106,43 @@ const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100
 
   .wl__divider {
     width: 48cqw;
-    color: #a8782a;
+    color: #f0d48e;
+    filter: drop-shadow(0 1px 1.5px rgba(40, 15, 5, 0.6));
+  }
+
+  /* Ivory and pale gold, with a soft dark shadow so they read over sky and greenery alike */
+  .wl__details,
+  .wl__message {
+    text-shadow:
+      0 1px 2px rgba(40, 15, 5, 0.85),
+      0 0 10px rgba(40, 15, 5, 0.55);
   }
 
   .wl__details {
     display: grid;
     gap: 0.5cqh;
-    text-shadow: 0 0 10px rgba(255, 248, 236, 0.95), 0 0 2px rgba(255, 248, 236, 0.9);
   }
 
   .wl__date {
     font: 600 clamp(19px, 5.4cqw, 24px) / 1.2 var(--font-display);
-    color: #4a2418;
+    color: #fff8ec;
   }
 
   .wl__time {
     font: 600 12px / 1.4 var(--font-royal);
     letter-spacing: 0.2em;
-    color: #85540f;
+    color: #f6dc9a;
   }
 
   .wl__place {
     font: 500 14px / 1.4 var(--font-body);
-    color: #5a3626;
+    color: #fff3e2;
   }
 
   .wl__message {
     max-width: 30em;
     font: italic 500 clamp(15px, 4.3cqw, 18px) / 1.35 var(--font-display);
-    color: #4a2418;
-    text-shadow: 0 0 10px rgba(255, 248, 236, 0.95), 0 0 2px rgba(255, 248, 236, 0.9);
+    color: #fff8ec;
   }
 
   /* The couple, standing at the front of the courtyard */

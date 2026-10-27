@@ -16,8 +16,8 @@ export interface BookPage {
 export const bookPages: BookPage[] = [
   { id: 'cover', section: 1, title: 'Royal Temple Invitation Opening', contents: 'The Invitation Opening', tone: 'ivory' },
   { id: 'welcome', section: 2, title: 'Welcome Invitation', contents: 'Welcome', tone: 'jasmine' },
-  { id: 'blessings', section: 3, title: 'Divine Blessings', contents: 'Divine Blessings', tone: 'ivory' },
-  { id: 'save-the-date', section: 4, title: 'Save the Date', contents: 'Save the Date', tone: 'sandal' },
+  { id: 'save-the-date', section: 3, title: 'Save the Date', contents: 'Save the Date', tone: 'sandal' },
+  { id: 'blessings', section: 4, title: 'Divine Blessings', contents: 'Divine Blessings', tone: 'ivory' },
   { id: 'countdown', section: 5, title: 'Wedding Countdown', contents: 'Wedding Countdown', tone: 'ivory' },
   { id: 'groom', section: 6, title: 'Meet the Couple: Rahul', contents: 'Meet the Couple', tone: 'ivory' },
   { id: 'bride', section: 6, title: 'Meet the Couple: Divya', tone: 'jasmine' },

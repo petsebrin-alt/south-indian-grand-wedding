@@ -188,50 +188,10 @@
   justify-self: start;
 }
 
-/* Names in the card's gold foil */
-.stage__names {
-  font: 600 clamp(32px, 3vw, 46px) / 1.1 var(--font-display);
-  color: #e3bd6c;
-  background-image: linear-gradient(180deg, #fae4a2 2%, #efcb76 34%, #e3b961 58%, #c9984b 80%, #eac672 98%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 1px 0 rgba(40, 0, 6, 0.75));
-}
-
-/* Inline (not the usual inline-block) so the gold fill reaches it too */
-.stage__names .amp {
-  display: inline;
-  transform: none;
-  color: inherit;
-}
-
-.stage__details {
-  margin-top: 14px;
-  display: grid;
-  gap: 6px;
-  font: 500 13px/1.4 var(--font-royal);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #e8cf98;
-}
-
-.stage__divider {
-  width: 160px;
-  margin: 14px 0 0 auto;
-  color: #d4ac5a;
-}
-
 .stage__qr {
   width: 132px;
   padding: 10px;
   background: var(--jasmine);
   border: 1px solid #c39a4e;
   border-radius: 12px;
-}
-
-.stage__qr-caption {
-  margin-top: 10px;
-  font: 500 13px/1.4 var(--font-body);
-  color: #e8cf98;
 }

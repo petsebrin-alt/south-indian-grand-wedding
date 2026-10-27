@@ -52,6 +52,17 @@ npm run welcome:assets
 
 A different couple photograph needs its outline traced again in `scene.json` (`hug.outline`).
 
+## Save the Date page: the couple with the gold board, and the curtain
+
+Kept in `src/assets/save-the-date/source/`:
+
+| File | What it shows |
+|---|---|
+| `couple-board.webp` | The couple holding a gold arch board, on a transparent background. The board's off-white middle is opened, so the curtain and the calendar show inside it, behind the frame and their hands. |
+| `curtain.webp` | A red-and-gold theatre curtain, drawn back and tied. Its fabric above the tie is widened into one closed panel (the other is its mirror image), which draws back when the page opens. |
+
+`src/assets/save-the-date/scene.json` holds a point inside the board's opening, its paper colour, the board's outer edges, and where the curtain's fabric and embroidered edge lie. After changing a picture, run `npm run save-the-date:assets`. The page reuses the Welcome page's courtyard photograph behind the board.
+
 ## All decoration slots
 
 | File name (`.webp`, `.avif` or `.png`) | Asset ID | Used on |

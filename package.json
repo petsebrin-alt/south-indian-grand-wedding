@@ -25,7 +25,8 @@
     "fonts": "tsx scripts/fonts/telugu.ts",
     "perf": "tsx scripts/perf/lighthouse.ts",
     "opening:assets": "tsx scripts/opening/derive.ts",
-    "welcome:assets": "tsx scripts/welcome/derive.ts"
+    "welcome:assets": "tsx scripts/welcome/derive.ts",
+    "save-the-date:assets": "tsx scripts/save-the-date/derive.ts"
   },
   "dependencies": {
     "@fontsource/cinzel": "^5.3.0",
