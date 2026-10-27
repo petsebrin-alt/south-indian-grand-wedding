@@ -430,5 +430,36 @@
       1.25,
       98.98
     ]
+  },
+  "stage": {
+    "_note": "The desktop background, from source/card.webp pixels (scripts/opening/stage.ts): plain velvet strips, the border's top-left corner square, where its top band repeats from and how long, and the lower-left corner spray.",
+    "donors": [
+      [
+        150,
+        144,
+        900,
+        166
+      ],
+      [
+        290,
+        382,
+        740,
+        428
+      ]
+    ],
+    "corner": [
+      104,
+      167,
+      138,
+      201
+    ],
+    "bandFrom": 420,
+    "length": 250,
+    "spray": [
+      137,
+      993,
+      249,
+      1322
+    ]
   }
 }

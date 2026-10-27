@@ -2,7 +2,8 @@
  * Presentation around the app (PRD §7, THEME §14.1).
  * Phones: the app fills the screen and the stage is invisible.
  * Tablets / wide screens without the mockup: the page is centred at full height.
- * Desktop ≥1024 px landscape: Option B — one phone mockup on a temple-inspired background.
+ * Desktop ≥1024 px landscape: Option B — one phone mockup on maroon velvet inside the
+ * invitation card's gold border (Stage.astro).
  */
 
 .stage,
@@ -22,7 +23,7 @@
   .js .app {
     width: min(100vw, 60dvh);
     margin-inline: auto;
-    box-shadow: 0 0 60px rgba(75, 48, 38, 0.18);
+    box-shadow: 0 0 60px rgba(20, 0, 4, 0.5);
   }
 
   .js .stage__bg {
@@ -43,7 +44,7 @@
     font: 500 12px/1.4 var(--font-royal);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--gold-text);
+    color: #e8cf98;
   }
 }
 
@@ -67,7 +68,7 @@
     border-radius: 58px;
     background: linear-gradient(145deg, #e3c78a 0%, #c49a45 28%, #f4e3b5 50%, #c49a45 72%, #8a6420 100%);
     box-shadow:
-      0 40px 80px rgba(75, 48, 38, 0.25),
+      0 40px 80px rgba(20, 0, 4, 0.55),
       0 0 0 1px rgba(255, 255, 255, 0.35) inset;
   }
 
@@ -113,107 +114,69 @@
     position: relative;
     z-index: 1;
   }
-}
 
-/* ---------------------------------------------------------------- background (placeholder for D-41) */
-
-.stage__bg {
-  overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 38%, rgba(255, 249, 239, 0.95) 0%, rgba(244, 234, 214, 0.9) 42%, rgba(234, 216, 183, 0.95) 100%),
-    var(--sandal-light);
-}
-
-/* The distant scene drifts very slowly (40 s each way); still under reduced motion (PRD §7.2) */
-.stage__scene {
-  position: absolute;
-  inset: -3%;
-  animation: stage-drift 40s ease-in-out infinite alternate;
-}
-
-@keyframes stage-drift {
-  to {
-    transform: translate3d(-1.2%, -0.8%, 0) scale(1.015);
+  .js .stage__spray {
+    display: block;
   }
 }
 
-.reduce-motion .stage__scene {
-  animation: none;
+/* ---------------------------------------------------------------- background */
+
+/* Maroon velvet from the card, lit softly from the front: a warm sheen behind the phone,
+   deepening towards the edges */
+.stage__bg {
+  --frame-inset: max(14px, 2.4vh);
+  --frame-band: clamp(14px, 2.2vh, 22px);
+  overflow: hidden;
+  background-color: #5c0c14;
+  background-image:
+    radial-gradient(ellipse 60% 70% at 50% 46%, rgba(255, 140, 120, 0.12), rgba(255, 140, 120, 0) 70%),
+    radial-gradient(ellipse 115% 105% at 50% 46%, rgba(20, 0, 2, 0) 40%, rgba(20, 0, 2, 0.6) 100%),
+    var(--velvet);
+  background-size: auto, auto, 128px 128px;
 }
 
-.stage__gopuram {
+/* The card's gold border (beaded band and fine rule) running round the screen */
+.stage__frame {
   position: absolute;
-  left: 50%;
-  bottom: 0;
-  height: 86vh;
-  width: auto;
-  transform: translateX(-50%);
+  inset: var(--frame-inset);
+  border: var(--frame-band) solid transparent;
+  border-image: var(--frame) 34 round;
 }
 
-/* Only the vector stand-in is softened; the commissioned background art (D-41) shows as supplied */
-.stage__gopuram[data-placeholder] {
-  opacity: 0.38;
-  filter: blur(2px) sepia(0.3);
-}
-
-.stage__medallion {
+/* The card's gold paisley sprays, one in each corner inside the border (desktop mockup only:
+   beside a full-height page they would be half hidden) */
+.stage__spray {
+  display: none;
+  --spray-h: min(34vh, 300px);
+  --spray-inset: calc(var(--frame-inset) + var(--frame-band) + 1.4vh);
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(120vh, 1100px);
-  transform: translate(-50%, -50%);
-  color: var(--gold);
-  opacity: 0.09;
+  width: calc(var(--spray-h) * 112 / 329);
+  height: var(--spray-h);
+  background: var(--spray) center / contain no-repeat;
 }
 
-/* Jasmine garlands caught up at the top corners */
-.stage__garland {
-  position: absolute;
-  top: -2vh;
-  width: min(34vw, 560px);
-  opacity: 0.9;
+.stage__spray--bl {
+  left: var(--spray-inset);
+  bottom: var(--spray-inset);
 }
 
-.stage__garland--l {
-  left: -6vw;
-  transform: rotate(8deg);
-}
-
-.stage__garland--r {
-  right: -6vw;
-  transform: scaleX(-1) rotate(8deg);
-}
-
-/* Brass lamps at the bottom corners, inside the pillars (.stage__bg outranks the base .lamp rule) */
-.stage__bg .stage__lamp {
-  position: absolute;
-  bottom: 3vh;
-  width: min(5.5vw, 8vh);
-}
-
-.stage__lamp--l {
-  left: calc(2vw + min(8vw, 11vh) + 1.5vw);
-}
-
-.stage__lamp--r {
-  right: calc(2vw + min(8vw, 11vh) + 1.5vw);
-}
-
-.stage__pillar {
-  position: absolute;
-  bottom: 0;
-  width: min(8vw, 11vh); /* pillar art is 120 × 900, so it stands just under the viewport height */
-  color: var(--gold);
-  opacity: 0.32;
-}
-
-.stage__pillar--l {
-  left: 2vw;
-}
-
-.stage__pillar--r {
-  right: 2vw;
+.stage__spray--br {
+  right: var(--spray-inset);
+  bottom: var(--spray-inset);
   transform: scaleX(-1);
+}
+
+.stage__spray--tl {
+  left: var(--spray-inset);
+  top: var(--spray-inset);
+  transform: scaleY(-1);
+}
+
+.stage__spray--tr {
+  right: var(--spray-inset);
+  top: var(--spray-inset);
+  transform: scale(-1, -1);
 }
 
 .stage__aside--left {
@@ -225,9 +188,22 @@
   justify-self: start;
 }
 
+/* Names in the card's gold foil */
 .stage__names {
   font: 600 clamp(32px, 3vw, 46px) / 1.1 var(--font-display);
-  color: var(--brown);
+  color: #e3bd6c;
+  background-image: linear-gradient(180deg, #fae4a2 2%, #efcb76 34%, #e3b961 58%, #c9984b 80%, #eac672 98%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(40, 0, 6, 0.75));
+}
+
+/* Inline (not the usual inline-block) so the gold fill reaches it too */
+.stage__names .amp {
+  display: inline;
+  transform: none;
+  color: inherit;
 }
 
 .stage__details {
@@ -237,25 +213,25 @@
   font: 500 13px/1.4 var(--font-royal);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--gold-text);
+  color: #e8cf98;
 }
 
 .stage__divider {
   width: 160px;
   margin: 14px 0 0 auto;
-  color: var(--gold);
+  color: #d4ac5a;
 }
 
 .stage__qr {
   width: 132px;
   padding: 10px;
   background: var(--jasmine);
-  border: 1px solid var(--hairline);
+  border: 1px solid #c39a4e;
   border-radius: 12px;
 }
 
 .stage__qr-caption {
   margin-top: 10px;
   font: 500 13px/1.4 var(--font-body);
-  color: var(--brown-soft);
+  color: #e8cf98;
 }

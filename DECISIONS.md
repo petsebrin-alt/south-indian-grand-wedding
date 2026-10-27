@@ -288,3 +288,64 @@ The client supplied their R·D logo (pink and gold letters with lotus, buds and 
 
 - `npm run qa:book`: **71/71 checks pass** (monogram fully shown at 6.2 s, card ready at 11.6 s, Welcome 2.0 s after tapping Open).
 - `npm run perf`: mobile performance 87 (median of three runs), accessibility 100, best practices 100.
+
+## 27 October 2026 — Desktop background in velvet and gold
+
+The client asked for the desktop background around the phone to follow the royal theme (velvet red or maroon, with gold borders) instead of the cream backdrop with line-art pillars, garlands, lamps and gopuram.
+
+### Decisions
+
+1. **Made from the client's card, not drawn:** the background reuses the velvet and gold of the supplied invitation card, so the screen around the phone matches the invitation exactly. `npm run opening:assets` makes the pieces (`scripts/opening/stage.ts`, `src/assets/stage/`).
+   - **Velvet:** a seamless 256 px tile with the card's colour and real grain from its plain velvet, near-lossless (33 KB). It is lit softly from the front: a warm sheen behind the phone, deepening towards the screen's edges.
+   - **Gold border:** the card's beaded band and fine rule run round the screen inside a small margin, from the card's own corner and one exact repeat of its top band (CSS `border-image`). The sides use the top band turned on its side, because the photographed card's sides lean very slightly and do not repeat cleanly.
+   - **Corner sprays:** the gold paisley-and-flower spray from the card's lower corner, mirrored into all four corners (desktop mockup only; beside a full-height tablet page they would be half hidden).
+2. **The text beside the phone:** the couple's names are in the card's gold foil; the date and the QR caption are pale gold.
+3. **Removed from the desktop:** the placeholder pillars, jasmine garlands, lamps, gopuram, mandala and the slow drift.
+4. **Phones download none of it:** all of these are CSS backgrounds on elements that phones do not display.
+5. **Fixes found on the way:**
+   - "Open the Invitation" had a thick white focus outline that covered the names. Focus now brightens the button's own gold rings, at the same size.
+   - In a small desktop mockup, "Tap the bell to enter" ran under the sound button; on narrow screens it now sits just above it.
+   - Inline image addresses are quoted, so they also work when a folder name contains spaces.
+
+### Results
+
+- `npm run qa:book`: **71/71 checks pass**. AC-35b now checks the velvet, the gold border and four corner sprays, unchanged on every page.
+- `npm run perf`: mobile performance 87, accessibility 100, best practices 100.
+- Checked at 1440 × 900, 1280 × 720, 1920 × 1080 and tablet portrait (768 × 1024).
+
+## 27 October 2026 — Welcome page from the client's courtyard and couple
+
+The client asked for the first page to be completely redone after their reference video. They supplied a temple courtyard photograph with a young man seated in it, and a picture of the couple seated together. They asked to:
+- Remove the man and seat the couple there instead, a little smaller and further forward.
+- Show the couple's names, date, time, place and the welcome message above them.
+- Make the flowers, bells and branches move in the wind, with a light shower of small flowers.
+- Have the couple smile, look at each other and greet guests with folded hands (vanakkam).
+
+### Decisions
+
+1. **The courtyard without the seated figure:** the figure covered about half the photograph, so it cannot simply be painted over.
+   - The right side (pillar, brass lamps, banana leaves) is replaced by the clean left side mirrored; temple courtyards are symmetrical.
+   - The rest is rebuilt from the photograph itself by patch matching (`scripts/welcome/inpaint.ts`), drawing on pieces from about the same height (floor from floor, greenery from greenery) and never from the carved pillars or lamps.
+   - The couple then sit over most of the rebuilt area.
+2. **The couple** are seated at the foot of the page, 45% of its height (the figure was about 58%), and slightly further forward. The supplied picture's cut lower edge sits just below the screen, and its straight-cut sides fade softly into the floor.
+   - The supplied picture is small (364 px wide). It is enlarged 2× with a Lanczos filter, and a larger version would be sharper on high-resolution phones.
+3. **Above them, in the sky:**
+   - "Rahul & Divya" written in script letter by letter (the Thank You page's handwriting, from Pinyon Script);
+   - a gold divider;
+   - the date, the confirmed ceremony time (10:30 AM IST) and the city;
+   - the welcome message (still a draft, so marked in preview builds).
+
+   A soft haze behind the lettering keeps it readable over the photograph. On short screens the message is set smaller, and below 620 px it is left out. The Telugu title, "Together with our families", the nameplate, the drawn arch, garlands and lamps of the old page are removed.
+4. **Motion:**
+   - **Arrival:** the courtyard and the couple settle as the page arrives, then the names are written in and the details follow.
+   - **Breeze:** while the page shows, three garland strands on each side, the bells, a banana leaf and the palms sway on their own pivots. The opening and this page now share one breeze (`src/motion/breeze.ts`).
+   - **Couple:** a very slow breath keeps them from looking frozen.
+   - **Petals:** real rose petals, taken from the path in the opening's courtyard photograph, drift down two at a time, at most 12 on screen. They also replace the drawn rose-petal placeholders on the other pages that drop petals.
+   - **Reduced motion:** no breeze, breath or petals.
+5. **Folded hands (vanakkam) cannot be made from a still picture:** making the couple move their hands, turn or change expression needs new frames of them doing so. With a short clip or a picture of them greeting with folded hands, it can replace the still couple in the same place.
+6. **Loading:** the courtyard (107 KB AVIF) and the couple (63 KB AVIF) are requested only after the door photograph, so the opening is not slowed; without JavaScript plain copies show.
+
+### Results
+
+- `npm run qa:book`: **71/71 checks pass** (including no overflow at every phone size).
+- `npm run perf`: mobile performance 87, accessibility 100, best practices 100.

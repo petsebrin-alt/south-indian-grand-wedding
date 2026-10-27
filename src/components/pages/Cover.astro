@@ -131,7 +131,7 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
             ))
           }
           <button class="op-bell" type="button" data-ring aria-label="Ring the temple bell to open the doors" style={`left:${pct(scene.bell.x - bellWidth / 2)};top:${pct(scene.bell.top)};width:${pct(bellWidth)}`}>
-            <span class="op-bell__chain" style={`background-image:url(${chain.src});left:${pct(bellFit.chainCenter - bellFit.chainWidth / 2)};width:${pct(bellFit.chainWidth)}`} aria-hidden="true"></span>
+            <span class="op-bell__chain" style={`background-image:url("${chain.src}");left:${pct(bellFit.chainCenter - bellFit.chainWidth / 2)};width:${pct(bellFit.chainWidth)}`} aria-hidden="true"></span>
             <ScenePhoto avif={bellAvif} webp={bell} />
             <span class="op-bell__halo" aria-hidden="true"></span>
           </button>
@@ -418,6 +418,13 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
     cursor: pointer;
   }
 
+  /* On a narrow screen (a small desktop mockup) the prompt sits just above the sound button */
+  @container app (max-width: 359px) {
+    .cv-enter {
+      bottom: calc(var(--safe-bottom) + 3.5cqh + 56px);
+    }
+  }
+
   /* Sound: bottom-left, clear of the page-curl corner on the right */
   .cv-sound {
     position: absolute;
@@ -650,9 +657,11 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
     transform: scale(0.97);
   }
 
+  /* Focus brightens the button's own gold rings (same size, so nothing nearby is covered) */
   .cv-open:focus-visible {
-    outline: 2px solid #fff4d8;
-    outline-offset: 4px;
+    border-color: #fff3cf;
+    outline-color: #fff3cf;
+    box-shadow: inset 0 0 1.4cqh rgba(255, 214, 150, 0.3), 0 0 1.2cqh rgba(255, 226, 160, 0.55);
   }
 
   .reduce-motion .cv-open::after {

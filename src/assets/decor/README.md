@@ -25,6 +25,8 @@ npm run opening:assets
 
 It writes the layers next to `scene.json`: AVIF with a WebP fallback for the large pictures (`entrance`, `frame`, `leaves`, `courtyard`, `bell`, `card`, `monogram`), WebP for the small pieces (`hangings`, `chain`), and `bell.json` (where the chain sits on the bell). Pictures on white are cut out automatically (`scripts/opening/pieces.ts`). A replacement photograph with different framing or a different design needs `scene.json` measured again: `bell.crop`, `bell.link` and `bell.chain` for the bell and chain, `court.shrine` for the shrine door the logo comes from.
 
+The same command makes the desktop background in `src/assets/stage/` from `card.webp` (`scene.json` → `stage`): a seamless tile of the card's maroon velvet, the card's gold border as a nine-slice frame, and the gold paisley spray from its lower corner.
+
 Still to be supplied for the opening:
 
 | File | Asset ID | What it shows | Size and format |
@@ -33,26 +35,43 @@ Still to be supplied for the opening:
 
 Other studios' work cannot be used as artwork: the frames of the reference reel and the reference envelope photograph are someone else's copyrighted designs. They guided the motion and staging only.
 
+## Welcome page: the courtyard and the couple
+
+The Welcome page uses two pictures the client supplied, kept in `src/assets/welcome/source/`:
+
+| File | What it shows |
+|---|---|
+| `courtyard.webp` | A temple courtyard with garlands, bells, brass lamps and the gopuram, with a figure seated in the middle. The figure is taken out: the right side is replaced by the clean left side mirrored (the courtyard is symmetrical), and what remains is rebuilt from the photograph itself (`scripts/welcome/inpaint.ts`). |
+| `couple.png` | The couple seated together, on a transparent background (364 px wide, enlarged 2× with a Lanczos filter). |
+
+`src/assets/welcome/scene.json` holds the figure's outline, the swaying pieces (garland strands, bells, banana leaf, palms), where the couple sits, and the rose petals taken from the opening's courtyard path. After changing a picture or `scene.json`, run:
+
+```bash
+npm run welcome:assets
+```
+
+A larger couple picture (at least 1100 px tall) would be sharper on high-resolution phones; the same file name replaces it.
+
 ## All decoration slots
 
 | File name (`.webp`, `.avif` or `.png`) | Asset ID | Used on |
 |---|---|---|
-| `jasmine-swag` | D-01 | Welcome, Love Story, Venues, Wishing Wall |
-| `jasmine-strand-short`, `jasmine-strand-medium`, `jasmine-strand-long` | D-02 | Welcome, Blessings, Countdown, Bride |
+| `jasmine-swag` | D-01 | Love Story, Venues, Wishing Wall |
+| `jasmine-strand-short`, `jasmine-strand-medium`, `jasmine-strand-long` | D-02 | Blessings, Countdown, Bride |
 | `jasmine-cluster` (top-left corner bunch) | D-03 | Save the Date, Bride, Family |
 | `arch-garland` | D-04 | Family |
-| `kuthuvilakku` (no flames; flames are drawn in code) | D-06 | Welcome, Blessings, Countdown, Ceremony, Thank You |
+| `kuthuvilakku` (no flames; flames are drawn in code) | D-06 | Blessings, Countdown, Ceremony, Thank You |
 | `agal-diya` | D-07 | Family |
 | `temple-bell` (one hanging brass bell, chain at top centre) | D-08 | Countdown, Events, Wishing Wall |
 | `temple-pillar` | D-09 | Rahul, Divya, Ceremony, Venues |
-| `temple-arch` | D-10 | Welcome, Blessings |
+| `temple-arch` | D-10 | Blessings |
 | `temple-door-left`, `temple-door-right` | D-11 | Blessings |
 | `gopuram-misty` | D-12 | Blessings, Rahul, Divya |
 | `mango-toran` | D-13 | Blessings |
 | `silk-drape` | D-15 | Ceremony, Thank You |
 | `kalasam-crest`, `gold-filigree` | D-17 | Rahul |
 | `scroll-roller` | D-20 | Blessings |
-| `rose-petal-1…3`, `jasmine-petal-1…3` | D-30, D-31 | Falling petals |
+| `rose-petal-1…4` (made from the opening courtyard photograph by `npm run welcome:assets`), `jasmine-petal-1…3` | D-30, D-31 | Falling petals |
 | `arch-nameplate` | S-06 / D-18 | Family |
 | `oval-frame` | S-09 | Family |
 | `sacred-emblem` (family-approved, Q-C1) | S-12 | Blessings |

@@ -2,7 +2,8 @@
 /**
  * One of the opening's photographs: AVIF where the browser supports it, WebP otherwise.
  * `defer` leaves the files unrequested until src/motion/pages/cover.ts asks for them, so the
- * door photograph guests see first is not slowed by layers only needed after the bell is rung.
+ * door photograph guests see first is not slowed by layers only needed after the bell is rung
+ * (without JavaScript a plain copy shows instead).
  * `lazy` instead lets the browser fetch it once it is laid out (for layers hidden with display: none
  * until later, which still need to appear without JavaScript).
  * Class and style go on the <img> (the <picture> is display: contents).
@@ -36,6 +37,7 @@ const { avif, webp, class: className, style, defer = false, priority = false, la
     loading={lazy ? 'lazy' : undefined}
     fetchpriority={priority ? 'high' : undefined}
   />
+  {defer && <noscript><img class={className} style={style} src={webp.src} width={webp.width} height={webp.height} alt="" decoding="async" /></noscript>}
 </picture>
 
 <style>

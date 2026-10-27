@@ -1,13 +1,24 @@
 ---
-/** Page 1 — Welcome Invitation (PRD §6.2, THEME §13 P1). Motion: src/motion/pages/welcome.ts */
+/**
+ * Page 1 — Welcome Invitation (PRD §6.2), staged like the client's reference: their temple
+ * courtyard photograph (the seated figure taken out; src/assets/welcome/, npm run welcome:assets),
+ * the couple seated at its foot, and above them their names written in script with the date,
+ * time, place and welcome message. Garlands, bells, the banana leaf and the palms stir in the
+ * breeze and red garland flowers drift down. Motion: src/motion/pages/welcome.ts
+ */
 import PageShell from '../PageShell.astro';
 import Ornament from '../Ornament.astro';
-import Decor from '../Decor.astro';
-import Lamp from '../Lamp.astro';
 import Draft from '../Draft.astro';
+import ScenePhoto from '../ScenePhoto.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
 import { formatDateLong, formatTime } from '../../lib/format';
+import { lettering } from '../../lib/handwriting';
+import scene from '../../assets/welcome/scene.json';
+import courtyard from '../../assets/welcome/courtyard.webp';
+import courtyardAvif from '../../assets/welcome/courtyard.avif';
+import couple from '../../assets/welcome/couple.webp';
+import coupleAvif from '../../assets/welcome/couple.avif';
 
 interface Props {
   page: BookPage;
@@ -17,130 +28,241 @@ interface Props {
 const { page, index } = Astro.props;
 const { groom, bride } = wedding.couple;
 const { startISO, city } = wedding.ceremony;
-const letters = (word: string) => [...word];
-const strands = [
-  { name: 'jasmine-strand-medium', x: 5, delay: 0 },
-  { name: 'jasmine-strand-short', x: 15, delay: -1.6 },
-  { name: 'jasmine-strand-short', x: 85, delay: -0.8 },
-  { name: 'jasmine-strand-medium', x: 95, delay: -2.4 },
-];
+const names = lettering([`${groom.name} & ${bride.name}`]);
+
+const { width: PW, height: PH } = scene.photo;
+const pct = (n: number) => `${+n.toFixed(3)}%`;
+const box = ([x0, y0, x1, y1]: number[]) => `left:${pct((x0 / PW) * 100)};top:${pct((y0 / PH) * 100)};width:${pct(((x1 - x0) / PW) * 100)};height:${pct(((y1 - y0) / PH) * 100)}`;
+/** The whole photograph inside a piece's box, offset so the piece's region shows. */
+const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100)};left:${pct((-x0 / (x1 - x0)) * 100)};top:${pct((-y0 / (y1 - y0)) * 100)}`;
 ---
 
-<PageShell page={page} index={index} watermark={false} note="Placeholder art: D-01 jasmine swag, D-02 strands, D-10 carved arch watermark, D-06 brass lamps. The nameplate (D-18) is CSS until the antique-gold raster is supplied.">
+<PageShell page={page} index={index} watermark={false} class="wl">
   <Fragment slot="architecture">
-    <Decor name="temple-arch" asset="D-10" class="layer layer--architecture wl__arch" eager />
+    <!-- The temple courtyard; pieces of it stir in the breeze -->
+    <div class="layer layer--architecture wl-scene" style={`--ratio:${PH / PW}`} aria-hidden="true">
+      <div class="wl-scene__inner" data-wl-scene>
+        <ScenePhoto class="wl-scene__photo" avif={courtyardAvif} webp={courtyard} defer />
+        {
+          scene.wind.pieces.map((w) => (
+            <div class={`wl-wind wl-wind--${w.feather}`} data-wind={w.amp} style={`${box(w.box)};transform-origin:${w.pivot[0]}% ${w.pivot[1]}%`}>
+              <ScenePhoto avif={courtyardAvif} webp={courtyard} style={crop(w.box)} defer />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+    <!-- Soft morning haze behind the lettering, so it reads over the photograph -->
+    <span class="layer layer--architecture wl-haze" aria-hidden="true"></span>
   </Fragment>
 
-  <div class="monogram wl__monogram">
-    <Ornament name="monogram-ring" class="wl__ring" />
-    <span class="monogram__letters">R·D</span>
-  </div>
-  <p class="telugu wl__telugu wl__lead" lang="te"><Draft copy={wedding.copy.teluguTitle} /></p>
-  <div class="stack-xs">
-    <p class="eyebrow wl__lead">Together with our families</p>
-    <p class="display display--s wl__lead">We joyfully invite you to celebrate the wedding of</p>
-  </div>
-  <div class="nameplate wl__nameplate">
-    <h2 class="names wl__names" tabindex="-1" data-page-heading aria-label={`${groom.name} & ${bride.name}`}>
-      <span aria-hidden="true">
-        {letters(groom.name).map((c) => <span class="wl__ch">{c}</span>)}{' '}<span class="amp wl__ch">&amp;</span>{' '}{letters(bride.name).map((c) => <span class="wl__ch">{c}</span>)}
-      </span>
-    </h2>
-  </div>
+  <h2 class="wl__names" tabindex="-1" data-page-heading>
+    <span class="sr-only">{groom.name} &amp; {bride.name}</span>
+    <svg class="wl__script" viewBox={names.viewBox} aria-hidden="true" focusable="false">
+      {names.glyphs.map((g) => <path class="wl__glyph" d={g.d} />)}
+    </svg>
+  </h2>
   <Ornament name="divider-line" class="divider wl__divider" />
-  <div class="stack-xs">
-    <p class="lead wl__detail">{formatDateLong(startISO)}</p>
-    <p class="eyebrow wl__detail">{formatTime(startISO)} IST</p>
-    <p class="caption wl__detail">{city}</p>
+  <div class="wl__details">
+    <p class="wl__date wl__detail">{formatDateLong(startISO)}</p>
+    <p class="wl__time wl__detail">{formatTime(startISO)} IST</p>
+    <p class="wl__place wl__detail">{city}</p>
   </div>
-  <p class="body-text wl__message"><Draft copy={wedding.copy.welcomeMessage} /></p>
+  <p class="wl__message"><Draft copy={wedding.copy.welcomeMessage} /></p>
 
   <Fragment slot="foreground">
-    <Decor name="jasmine-swag" asset="D-01" class="layer layer--foreground wl__swag sway" style="--sway:0.6deg;--sway-dur:8s" eager />
-    {
-      strands.map((s, i) => (
-        <Decor
-          name={s.name}
-          asset="D-02"
-          class="layer layer--foreground wl__strand sway"
-          style={`left:${s.x}%;--sway:1.5deg;--sway-dur:${5.5 + i * 0.5}s;--sway-delay:${s.delay}s`}
-          eager
-        />
-      ))
-    }
-    <Lamp class="layer layer--foreground wl__lamp wl__lamp--l" eager />
-    <Lamp class="layer layer--foreground wl__lamp wl__lamp--r" eager />
+    <!-- The couple, seated on the courtyard floor -->
+    <div class="layer layer--foreground wl-couple" style={`--h:${scene.couple.height}cqh;--b:${scene.couple.bottom}cqh`} aria-hidden="true">
+      <span class="wl-couple__shadow"></span>
+      <div class="wl-couple__body">
+        <ScenePhoto class="wl-couple__img" avif={coupleAvif} webp={couple} defer />
+      </div>
+    </div>
   </Fragment>
 </PageShell>
 
 <style is:global>
-  .wl__arch {
+  /* Full-bleed photograph: no drawn frame */
+  .page--welcome .page__frame {
+    display: none;
+  }
+
+  /* The photograph covers the page at its own proportions (wider screens crop its sides) */
+  .wl-scene {
     left: 50%;
-    top: calc(var(--safe-top) + 6cqh);
-    width: 96cqw;
-    translate: -50% 0;
-    opacity: 0.14;
-    mask-image: linear-gradient(to bottom, #000 55%, transparent 92%);
+    top: 50%;
+    height: max(100cqh, calc(100cqw * var(--ratio)));
+    aspect-ratio: 1 / var(--ratio);
+    translate: -50% -50%;
+    overflow: hidden;
   }
 
-  .wl__swag {
-    left: -2cqw;
-    top: calc(var(--safe-top) - 0.5cqh);
-    width: 104cqw;
+  .wl-scene__inner {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 70%;
   }
 
-  .wl__strand {
-    top: calc(var(--safe-top) + 1cqh);
-    width: 6cqw;
-    translate: -50% 0;
+  .wl-scene__photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
   }
 
-  .wl__lamp {
-    bottom: calc(var(--safe-bottom) + 6cqh);
-    width: 13cqw;
+  /* Pieces of the photograph that sway; their edges fade into the still photograph */
+  .wl-wind {
+    position: absolute;
+    overflow: hidden;
+    will-change: transform;
+    mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%), linear-gradient(180deg, #000 0, #000 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 18%, #000 82%, transparent 100%), linear-gradient(180deg, #000 0, #000 80%, transparent 100%);
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
   }
 
-  .wl__lamp--l {
-    left: 3cqw;
+  .wl-wind--all {
+    mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
   }
 
-  .wl__lamp--r {
-    right: 3cqw;
+  .wl-wind img {
+    position: absolute;
+    height: auto;
+    max-width: none;
+  }
+
+  .wl-haze {
+    inset: 0;
+    background: radial-gradient(ellipse 82% 30% at 50% 27%, rgba(255, 248, 238, 0.82), rgba(255, 248, 238, 0.5) 50%, rgba(255, 248, 238, 0) 78%);
+  }
+
+  /* The lettering sits in the sky above the couple */
+  .page--welcome .page__content {
+    inset-block: calc(var(--safe-top) + 6cqh) calc(var(--safe-bottom) + 45cqh);
+    gap: 1.3cqh;
   }
 
   .wl__names {
-    white-space: nowrap;
+    width: 100%;
   }
 
-  .wl__ch {
-    display: inline-block;
+  .wl__script {
+    display: block;
+    width: min(82cqw, 100%);
+    max-height: 11cqh;
+    margin-inline: auto;
+    overflow: visible;
+    filter: drop-shadow(0 0 6px rgba(255, 248, 236, 0.95));
+  }
+
+  /* Finished state (no JavaScript, revisits, reduced motion): solid ink */
+  .wl__glyph {
+    fill: #7a1f2b;
+    stroke: #7a1f2b;
+    stroke-width: 0.6;
+    stroke-linejoin: round;
   }
 
   .wl__divider {
-    width: 56cqw;
+    width: 48cqw;
+    color: #a8782a;
+  }
+
+  .wl__details {
+    display: grid;
+    gap: 0.5cqh;
+    text-shadow: 0 0 10px rgba(255, 248, 236, 0.95), 0 0 2px rgba(255, 248, 236, 0.9);
+  }
+
+  .wl__date {
+    font: 600 clamp(19px, 5.4cqw, 24px) / 1.2 var(--font-display);
+    color: #4a2418;
+  }
+
+  .wl__time {
+    font: 600 12px / 1.4 var(--font-royal);
+    letter-spacing: 0.2em;
+    color: #85540f;
+  }
+
+  .wl__place {
+    font: 500 14px / 1.4 var(--font-body);
+    color: #5a3626;
   }
 
   .wl__message {
     max-width: 30em;
+    font: italic 500 clamp(15px, 4.3cqw, 18px) / 1.35 var(--font-display);
+    color: #4a2418;
+    text-shadow: 0 0 10px rgba(255, 248, 236, 0.95), 0 0 2px rgba(255, 248, 236, 0.9);
   }
 
-  @container app (max-height: 760px) {
-    .wl__telugu {
-      display: none;
+  /* The couple, seated on the floor at the foot of the courtyard */
+  .wl-couple {
+    left: 50%;
+    bottom: var(--b);
+    height: var(--h);
+    aspect-ratio: 728 / 1044;
+    translate: -50% 0;
+  }
+
+  /* Soft shade on the floor around where they sit */
+  .wl-couple__shadow {
+    position: absolute;
+    left: -6%;
+    right: -6%;
+    bottom: 0;
+    height: 22%;
+    background: radial-gradient(ellipse 50% 60% at 50% 70%, rgba(70, 35, 12, 0.32), rgba(70, 35, 12, 0) 75%);
+  }
+
+  /* A slow breath, so the couple is never quite still */
+  .wl-couple__body {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 100%;
+    animation: wl-breathe 4.8s ease-in-out infinite alternate;
+  }
+
+  @keyframes wl-breathe {
+    to {
+      transform: scale(1.004, 1.009);
     }
   }
 
-  @container app (max-height: 699px) {
-    .wl__monogram {
+  .reduce-motion .wl-couple__body {
+    animation: none;
+  }
+
+  /* The supplied picture cuts his dhoti and her saree straight down at its sides: fade them into
+     the floor */
+  .wl-couple__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
+  }
+
+  @container app (max-height: 700px) {
+    .page--welcome .page__content {
+      inset-block-end: calc(var(--safe-bottom) + 42cqh);
+      gap: 1cqh;
+    }
+
+    .wl__message {
+      font-size: 15px;
+    }
+
+    .wl-couple {
+      --h: 43cqh;
+    }
+  }
+
+  @container app (max-height: 620px) {
+    .wl__message {
       display: none;
-    }
-
-    .wl__strand {
-      width: 5cqw;
-    }
-
-    .wl__lamp {
-      width: 11cqw;
     }
   }
 </style>

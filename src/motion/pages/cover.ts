@@ -1,3 +1,4 @@
+import { breeze, type Breeze } from '../breeze';
 import { defineChoreo, gsap, isReducedMotion, timelineChoreo } from '../choreo';
 
 /**
@@ -34,36 +35,22 @@ defineChoreo(
 
 /* ------------------------------------------------------------------ the breeze */
 
-let breeze: ((time: number) => void) | null = null;
+let wind: Breeze | null = null;
 let gust = 1;
 
 /** A gentle, irregular breeze on the garlands, swag, banana leaves and the hanging bell. */
 function startBreeze(page: HTMLElement) {
-  if (breeze || isReducedMotion()) return;
-  const pieces = qa(page, '[data-wind], .op-bell').map((el, i) => ({
-    el,
-    amp: Number(el.dataset.wind ?? 0.6),
-    t1: 3.2 + ((i * 0.37) % 1.4),
-    t2: 1.3 + ((i * 0.23) % 0.7),
-    p1: i * 1.7,
-    p2: i * 2.9,
-  }));
-  breeze = (time: number) => {
-    if (page.dataset.state !== 'current' || coverStage(page) === 'book') return;
+  if (wind) return;
+  wind = breeze(qa(page, '[data-wind], .op-bell'), {
+    active: () => page.dataset.state === 'current' && coverStage(page) !== 'book',
     // Slow swells in the wind, plus any gust the opening doors add
-    const swell = 0.75 + 0.35 * Math.sin((time / 9) * Math.PI * 2) + 0.15 * Math.sin((time / 3.7) * Math.PI * 2);
-    for (const p of pieces) {
-      const a = p.amp * swell * gust * (0.68 * Math.sin((time / p.t1) * Math.PI * 2 + p.p1) + 0.32 * Math.sin((time / p.t2) * Math.PI * 2 + p.p2));
-      p.el.style.rotate = `${a.toFixed(3)}deg`;
-    }
-  };
-  gsap.ticker.add(breeze);
+    gust: () => gust,
+  });
 }
 
-function stopBreeze(page: HTMLElement) {
-  if (breeze) gsap.ticker.remove(breeze);
-  breeze = null;
-  qa(page, '[data-wind], .op-bell').forEach((el) => (el.style.rotate = ''));
+function stopBreeze() {
+  wind?.stop();
+  wind = null;
 }
 
 /* ------------------------------------------------------------------ birds */
@@ -154,7 +141,7 @@ export function showBook(page: HTMLElement) {
   resetScene(page);
   loadDeferred(page);
   setStage(page, 'book');
-  stopBreeze(page);
+  stopBreeze();
   fitGreeting(page);
 }
 
@@ -195,13 +182,17 @@ function fitGreeting(page: HTMLElement) {
   });
 }
 
-/** Request the layers held back so the door photograph loads first (ScenePhoto `defer`). */
+/**
+ * Request the pictures held back so the door photograph loads first (ScenePhoto `defer`): the rest
+ * of the opening, and the Welcome page's courtyard and couple waiting beneath it.
+ */
 function loadDeferred(page: HTMLElement) {
-  page.querySelectorAll<HTMLSourceElement>('source[data-srcset]').forEach((el) => {
+  const book = page.parentElement ?? page;
+  book.querySelectorAll<HTMLSourceElement>('source[data-srcset]').forEach((el) => {
     el.srcset = el.dataset.srcset!;
     delete el.dataset.srcset;
   });
-  page.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((el) => {
+  book.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((el) => {
     el.src = el.dataset.src!;
     delete el.dataset.src;
   });

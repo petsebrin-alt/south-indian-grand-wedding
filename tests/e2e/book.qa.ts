@@ -1447,8 +1447,8 @@ async function main() {
       page.evaluate(() => ({
         devices: document.querySelectorAll('.device').length,
         bg: getComputedStyle(document.querySelector('.stage__bg')!).backgroundImage,
-        pieces: document.querySelectorAll('.stage__bg .stage__garland, .stage__bg .stage__lamp, .stage__bg .stage__pillar, .stage__bg .stage__gopuram').length,
-        drift: getComputedStyle(document.querySelector('.stage__scene')!).animationName,
+        frame: getComputedStyle(document.querySelector('.stage__frame')!).borderImageSource,
+        sprays: [...document.querySelectorAll<HTMLElement>('.stage__bg .stage__spray')].filter((s) => s.getBoundingClientRect().height > 0).length,
       }));
     const before = await scene();
     await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(12));
@@ -1456,8 +1456,8 @@ async function main() {
     const after = await scene();
     check(
       'AC-35b',
-      'Desktop background (pillars, garlands, lamps, gopuram, slow drift) stays the same on every page',
-      before.devices === 1 && JSON.stringify(before) === JSON.stringify(after) && before.pieces === 7 && before.drift === 'stage-drift',
+      'Desktop background (velvet, the card gold border, corner sprays) stays the same on every page',
+      before.devices === 1 && JSON.stringify(before) === JSON.stringify(after) && before.bg.includes('velvet') && before.frame.includes('frame') && before.sprays === 4,
       JSON.stringify({ before, after }),
     );
     if (SHOTS) {

@@ -10,6 +10,7 @@
  *   card            the invitation card, its printed greeting cleared for live text (card.ts)
  *   bell, chain     the heritage bell on the beaded chain (pieces.ts)
  *   monogram        the R·D logo (pieces.ts)
+ *   ../stage/       the desktop background: velvet, gold frame and corner spray from the card (stage.ts)
  * Re-run after replacing a source photograph or adjusting scene.json. Uses the installed Chrome.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -18,6 +19,7 @@ import { chromium } from 'playwright-core';
 import sharp from 'sharp';
 import { makeCard } from './card';
 import { makeBell, makeMonogram } from './pieces';
+import { makeStage } from './stage';
 
 const dir = join(process.cwd(), 'src/assets/opening');
 const scene = JSON.parse(readFileSync(join(dir, 'scene.json'), 'utf8'));
@@ -172,3 +174,4 @@ console.log(`  hanging pieces: ${out.decoPixels} px; layer box ${out.hangingsBox
 await makeCard(dir, scene.card);
 await makeBell(dir, scene.bell);
 await makeMonogram(dir);
+await makeStage(dir, join(process.cwd(), 'src/assets/stage'), scene.stage);

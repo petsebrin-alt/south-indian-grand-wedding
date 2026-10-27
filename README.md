@@ -40,7 +40,7 @@ Add `?to=` and the guest's name to the site address and the invitation card gree
 
 ## Add the realistic artwork
 
-The opening (temple doors, bell and courtyard) is built from the client's photographs in `src/assets/opening/source/`. After replacing one, run `npm run opening:assets` to remake the scene's layers; see [src/assets/decor/README.md](src/assets/decor/README.md#opening-screen-cover-the-clients-photographs).
+The opening (temple doors, bell and courtyard) is built from the client's photographs in `src/assets/opening/source/`. After replacing one, run `npm run opening:assets` to remake the scene's layers; see [src/assets/decor/README.md](src/assets/decor/README.md#opening-screen-cover-the-clients-photographs). The Welcome page's courtyard and couple are in `src/assets/welcome/source/`; after replacing one, run `npm run welcome:assets` ([details](src/assets/decor/README.md#welcome-page-the-courtyard-and-the-couple)).
 
 
 The other pages' decorations (jasmine, brass lamps, pillars, doors, silk) still show vector placeholders. Put a real image named after its slot in `src/assets/decor/` (for example `kuthuvilakku.webp`) and it replaces the placeholder everywhere. The slot list and art rules are in [src/assets/decor/README.md](src/assets/decor/README.md). `npm run placeholders` regenerates the stand-ins.
@@ -93,6 +93,8 @@ npm run perf               # Lighthouse mobile on the cover of the built site (r
 | `src/motion/` | Page choreographies, petals, scratch card, gallery ring, family-tree animation |
 | `src/components/pages/` | One component per page |
 | `src/assets/opening/` | The opening's photographs (`source/`), their measurements (`scene.json`) and the layers made from them |
+| `src/assets/stage/` | The desktop background (velvet, gold border, corner spray), made from the card photograph by `npm run opening:assets` |
+| `src/assets/welcome/` | The Welcome page's courtyard and couple (`source/`), their measurements (`scene.json`) and the layers made from them (`npm run welcome:assets`, `scripts/welcome/`) |
 | `src/assets/decor/`, `src/assets/placeholders/` | Real decoration assets, and their vector stand-ins |
 | `src/lib/calendar.ts` | Add to Calendar links and `.ics` files |
 | `src/lib/venue.ts` | When Location and Get Directions switch on (public venues with a map link or coordinates) |
