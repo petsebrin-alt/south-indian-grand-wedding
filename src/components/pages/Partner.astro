@@ -42,9 +42,6 @@ const lines = [
     <div class="layer layer--architecture pc__scene" aria-hidden="true">
       <ScenePhoto class="pc__photo" avif={photo.avif} webp={photo.webp} defer />
     </div>
-    <!-- A soft glow of light down each edge, behind the polaroids -->
-    <span class="layer layer--architecture pc__glow pc__glow--l" aria-hidden="true"></span>
-    <span class="layer layer--architecture pc__glow pc__glow--r" aria-hidden="true"></span>
   </Fragment>
 
   <h2 class="pc__title" tabindex="-1" data-page-heading aria-label={`The ${isGroom ? 'Groom' : 'Bride'}, ${person.name}`}>
@@ -98,23 +95,6 @@ const lines = [
 
   .pc--bride .pc__photo {
     object-position: 49% 50%;
-  }
-
-  /* Warm light down each edge, so the polaroids sit on a soft backdrop */
-  .pc__glow {
-    top: 18%;
-    bottom: 3%;
-    width: 36%;
-  }
-
-  .pc__glow--l {
-    left: 0;
-    background: radial-gradient(ellipse 100% 56% at 0% 50%, rgba(255, 246, 228, 0.86), rgba(255, 246, 228, 0.55) 52%, rgba(255, 246, 228, 0) 100%);
-  }
-
-  .pc__glow--r {
-    right: 0;
-    background: radial-gradient(ellipse 100% 56% at 100% 50%, rgba(255, 246, 228, 0.86), rgba(255, 246, 228, 0.55) 52%, rgba(255, 246, 228, 0) 100%);
   }
 
   .pc .page__content {

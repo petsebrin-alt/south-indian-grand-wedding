@@ -1,5 +1,5 @@
 {
-  "_note": "Measurements of source/groom-bride.webp (1536 \u00d7 1024 px) for scripts/couple/derive.ts. Each half: its x span, the box around its printed title, the person's outline (never copied from when rebuilding), the areas rebuilt separately (region and allowed sources in % of the half's width; calm: out-of-focus, large shapes only in the middle), and its cards in the order they appear: a rough clockwise quad (snapped to the white frame), an optional tape strip, or for the gaming cluster a traced outline; column l or r on the phone page.",
+  "_note": "Measurements of source/groom-bride.webp (1536 \u00d7 1024 px) for scripts/couple/derive.ts. Each half: its x span, the box around its printed title, the person's outline, and its cards in the order they appear: a rough clockwise quad (snapped to the white frame), an optional tape strip, or for the gaming cluster a traced outline; column l or r on the phone page. grow: px added around each removed title. cardGrow: px added around each removed card (past its drop shadow); close: px of the gaps between neighbouring cards that are closed. pillars: boxes at the page edges never borrowed from. grain: fine noise in the rebuilt title areas. bokeh: how the garden behind the cards is rebuilt (scripts/couple/bokeh.ts) \u2014 reach: px over which the picture beside an area softens into it; blur: radius of that softening; grain: fine noise inside; ramp: px over which the leafy shade builds up from the area's edge; shade and minLight: how deep and how dark the green behind the leaves may be; leaves: the sharp leaves and flowers cut from the picture and laid over the area (density: how many, radius: size range in px, minFoliage: least share of a cut-out's source that is leafy, fringe: px they hang past the edge, flowers: share taken from the flower-rich cut-outs). shadowReach, shadowDark: how far (px) and how dark (brightness) the dark strips beside a card's area may be to join it.",
   "grow": 5,
   "groom": {
     "span": [
@@ -363,41 +363,6 @@
           ]
         ]
       }
-    ],
-    "areas": [
-      {
-        "region": [
-          35,
-          75
-        ],
-        "from": [
-          0,
-          100
-        ],
-        "calm": false
-      },
-      {
-        "region": [
-          0,
-          35
-        ],
-        "from": [
-          0,
-          40
-        ],
-        "calm": true
-      },
-      {
-        "region": [
-          75,
-          100
-        ],
-        "from": [
-          72,
-          100
-        ],
-        "calm": true
-      }
     ]
   },
   "bride": {
@@ -688,41 +653,50 @@
           ]
         ]
       }
-    ],
-    "areas": [
-      {
-        "region": [
-          30,
-          70
-        ],
-        "from": [
-          0,
-          100
-        ],
-        "calm": false
-      },
-      {
-        "region": [
-          0,
-          30
-        ],
-        "from": [
-          0,
-          36
-        ],
-        "calm": true
-      },
-      {
-        "region": [
-          70,
-          100
-        ],
-        "from": [
-          66,
-          100
-        ],
-        "calm": true
-      }
     ]
-  }
+  },
+  "feather": 9,
+  "pillars": [
+    [
+      0,
+      0,
+      45,
+      1024
+    ],
+    [
+      723,
+      0,
+      813,
+      1024
+    ],
+    [
+      1491,
+      0,
+      1536,
+      1024
+    ]
+  ],
+  "grain": 1.2,
+  "bokeh": {
+    "reach": 70,
+    "blur": 6,
+    "grain": 1.2,
+    "ramp": 18,
+    "shade": 0.8,
+    "leaves": {
+      "density": 2.2,
+      "radius": [
+        14,
+        26
+      ],
+      "minFoliage": 0.22,
+      "fringe": 28,
+      "flowers": 0
+    },
+    "minLight": 92
+  },
+  "close": 12,
+  "cardGrow": 9,
+  "shadowReach": 40,
+  "shadowDark": 95
 }

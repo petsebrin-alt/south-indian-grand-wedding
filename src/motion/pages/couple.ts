@@ -17,7 +17,6 @@ for (const [id, side] of [
       const letters = all('.pc__ch');
       const cards = [...all('.pc__col--l .pc__card'), ...all('.pc__col--r .pc__card')];
       tl.from(all('.pc__scene'), { xPercent: side * 6, scale: 1.06, duration: 1.4, ease: 'power2.out' }, 0)
-        .from(all('.pc__glow'), { opacity: 0, duration: 1 }, 0.5)
         // Each letter drops in and bounces into place
         .from(letters, { y: -34, opacity: 0, scale: 0.5, duration: 0.55, ease: 'back.out(3)', stagger: 0.065 }, 0.45)
         // The polaroids pop in, each with a little spin as if set down by hand

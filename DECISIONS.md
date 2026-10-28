@@ -506,10 +506,10 @@ The client supplied one picture of both pages side by side: "The Groom Rahul" an
 1. **Built from the client's picture** (`npm run couple:assets`, `scripts/couple/`):
    - Each half becomes its page's photograph, with the polaroids and printed title taken out.
    - Each polaroid, and the groom's gaming cluster, is cut out on its own. Its rough corners are snapped to the edges of its white frame, so the cut follows the frame exactly, tape included.
-   - **Rebuilding the background:** each area is rebuilt only from its own surroundings. The titles come from the sky and palms; the card areas come from the flowers and pillars on the same side, never the temple tower or the person. The card areas lie in the soft, out-of-focus background, so their middles are a smooth blend of the surrounding colours with fine grain.
+   - **Rebuilding the background** (replaced on 29 October, see the section at the end): each area is rebuilt only from its own surroundings. The titles come from the sky and palms; the card areas come from the flowers and pillars on the same side, never the temple tower or the person. The card areas lie in the soft, out-of-focus background, so their middles are a smooth blend of the surrounding colours with fine grain.
 2. **Phone layout:**
    - The photograph covers the page with the person in the middle.
-   - The eight cards stand in two columns at the screen edges, spread evenly from below the title to the foot, on a soft warm glow of light. The glow also hides where the polaroids were taken out.
+   - The eight cards stand in two columns at the screen edges, spread evenly from below the title to the foot, (the warm glow behind them was removed on 29 October).
    - Cards are about a quarter of the page wide, so the labels are readable. Their own slight tilts are kept.
 3. **The names** are live lettering in maroon script (Pinyon Script) in the sky: "The" small, then "Groom"/"Bride" and the name large. Screen readers hear "The Groom, Rahul".
 4. **Motion, as in the reference video:**
@@ -564,3 +564,27 @@ The client asked for the parents section and both event pages to be replaced:
 
 - `npm run qa:book`: **69/69 checks pass.** AC-18 now checks the family gallery (the first card, moving on by itself and by hand, one card in focus, all four parents' names and work, siblings not invented). AC-20 checks all five events on screen with their details, the details sheets (Location waiting for a venue, Calendar only for the wedding) and the rods. Unit tests: 58 pass.
 - `npm run perf`: mobile performance 89 (first paint 1.6 s in every run), accessibility 100, best practices 100.
+
+## 29 October 2026 — Clean garden behind the cards on the Rahul and Divya pages
+
+The client saw that, when the Groom and Bride pages turn over, there were blurry beige squares where the polaroids had been, before the cards pop in. They asked for those squares to go and for the background (leaves and flowers) to show clearly.
+
+### What was wrong
+
+The client's picture has the polaroids on top of the garden, so the garden behind them does not exist in it. The first version filled each polaroid's area with a smooth blend of the colours around it and put a warm glow over it. A smooth fill has no leaves in it, so it showed as a soft beige box with a visible edge.
+
+### Decisions
+
+1. **The garden behind the polaroids is rebuilt from the picture's own garden** (`scripts/couple/bokeh.ts`, settings under `bokeh` in `scene.json`). I tried filling from copied patches of the picture, soft blurred blobs, and dense stamped leaves; they came out patchy, hazy, or like a green wall. What is used now:
+   - A leafy shade of green that continues the colours at the edge of each area and deepens inside it. It is never taken from the gold pillars, the people or the sky.
+   - Many small sharp leaves and flowers, cut from the picture's own garden (only the leafy pixels, so no sky, stone or gold comes with them), turned and sized differently, laid over the shade.
+   - The leaves hang a little past the edge of the area in leaf-shaped outlines, and the picture beside the area softens gradually into it. No rectangle or edge shows.
+2. **The removed area is larger than the cards:** it includes the polaroids' drop shadows and the thin strips between neighbouring cards, which showed as muted lines.
+3. **The warm glow behind the cards is removed** (its markup, style and animation). It only existed to hide the squares.
+4. **Honest note:** the leaves and flowers behind the cards are made from the picture, not photographed. Seen on a phone they read as a flowering hedge at each edge. A picture without the polaroids on it would make this step unnecessary; if the client has one, send it and the background can be used as it is.
+
+### Results
+
+- `npm run qa:book`: **69/69 checks pass.** Unit tests: 58 pass. `npx astro check`: 0 errors.
+- `npm run perf`: mobile performance 89, accessibility 100, best practices 100. The two photographs are about 13–19 KB larger each (AVIF).
+

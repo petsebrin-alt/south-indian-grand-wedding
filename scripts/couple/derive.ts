@@ -2,9 +2,11 @@
  * npm run couple:assets → the Rahul and Divya pages' layers (src/assets/couple/), from the client's
  * picture source/groom-bride.webp (the groom's page on the left half, the bride's on the right) and
  * the measurements in scene.json:
- *   groom, bride      each half, with its interest polaroids and its printed title taken out (the
- *                     photograph rebuilt behind them, inpaint.ts), so the title can be set in live
- *                     lettering and the polaroids can pop in one by one (AVIF + WebP)
+ *   groom, bride      each half, with its interest polaroids and its printed title taken out, so the
+ *                     title can be set in live lettering and the polaroids can pop in one by one
+ *                     (AVIF + WebP). The sky and palms behind a title are borrowed from the picture
+ *                     (inpaint.ts); the garden behind the polaroids is rebuilt as leaves and flowers
+ *                     cut from the picture's own garden (bokeh.ts)
  *   card-<id>         each polaroid (and the groom's gaming cluster), lifted out along its outline:
  *                     the rough corners in scene.json are snapped to the edges of the white frame
  *   cards.json        each card's size and the order it appears in
@@ -14,6 +16,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp, { type Sharp } from 'sharp';
 import { inpaint } from '../welcome/inpaint';
+import { softBackground } from './bokeh';
 
 const dir = join(process.cwd(), 'src/assets/couple');
 const scene = JSON.parse(readFileSync(join(dir, 'scene.json'), 'utf8'));
@@ -81,6 +84,8 @@ function snap(quad: number[][]) {
 }
 
 const cardsOut: Record<string, unknown[]> = {};
+const holes: Uint8Array[] = [];
+const titleHoles: Uint8Array[] = [];
 for (const side of ['groom', 'bride'] as const) {
   const half = scene[side];
   const [hx0, hx1] = half.span;
@@ -112,60 +117,93 @@ for (const side of ['groom', 'bride'] as const) {
   cardsOut[side] = out;
 
   // The printed title
+  const titleHole = new Uint8Array(W * H);
   for (let y = half.title[1]; y < half.title[3]; y++) for (let x = half.title[0]; x < half.title[2]; x++) {
     // Only the lettering and its soft edge, not the sky around it (dark red, well away from the sky)
     const r = px(x, y, 0), g = px(x, y, 1), b = px(x, y, 2);
-    if (r - g > 40 && r < 200 && g < 120) hole[y * W + x] = 1;
+    if (r - g > 40 && r < 200 && g < 120) titleHole[y * W + x] = 1;
   }
+  titleHoles.push(titleHole);
 
-  // Grow the hole so no frame edge or letter fringe is left
-  const grow = scene.grow;
-  const grown = new Uint8Array(W * H);
+  holes.push(hole);
+}
+
+// Rebuild the background behind the printed titles (sky and soft palms: borrowed from the picture's
+// own sky and palms) and behind the polaroids (a garden of leaves and flowers, built below)
+const grow = scene.grow;
+const dilate = (src: Uint8Array, r: number) => {
+  const out = new Uint8Array(W * H);
   for (let y = 0; y < H; y++)
-    for (let x = hx0; x < hx1; x++) {
-      if (!hole[y * W + x]) continue;
-      for (let yy = Math.max(0, y - grow); yy <= Math.min(H - 1, y + grow); yy++)
-        for (let xx = Math.max(hx0, x - grow); xx <= Math.min(hx1 - 1, x + grow); xx++) grown[yy * W + xx] = 1;
+    for (let x = 0; x < W; x++) {
+      if (!src[y * W + x]) continue;
+      for (let yy = Math.max(0, y - r); yy <= Math.min(H - 1, y + r); yy++) for (let xx = Math.max(0, x - r); xx <= Math.min(W - 1, x + r); xx++) out[yy * W + xx] = 1;
     }
-
-  // Rebuild the half from itself, never from the other half or the person. Each area is rebuilt
-  // only from its own surroundings: the title from the sky and palms, the left cards from the
-  // flowers and pillars on the left, the right cards from those on the right (so no temple tower
-  // turns up among the garlands). The card areas are out of focus, so their middles are a smooth
-  // blend of the surrounding colours (with fine grain), meeting copied detail at their edges.
-  const pic = { w: hw, h: H, d: new Float32Array(hw * H * 3) };
-  for (let y = 0; y < H; y++) for (let x = 0; x < hw; x++) for (let c = 0; c < 3; c++) pic.d[(y * hw + x) * 3 + c] = d[(y * W + hx0 + x) * 3 + c];
-  const person = new Uint8Array(hw * H);
-  for (let y = 0; y < H; y++) for (let x = 0; x < hw; x++) if (inside(half.person, hx0 + x + 0.5, y + 0.5)) person[y * hw + x] = 1;
-  for (const area of half.areas as { from: number[]; region: number[]; calm: boolean }[]) {
-    const [rx0, rx1] = area.region.map((v: number) => Math.round((v / 100) * hw));
-    const [ax0, ax1] = area.from.map((v: number) => Math.round((v / 100) * hw));
-    const areaHole = new Uint8Array(hw * H), avoid = new Uint8Array(hw * H);
-    for (let y = 0; y < H; y++)
-      for (let x = 0; x < hw; x++) {
-        const i = y * hw + x;
-        if (x >= rx0 && x < rx1 && grown[y * W + hx0 + x]) areaHole[i] = 1;
-        if (x < ax0 || x >= ax1 || person[i]) avoid[i] = 1;
+  return out;
+};
+const peopleMask = new Uint8Array(W * H);
+for (const side of ['groom', 'bride'] as const) for (let y = 0; y < H; y++) for (let x = scene[side].span[0]; x < scene[side].span[1]; x++) if (inside(scene[side].person, x + 0.5, y + 0.5)) peopleMask[y * W + x] = 1;
+const boxMask = (boxes: number[][]) => {
+  const m = new Uint8Array(W * H);
+  for (const [x0, y0, x1, y1] of boxes) for (let y = Math.max(0, y0); y < Math.min(H, y1); y++) for (let x = Math.max(0, x0); x < Math.min(W, x1); x++) m[y * W + x] = 1;
+  return m;
+};
+const pillars = boxMask(scene.pillars);
+const cardHole = new Uint8Array(W * H), titleHole = new Uint8Array(W * H);
+for (const h of holes) for (let i = 0; i < W * H; i++) if (h[i]) cardHole[i] = 1;
+for (const h of titleHoles) for (let i = 0; i < W * H; i++) if (h[i]) titleHole[i] = 1;
+const erode = (src: Uint8Array, r: number) => {
+  const inv = Uint8Array.from(src, (v) => 1 - v);
+  const grown = dilate(inv, r);
+  return Uint8Array.from(grown, (v) => 1 - v);
+};
+// The polaroids' area, grown past their drop shadows, with the thin strips between neighbouring
+// polaroids closed
+const cardsClosed = erode(dilate(cardHole, scene.cardGrow + scene.close), scene.close);
+const titleGrown = dilate(titleHole, grow);
+// The dark strips the polaroids' shadows left beside them join the area (a dark edge would outline it)
+const cardsGrown = Uint8Array.from(cardsClosed);
+{
+  let frontier: number[] = [];
+  for (let i = 0; i < W * H; i++) if (cardsClosed[i]) frontier.push(i);
+  for (let step = 0; step < scene.shadowReach && frontier.length; step++) {
+    const next: number[] = [];
+    for (const i of frontier) {
+      const x = i % W, y = (i / W) | 0;
+      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, y > 0 ? i - W : -1, y < H - 1 ? i + W : -1]) {
+        if (j < 0 || cardsGrown[j] || peopleMask[j] || pillars[j]) continue;
+        const l = 0.3 * d[j * 3] + 0.59 * d[j * 3 + 1] + 0.11 * d[j * 3 + 2];
+        if (l < scene.shadowDark) (cardsGrown[j] = 1), next.push(j);
       }
-    const fine = inpaint({ w: hw, h: H, d: Float32Array.from(pic.d) }, areaHole, avoid, () => {});
-    if (!area.calm) {
-      for (let i = 0; i < hw * H; i++) if (areaHole[i]) for (let c = 0; c < 3; c++) pic.d[i * 3 + c] = fine.d[i * 3 + c];
-      continue;
     }
-    // Out of focus: a smooth blend of the surrounding colours, enlarged from the coarsest scale, with grain
-    const calm = inpaint({ w: hw, h: H, d: Float32Array.from(pic.d) }, areaHole, avoid, () => {}, { finest: 1, grain: 2.4 });
-    // Distance into the hole
-    const dist = new Float32Array(hw * H);
-    for (let i = 0; i < hw * H; i++) dist[i] = areaHole[i] ? 1e9 : 0;
-    for (let y = 0; y < H; y++) for (let x = 0; x < hw; x++) { const i = y * hw + x; if (x) dist[i] = Math.min(dist[i], dist[i - 1] + 1); if (y) dist[i] = Math.min(dist[i], dist[i - hw] + 1); }
-    for (let y = H - 1; y >= 0; y--) for (let x = hw - 1; x >= 0; x--) { const i = y * hw + x; if (x < hw - 1) dist[i] = Math.min(dist[i], dist[i + 1] + 1); if (y < H - 1) dist[i] = Math.min(dist[i], dist[i + hw] + 1); }
-    for (let i = 0; i < hw * H; i++) {
-      if (!areaHole[i]) continue;
-      const t = Math.min(1, Math.max(0, (dist[i] - 3) / 12));
-      for (let c = 0; c < 3; c++) pic.d[i * 3 + c] = (1 - t) * fine.d[i * 3 + c] + t * calm.d[i * 3 + c];
-    }
+    frontier = next;
   }
-  const rgb = Buffer.from(Uint8ClampedArray.from(pic.d));
-  await write(side, sharp(rgb, { raw: { width: hw, height: H, channels: 3 } }), ['avif', 'webp'], { avif: 60, webp: 82 });
+}
+
+// Titles: the sky and palms around them
+const t0 = Date.now();
+const titleAvoid = new Uint8Array(W * H);
+for (let i = 0; i < W * H; i++) if (peopleMask[i] || pillars[i]) titleAvoid[i] = 1;
+const withTitles = inpaint({ w: W, h: H, d: Float32Array.from(d) }, titleGrown, titleAvoid, () => {}, { grain: scene.grain });
+
+// Cards: the garden of leaves and flowers behind them (bokeh.ts)
+const keep = new Uint8Array(W * H);
+for (let i = 0; i < W * H; i++) if ((peopleMask[i] || pillars[i]) && !cardsGrown[i]) keep[i] = 1;
+const rebuilt = { w: W, h: H, d: Float32Array.from(withTitles.d) };
+const foliage = new Uint8Array(W * H), greens = new Uint8Array(W * H);
+for (let i = 0; i < W * H; i++) {
+  const r = withTitles.d[i * 3], g = withTitles.d[i * 3 + 1], b = withTitles.d[i * 3 + 2];
+  const l = 0.3 * r + 0.59 * g + 0.11 * b;
+  // Leaves (green), their shade, and red and orange flowers: not sky, stone, gold or skin
+  if ((g > b + 22 && g > r - 12 && l < 175) || (l >= 58 && l < 85 && b < g + 10) || (r > 120 && r > g * 1.6 && Math.max(r, g, b) - Math.min(r, g, b) > 85)) foliage[i] = 1;
+  if ((g > b + 22 && g > r - 5 && l < 175) || (l >= 62 && l < 85 && g > r && g > b + 6)) greens[i] = 1;
+}
+softBackground(rebuilt, { hole: cardsGrown, keep, foliage, greens, ...scene.bokeh }, (l) => console.log(l));
+console.log(`  backgrounds rebuilt in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+for (const side of ['groom', 'bride'] as const) {
+  const [hx0, hx1] = scene[side].span;
+  const hw = hx1 - hx0;
+  const out = new Float32Array(hw * H * 3);
+  for (let y = 0; y < H; y++) for (let x = 0; x < hw; x++) for (let c = 0; c < 3; c++) out[(y * hw + x) * 3 + c] = rebuilt.d[(y * W + hx0 + x) * 3 + c];
+  await write(side, sharp(Buffer.from(Uint8ClampedArray.from(out)), { raw: { width: hw, height: H, channels: 3 } }), ['avif', 'webp'], { avif: 60, webp: 82 });
 }
 writeFileSync(join(dir, 'cards.json'), JSON.stringify(cardsOut, null, 2) + '\n');
