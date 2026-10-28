@@ -28,7 +28,8 @@
     "welcome:assets": "tsx scripts/welcome/derive.ts",
     "save-the-date:assets": "tsx scripts/save-the-date/derive.ts",
     "countdown:assets": "tsx scripts/countdown/derive.ts",
-    "couple:assets": "tsx scripts/couple/derive.ts"
+    "couple:assets": "tsx scripts/couple/derive.ts",
+    "events:assets": "tsx scripts/events/derive.ts"
   },
   "dependencies": {
     "@fontsource/cinzel": "^5.3.0",

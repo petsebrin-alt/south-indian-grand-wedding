@@ -93,6 +93,16 @@ async function main() {
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
   if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
+  // A dev server compiles pages the first time they are asked for (and again after every edit), which
+  // makes the first checks slow; visit once so that cost is paid before anything is timed.
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE, { waitUntil: 'networkidle' }).catch(() => undefined);
+    await page.waitForTimeout(1500);
+    await ctx.close();
+  }
+
   /* ------------------------------------------------ AC-05 deep link + AC-01 opening */
   {
     const ctx = await mobileContext(browser);
@@ -521,53 +531,6 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-18 family-tree overlays */
-  {
-    const ctx = await mobileContext(browser);
-    const page = await ctx.newPage();
-    const cdp = await ctx.newCDPSession(page);
-    await page.goto(BASE);
-    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
-    await page.goto(`${BASE}#family`);
-    await settle(page);
-    await page.waitForTimeout(2000);
-    const open = async (name: RegExp) => {
-      await page.getByRole('button', { name }).tap();
-      await page.waitForTimeout(500);
-    };
-    const isOpen = () => page.evaluate(() => !document.getElementById('tree-groom')!.hidden);
-
-    await open(/View Groom's Family Tree/);
-    const cover = await page.evaluate(() => {
-      const o = document.getElementById('tree-groom')!.getBoundingClientRect();
-      const a = document.querySelector('.app')!.getBoundingClientRect();
-      const top = document.elementFromPoint(a.left + a.width / 2, a.top + a.height / 2);
-      const body = document.querySelector<HTMLElement>('#tree-groom .overlay__body')!;
-      return { full: Math.abs(o.width - a.width) < 1 && Math.abs(o.height - a.height) < 1, above: !!top?.closest('#tree-groom'), scroll: getComputedStyle(body).overflowY };
-    });
-    check('AC-18a', 'Family tree opens full screen above everything and scrolls independently', cover.full && cover.above && cover.scroll === 'auto', JSON.stringify(cover));
-    await page.getByRole('button', { name: 'Close family tree' }).first().tap();
-    await page.waitForTimeout(400);
-    const closedButton = !(await isOpen());
-    await open(/View Groom's Family Tree/);
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(400);
-    const closedEsc = !(await isOpen());
-    await open(/View Groom's Family Tree/);
-    await page.goBack();
-    await page.waitForTimeout(400);
-    const closedBack = !(await isOpen()) && (await current(page)) === 'family';
-    await open(/View Groom's Family Tree/);
-    const header = (await page.locator('#tree-groom .overlay__header').boundingBox())!;
-    await touchDrag(cdp, page, [header.x + 60, header.y + 20], [header.x + 60, header.y + 220], 10, 16).catch(() => undefined);
-    await page.waitForTimeout(400);
-    const closedSwipe = !(await isOpen());
-    check('AC-18b', 'Family tree closes by button, Esc, Back and swipe-down', closedButton && closedEsc && closedBack && closedSwipe, JSON.stringify({ closedButton, closedEsc, closedBack, closedSwipe }));
-    const focusBack = await page.evaluate(() => document.activeElement?.textContent?.includes("Groom's Family Tree") ?? false);
-    check('AC-18c', 'Focus returns to the tree button after closing', focusBack);
-    await ctx.close();
-  }
-
   /* AC-19 love-story gallery */
   {
     const ctx = await mobileContext(browser);
@@ -626,53 +589,118 @@ async function main() {
         return panel.top >= app.top - 1 && panel.bottom <= app.bottom + 1 && panel.height <= app.height * 0.86 && !document.getElementById(sheetId)!.hidden;
       }, id)) as (page: Page) => Promise<boolean>;
 
-  /* AC-20 every event shows its details and actions; Location waits for a venue; Calendar waits for confirmation */
+  /* AC-18 Parents and Family gallery: the bride's and groom's parents (names and what they do) and
+     a sibling card each, one in focus at a time; it advances by itself and by hand */
+  {
+    // Opened by hand so the first card can be read before the gallery moves on by itself (every 3.6 s)
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.setItem('rdv:hint-seen', '1');
+    });
+    await page.goto(`${BASE}#welcome`);
+    await settle(page);
+    await page.evaluate(() => (location.hash = 'family'));
+    await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'family', null, { timeout: 4000, polling: POLL });
+    await page.waitForTimeout(1300);
+    const read = () =>
+      page.evaluate(() => {
+        const cards = [...document.querySelectorAll<HTMLElement>('#family .fm__card')];
+        const focus = cards.filter((c) => Number(getComputedStyle(c).opacity) > 0.95 && c.querySelector<HTMLElement>('.fm__side') && Number(getComputedStyle(c.querySelector('.fm__side')!).opacity) > 0.95);
+        const dot = [...document.querySelectorAll('#family .fm__dot')].findIndex((d) => d.classList.contains('is-active'));
+        const card = cards[dot];
+        return {
+          count: cards.length,
+          dot,
+          focused: focus.length,
+          rel: card?.querySelector('.fm__rel')?.textContent?.trim(),
+          name: card?.querySelector('.fm__name')?.textContent?.trim(),
+          work: card?.querySelector('.fm__work')?.textContent?.trim() ?? null,
+        };
+      });
+    const first = await read();
+    await page.waitForTimeout(3800); // left alone, it moves on by itself
+    const auto = await read();
+    await page.locator('#family [data-family]').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(1300);
+    const byHand = await read();
+    await page.locator('#family [data-family-dot]').nth(2).dispatchEvent('click');
+    await page.waitForTimeout(1300);
+    const third = await read();
+    check(
+      'AC-18a',
+      'Family gallery: Father of the Bride (Ravichandran, Businessman) in focus first; it moves on by itself, and by arrow key and dot; only one card is in focus',
+      first.count >= 6 && first.dot === 0 && first.rel === 'Father of the Bride' && first.name === 'Ravichandran' && first.work === 'Businessman' && first.focused === 1 && auto.dot >= 1 && byHand.dot !== auto.dot && third.dot === 2 && third.name === 'Ravichandran' && third.work === 'College Principal',
+      JSON.stringify({ first, auto, byHand, third }),
+    );
+    // All four parents are present with their supplied names and work
+    const parents = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('#family .fm__card')].slice(0, 4).map((c) => [c.querySelector('.fm__rel')?.textContent?.trim(), c.querySelector('.fm__name')?.textContent?.trim(), c.querySelector('.fm__work')?.textContent?.trim()].join(' | ')),
+    );
+    check(
+      'AC-18b',
+      "The four parents are shown with the names and work the families supplied (Ravichandran, Kanimalar, Ravichandran, Sopna); no names are invented for siblings",
+      JSON.stringify(parents) === JSON.stringify(['Father of the Bride | Ravichandran | Businessman', 'Mother of the Bride | Kanimalar | Teacher', 'Father of the Groom | Ravichandran | College Principal', 'Mother of the Groom | Sopna | College Lecturer']) &&
+        (await page.evaluate(() => [...document.querySelectorAll('#family .fm__card')].slice(4).every((c) => /to be provided/i.test(c.textContent ?? '')))),
+      JSON.stringify(parents),
+    );
+    await ctx.close();
+  }
+
+  /* AC-20 every event shows its details; Details opens the venue and calendar actions: Location waits for a
+     venue, Calendar waits for confirmation */
   {
     const { ctx, page } = await openedPage('events');
     const read = (pageId: string) =>
       page.evaluate((pid) => {
-        return [...document.querySelectorAll<HTMLElement>(`#${pid} .ev__item`)].map((item) => {
-          const action = (label: string) => [...item.querySelectorAll<HTMLElement>('.ev-action')].find((a) => a.textContent?.includes(label))!;
-          return {
-            id: item.dataset.event,
-            text: !!item.querySelector('.ev__name')?.textContent && !!item.querySelector('.ev__date')?.textContent && /IST/.test(item.querySelector('.ev__time')?.textContent ?? '') && !!item.querySelector('.ev__venue')?.textContent,
-            locationDisabled: action('Location').getAttribute('aria-disabled') === 'true',
-            calendarEnabled: action('Calendar').getAttribute('aria-disabled') !== 'true',
-            visible: getComputedStyle(item.querySelector('.ev__plate')!).opacity === '1',
-          };
-        });
+        return [...document.querySelectorAll<HTMLElement>(`#${pid} .ev__item`)].map((item) => ({
+          id: item.dataset.event,
+          text: !!item.querySelector('.ev__name')?.textContent && !!item.querySelector('.ev__date')?.textContent && /IST/.test(item.querySelector('.ev__time')?.textContent ?? '') && !!item.querySelector('.ev__venue')?.textContent,
+          visible: Number(getComputedStyle(item.querySelector('.ev__medallion')!).opacity) > 0.95 && Number(getComputedStyle(item.querySelector('.ev__name')!).opacity) > 0.95,
+          onScreen: (() => {
+            const r = item.querySelector('.ev__disc')!.getBoundingClientRect();
+            return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight;
+          })(),
+        }));
       }, pageId);
+    await page.waitForTimeout(4200);
     const part1 = await read('events');
     await page.evaluate(() => (location.hash = 'events-wedding'));
     await page.waitForTimeout(150);
     await settle(page);
-    await page.waitForTimeout(2200);
+    await page.waitForTimeout(5600);
     const part2 = await read('events-wedding');
     const rows = [...part1, ...part2];
-    const okRows =
-      rows.length === 5 &&
-      rows.every((r) => r.text && r.locationDisabled && r.visible) &&
-      rows.filter((r) => r.calendarEnabled).map((r) => r.id).join() === 'wedding';
-    check('AC-20a', 'All five events show name, date, time, venue; Location disabled until venues exist; Calendar only for the confirmed wedding', okRows, JSON.stringify(rows));
+    check('AC-20a', 'All five events appear (Mehndi, Haldi; Sangeet, Wedding, Reception) with name, date, IST time and venue, fully on screen', rows.length === 5 && rows.every((r) => r.text && r.visible && r.onScreen), JSON.stringify(rows));
 
-    // aria-disabled buttons stay tappable for guests (they explain themselves); Playwright needs force for them
-    await page.locator('#events-wedding .ev__item[data-event="reception"] .ev-action', { hasText: 'Location' }).tap({ force: true });
-    await page.waitForTimeout(250);
-    const toastText = await page.locator('[data-toast]').textContent();
-    await page.locator('#events-wedding .ev__item[data-event="wedding"] .ev-action', { hasText: 'Calendar' }).tap();
-    await page.waitForTimeout(500);
-    const calendarOpen = await page.evaluate(() => !document.getElementById('calendar-wedding')!.hidden);
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(400);
-    await page.locator('#events-wedding .ev__item[data-event="wedding"] .ev-action', { hasText: 'Details' }).tap();
+    const sheet = (id: string) =>
+      page.evaluate((eid) => {
+        const sh = document.getElementById(`event-${eid}`)!;
+        const action = (label: string) => [...sh.querySelectorAll<HTMLElement>('.ev-action')].find((a) => a.textContent?.includes(label))!;
+        return { location: action('Location').getAttribute('aria-disabled') === 'true', calendar: action('Calendar').getAttribute('aria-disabled') !== 'true' };
+      }, id);
+    const all = await Promise.all(['mehndi', 'haldi', 'sangeet', 'wedding', 'reception'].map(async (id) => [id, await sheet(id)] as const));
+    const okSheets = all.every(([, a]) => a.location) && all.filter(([, a]) => a.calendar).map(([id]) => id).join() === 'wedding';
+    await page.locator('#events-wedding .ev__item[data-event="wedding"] .ev__open').tap();
     await page.waitForTimeout(500);
     const detailsFit = await sheetFits('event-wedding')(page);
-    check('AC-20b', 'Disabled actions explain themselves; Calendar and Details sheets open and fit the screen', /venue is confirmed/.test(toastText ?? '') && calendarOpen && detailsFit, JSON.stringify({ toastText, calendarOpen, detailsFit }));
-    const thread = await page.evaluate(() => {
-      const p = document.querySelector<SVGPathElement>('#events-wedding .ev__thread-main')!;
-      return p.getAttribute('d')?.length ?? 0;
+    // aria-disabled buttons stay tappable for guests (they explain themselves); Playwright needs force for them
+    await page.locator('#event-wedding .ev-action', { hasText: 'Location' }).tap({ force: true });
+    await page.waitForTimeout(250);
+    const toastText = await page.locator('[data-toast]').textContent();
+    await page.locator('#event-wedding .ev-action', { hasText: 'Calendar' }).tap();
+    await page.waitForTimeout(500);
+    const calendarOpen = await page.evaluate(() => !document.getElementById('calendar-wedding')!.hidden);
+    check('AC-20b', 'Each event opens its details: Location waits for a venue, Calendar only for the confirmed wedding; the sheet fits and explains', okSheets && detailsFit && /venue is confirmed/.test(toastText ?? '') && calendarOpen, JSON.stringify({ all, detailsFit, toastText, calendarOpen }));
+    await page.keyboard.press('Escape');
+    const rods = await page.evaluate(() => {
+      const paths = [...document.querySelectorAll<SVGPathElement>('#events-wedding .ev__rod-body')];
+      return { n: paths.length, len: Math.min(...paths.map((p) => p.getTotalLength())) };
     });
-    check('PH3-thread', 'The golden thread is laid through the medallions', thread > 40, String(thread));
+    check('PH3-thread', 'A gold rod connects the signboard to each medallion in turn (3 rods on the second page)', rods.n === 3 && rods.len > 40, JSON.stringify(rods));
     await ctx.close();
   }
 

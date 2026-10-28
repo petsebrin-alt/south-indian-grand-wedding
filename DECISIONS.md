@@ -528,3 +528,39 @@ The client supplied one picture of both pages side by side: "The Groom Rahul" an
 
 - `npm run qa:book`: **70/70 checks pass**. AC-17 now checks, for each page, that the photograph enters from the partner's side, the letters and the eight cards appear one by one, and every card ends fully on screen. Unit tests: 58 pass.
 - `npm run perf`: mobile performance 87, accessibility 100, best practices 100. The two photographs and the cards are requested only after the door photograph.
+
+## 29 October 2026 — Parents and Family gallery; Wedding Events from the client's picture
+
+The client asked for the parents section and both event pages to be replaced:
+- **Parents:** a photo gallery in the style of their reference video (a focus gallery where each card slides into the middle), with the person's photograph in a grand frame, their name and what they do beside it, on the same background as the Rahul, Divya and Events pages. It should show the four parents and then siblings.
+- **Events:** their two-page picture reproduced exactly, with only the page-turn effect changed: the gold rod connects the medallions one after another, smoothly and elegantly.
+
+### Decisions
+
+1. **Parents and Family gallery:**
+   - **The family:** the bride's father (Ravichandran, Businessman), the bride's mother (Kanimalar, Teacher), the groom's father (Ravichandran, College Principal) and the groom's mother (Sopna, College Lecturer), as the client supplied them. The groom's father's name was checked with the client (the same as the bride's father's).
+   - **Siblings:** one placeholder card each for the groom's and the bride's sibling ("Name to be provided"), shown in preview builds only, because no names or photographs have been supplied. None is invented. They appear as soon as `siblings` are filled in `src/data/wedding.ts`.
+   - **Photographs:** none supplied yet; each card shows the "R·D" mark and "Photo to be provided" in preview builds. `fatherPhoto`, `motherPhoto` and each sibling's `photo` take them.
+   - **The background** is the events picture's temple background, with the "Wedding Events" signboard taken out, so it continues the look of the Rahul, Divya and Events pages.
+2. **How the gallery moves, after the reference video:**
+   - The card in focus sits in the middle-left with its frame at full size; its words (relation, name in script, what they do) fade in beside it.
+   - The cards before and after wait above and below as small frames.
+   - Every 3.6 seconds the next person slides up into focus; a tap on a waiting frame, a horizontal swipe, the arrow keys or the dots move it by hand and pause the slideshow for 9 seconds.
+   - Nothing moves by itself under reduced motion.
+   - Without scripts the family is a plain list down the page.
+3. **The frames** use the invitation card's gold beaded border around a velvet mat: the same pieces as the desktop background (`src/assets/stage/`), so the family matches the card.
+4. **Wedding Events pages:**
+   - **Design:** each page is the client's picture: the temple background, the "Wedding Events" signboard, and the medallions with their own flowers and still-lifes (the mehendi cones, the turmeric, the veena and tabla, the wedding mandap, the reception table). Their rods are the picture's gold.
+   - **Dates and times:** the picture's printed details differ from the invitation's (an Engagement on 31 March, Haldi on 1 April, the wedding at 10:00 AM instead of the confirmed 10:30 AM). The client chose to keep the current details, so each medallion's disc shows the current ones as live text: Mehndi Mon 5 April 4:00 PM, Haldi Tue 6 April 9:00 AM, Sangeet Tue 6 April 6:30 PM, Wedding Wed 7 April 10:30 AM (Muhurtham), Reception Wed 7 April 6:30 PM; the proposed ones are marked "Proposed". The venue line shows the venue name, or "Bride's Family Home" / "Groom's Family Home" / "To be provided". The Engagement is not shown.
+   - **Pages:** Mehndi and Haldi on the first page; Sangeet, the Wedding and the Reception on the second, as in the picture's own second page, so each medallion keeps its still-life.
+   - **Details:** tapping a medallion opens the event's details sheet, with the venue, Location (waiting for a confirmed venue) and Calendar (only for the confirmed wedding), as before.
+5. **The rod effect:** when a page turns in, the gold rod draws down from the signboard to the first medallion (0.75 s, a slow ease), a small gold fitting with a ruby drop appears at its middle, and the medallion blooms into place with its details; the rod then continues from its foot to the next, and so on. Revisits and reduced motion show the finished page.
+6. **Made from the picture** (`npm run events:assets`): the medallions are lifted out by their sharpness, since the picture's background is in soft focus; the background behind them is rebuilt from its own soft texture; the printed wording in each disc is painted out from the cream around it.
+7. **Removed:** the old family-tree overlays and their motion, the old timeline components, and the family fields' photo and tree text. Dead decoration entries are dropped from the artwork list.
+8. **Faster first paint:** the Parents frame images are no longer requested at start-up (they are applied right after the door photograph), which had made the speed check dip to about 75 in two of every three runs.
+9. **Steadier checks:** the QA run now visits the site once first, so the dev server's first compile (slow after every edit) does not make the first checks time out.
+
+### Results
+
+- `npm run qa:book`: **69/69 checks pass.** AC-18 now checks the family gallery (the first card, moving on by itself and by hand, one card in focus, all four parents' names and work, siblings not invented). AC-20 checks all five events on screen with their details, the details sheets (Location waiting for a venue, Calendar only for the wedding) and the rods. Unit tests: 58 pass.
+- `npm run perf`: mobile performance 89 (first paint 1.6 s in every run), accessibility 100, best practices 100.

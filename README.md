@@ -98,6 +98,7 @@ npm run perf               # Lighthouse mobile on the cover of the built site (r
 | `src/assets/save-the-date/` | The Save the Date page's couple-with-board picture and curtain (`source/`) and the layers made from them (`npm run save-the-date:assets`, `scripts/save-the-date/`) |
 | `src/assets/countdown/` | The Countdown page's elephant board and gold rod (`source/`), its moving trunk pieces and the courtyard without the tower and palms (`npm run countdown:assets`, `scripts/countdown/`) |
 | `src/assets/couple/` | The Rahul and Divya pages: the groom-and-bride picture (`source/`), the two cleaned photographs and the cut-out interest cards (`npm run couple:assets`, `scripts/couple/`) |
+| `src/assets/events/`, `src/assets/family/` | The Wedding Events pages' medallions and backgrounds, and the Parents page's background, cut from the client's events picture (`npm run events:assets`, `scripts/events/`) |
 | `src/assets/decor/`, `src/assets/placeholders/` | Real decoration assets, and their vector stand-ins |
 | `src/lib/calendar.ts` | Add to Calendar links and `.ics` files |
 | `src/lib/venue.ts` | When Location and Get Directions switch on (public venues with a map link or coordinates) |

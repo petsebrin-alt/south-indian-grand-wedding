@@ -192,6 +192,11 @@ function loadDeferred(page: HTMLElement) {
     el.srcset = el.dataset.srcset!;
     delete el.dataset.srcset;
   });
+  // Pictures a page uses as CSS backgrounds (the Family page's frame and velvet)
+  book.querySelectorAll<HTMLElement>('[data-vars]').forEach((el) => {
+    el.style.cssText += `;${el.dataset.vars}`;
+    delete el.dataset.vars;
+  });
   book.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((el) => {
     el.src = el.dataset.src!;
     delete el.dataset.src;

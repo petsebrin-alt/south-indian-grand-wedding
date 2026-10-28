@@ -1,11 +1,22 @@
 ---
-/** Page 6 — Parents and Family (PRD §6.7, THEME §13 P7). Motion: src/motion/pages/family.ts */
+/**
+ * Page 6 — Parents and Family (PRD §6.7), after the client's reference video: on the events
+ * picture's temple background (signboard taken out; src/assets/family/), a focus gallery that slides
+ * through the family one at a time. The person in focus has their photograph in a grand gold frame
+ * (the invitation card's beaded border) on one side and their relation, name and what they do on
+ * the other; the people before and after wait above and below as small frames.
+ * Parents first (the bride's, then the groom's), then the siblings. Sibling cards appear in preview
+ * builds as placeholders until their names are supplied. Motion: src/motion/pages/family.ts
+ */
 import PageShell from '../PageShell.astro';
-import Decor from '../Decor.astro';
-import Icon from '../Icon.astro';
-import Ph from '../Ph.astro';
+import ScenePhoto from '../ScenePhoto.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
+import { siteMode } from '../../lib/site-mode';
+import background from '../../assets/family/background.webp';
+import backgroundAvif from '../../assets/family/background.avif';
+import frame from '../../assets/stage/frame.webp';
+import velvet from '../../assets/stage/velvet.webp';
 
 interface Props {
   page: BookPage;
@@ -13,250 +24,321 @@ interface Props {
 }
 
 const { page, index } = Astro.props;
-const { groom, bride } = wedding.couple;
-const fam = wedding.family;
-const sides = [
-  { key: 'groom', label: "Groom's Family", tree: "View Groom's Family Tree", photo: fam.groom.photo },
-  { key: 'bride', label: "Bride's Family", tree: "View Bride's Family Tree", photo: fam.bride.photo },
-] as const;
+const { groom, bride } = wedding.family;
+type Member = { relation: string; name: string | null; work: string | null; photo: { src: string; alt: string } | null; key: string };
+const parents: Member[] = [
+  { key: 'bride-father', relation: 'Father of the Bride', name: bride.father, work: bride.fatherWork, photo: bride.fatherPhoto },
+  { key: 'bride-mother', relation: 'Mother of the Bride', name: bride.mother, work: bride.motherWork, photo: bride.motherPhoto },
+  { key: 'groom-father', relation: 'Father of the Groom', name: groom.father, work: groom.fatherWork, photo: groom.fatherPhoto },
+  { key: 'groom-mother', relation: 'Mother of the Groom', name: groom.mother, work: groom.motherWork, photo: groom.motherPhoto },
+];
+const siblings = (side: typeof groom, of: 'Groom' | 'Bride'): Member[] =>
+  side.siblings.length
+    ? side.siblings.map((s, i) => ({ key: `${of.toLowerCase()}-sibling-${i}`, relation: `${s.relation} of the ${of}`, name: s.name, work: null, photo: s.photo }))
+    : siteMode === 'preview'
+      ? [{ key: `${of.toLowerCase()}-sibling`, relation: `Sibling of the ${of}`, name: null, work: null, photo: null }]
+      : [];
+const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...siblings(groom, 'Groom'), ...siblings(bride, 'Bride')];
 ---
 
-<PageShell page={page} index={index} watermark={false} class="fm" note="Placeholder art: S-06/D-18 gold arch nameplate, D-04 jasmine-rose garland, D-07 agal diyas, S-09 oval frames, D-03 jasmine sprigs. Family photos P-08/P-09 to be provided.">
-  <div class="fm__arch">
-    <Decor name="arch-nameplate" asset="S-06" class="fm__plate" />
-    <Decor name="arch-garland" asset="D-04" class="fm__garland sway" style="--sway:0.4deg;--sway-dur:9s" />
-    {
-      ['l', 'r'].map((s) => (
-        <span class={`fm__diya fm__diya--${s}`} aria-hidden="true">
-          <Decor name="agal-diya" asset="D-07" class="fm__diya-img" />
-          <span class="flame fm__diya-flame" />
-        </span>
-      ))
-    }
-    <div class="fm__text">
-      <h2 class="display display--s fm__line" tabindex="-1" data-page-heading>With the blessings of our beloved parents</h2>
-      <p class="lead fm__line">{groom.name}</p>
-      <p class="caption fm__line" data-hide-if-missing>
-        son of <Ph value={fam.groom.father} label="Groom's father" /> &amp; <Ph value={fam.groom.mother} label="Groom's mother" />
-      </p>
-      <p class="amp fm__line fm__amp">&amp;</p>
-      <p class="lead fm__line">{bride.name}</p>
-      <p class="caption fm__line" data-hide-if-missing>
-        daughter of <Ph value={fam.bride.father} label="Bride's father" /> &amp; <Ph value={fam.bride.mother} label="Bride's mother" />
-      </p>
+<PageShell page={page} index={index} watermark={false} class="fm">
+  <Fragment slot="architecture">
+    <div class="layer layer--architecture fm__scene" aria-hidden="true">
+      <ScenePhoto class="fm__bg" avif={backgroundAvif} webp={background} defer />
     </div>
+    <span class="layer layer--architecture fm__veil" aria-hidden="true"></span>
+  </Fragment>
+
+  <div class="fm__head">
+    <p class="fm__eyebrow">Parents &amp; Family</p>
+    <h2 class="fm__title" tabindex="-1" data-page-heading>With the blessings of our beloved parents</h2>
   </div>
 
-  <div class="fm__frames">
-    {
-      sides.map((s) => (
-        <div class="fm__side">
-          <div class="fm__oval">
-            {s.photo ? (
-              <img class="fm__photo" src={s.photo.src} alt={s.photo.alt} />
-            ) : (
-              <span class="fm__photo fm__photo--ph" aria-hidden="true">
-                R·D
-              </span>
-            )}
-            <Decor name="oval-frame" asset="S-09" class="fm__oval-frame" />
-            <Decor name="jasmine-cluster" asset="D-03" class="fm__sprig" />
-          </div>
-          <p class="eyebrow">{s.label}</p>
-          <button class="btn-secondary fm__tree-btn" type="button" data-open-dialog={`tree-${s.key}`} aria-haspopup="dialog">
-            <Icon name="tree" /> {s.tree}
-          </button>
-        </div>
-      ))
-    }
+  <div
+    class="fm__gallery"
+    data-family
+    data-gesture="x"
+    tabindex="0"
+    role="group"
+    aria-roledescription="carousel"
+    aria-label="The family, one at a time. Use the arrow keys to move between them."
+    data-vars={`--frame:url("${frame.src}");--velvet:url("${velvet.src}")`}
+  >
+    <ol class="fm__list">
+      {
+        members.map((m, i) => (
+          <li class="fm__card" data-member={i} aria-label={`${m.relation}: ${m.name ?? 'name to be provided'}${m.work ? `, ${m.work}` : ''}`}>
+            <div class="fm__frame" aria-hidden="true">
+              <div class="fm__mat">
+                {m.photo ? (
+                  <img class="fm__photo" src={m.photo.src} alt="" decoding="async" loading="lazy" />
+                ) : (
+                  <span class="fm__ph">
+                    <span class="fm__ph-mono">R·D</span>
+                    <span class="fm__ph-note preview-only">Photo to be provided</span>
+                  </span>
+                )}
+              </div>
+            </div>
+            <div class="fm__side" aria-hidden="true">
+              <span class="fm__rel">{m.relation}</span>
+              <span class="fm__name">{m.name ?? <span class="fm__tbp">Name to be provided</span>}</span>
+              {m.work && <span class="fm__work">{m.work}</span>}
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+    <div class="fm__dots" aria-hidden="true">
+      {members.map((_, i) => <button class="fm__dot" type="button" tabindex="-1" data-family-dot={i} />)}
+    </div>
+    <p class="sr-only" aria-live="polite" data-family-live></p>
   </div>
 </PageShell>
 
 <style is:global>
-  .fm {
-    background-image: var(--paper-texture), radial-gradient(ellipse at 50% 35%, rgba(255, 253, 248, 0.9), rgba(244, 234, 214, 0.5) 70%);
+  .fm .page__frame {
+    display: none;
   }
 
-  .fm__arch {
-    position: relative;
-    width: 72cqw;
-    max-width: 380px;
-    aspect-ratio: 340 / 460;
+  .fm__scene {
+    inset: 0;
+    overflow: hidden;
   }
 
-  .fm__plate,
-  .fm__garland {
+  .fm__bg {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+    object-fit: cover;
   }
 
-  .fm__plate {
-    filter: drop-shadow(0 12px 22px rgba(75, 48, 38, 0.2));
+  /* Soft morning light over the background, so the lettering and frames read clearly */
+  .fm__veil {
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 16% at 50% 13%, rgba(255, 249, 238, 0.82), rgba(255, 249, 238, 0) 100%),
+      radial-gradient(ellipse 95% 46% at 50% 56%, rgba(255, 246, 230, 0.62), rgba(255, 246, 230, 0) 100%);
   }
 
-  .fm__garland {
-    transform-origin: 50% 10%;
+  .fm .page__content {
+    inset: 0;
+    display: block;
   }
 
-  .fm__text {
+  .fm__head {
     position: absolute;
-    left: 13%;
-    right: 13%;
-    top: 21%;
-    bottom: 7%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.9cqh;
+    left: 7cqw;
+    right: 7cqw;
+    top: calc(var(--safe-top) + 7cqh);
+    text-align: center;
+    text-shadow: 0 0 2px rgba(255, 249, 238, 0.95), 0 0 10px rgba(255, 249, 238, 0.9);
   }
 
-  .fm__text .ph__label {
-    font-size: 9px;
+  .fm__eyebrow {
+    font: 700 clamp(11px, 3.2cqw, 13px) / 1.3 var(--font-royal);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #85540f;
   }
 
-  /* The write-in mask hides anything outside the line box, so lines must wrap inside it */
-  .fm__line {
-    max-width: 100%;
-    overflow-wrap: anywhere;
-    --wipe: 115%;
-    -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--wipe) - 15%), transparent var(--wipe));
-    mask-image: linear-gradient(90deg, #000 calc(var(--wipe) - 15%), transparent var(--wipe));
+  .fm__title {
+    margin-top: 0.6cqh;
+    font: 400 clamp(26px, 8.4cqw, 36px) / 1.12 var(--font-script);
+    color: #6a0f1f;
+    -webkit-text-stroke: 0.3px currentColor;
+    text-wrap: balance;
   }
 
-  .fm__text .display {
-    font-size: clamp(16px, 4.6cqw, 21px);
-  }
-
-  .fm__text .lead {
-    font-size: clamp(20px, 6cqw, 28px);
-    font-weight: 600;
-  }
-
-  .fm__amp {
-    font-size: clamp(18px, 5cqw, 24px);
-  }
-
-  .fm__diya {
+  /* The gallery: the card in focus in the middle, the others above and below it */
+  .fm__gallery {
     position: absolute;
-    bottom: -2%;
-    width: 16%;
+    left: 0;
+    right: 0;
+    top: calc(var(--safe-top) + 24cqh);
+    bottom: calc(var(--safe-bottom) + 6cqh);
+    outline: none;
   }
 
-  .fm__diya--l {
-    left: -8%;
+  .fm__list {
+    position: absolute;
+    inset: 0 0 4cqh;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
-  .fm__diya--r {
-    right: -8%;
-    transform: scaleX(-1);
-  }
-
-  .fm__diya-img {
-    width: 100%;
-  }
-
-  .fm__diya-flame {
-    left: 92%;
-    top: 46%;
-    width: 16%;
-  }
-
-  .fm__frames {
+  /* The photograph on the left, the words on the right; the waiting frames line up with it */
+  .fm__card {
+    --fw: min(40cqw, 25cqh);
+    --pad: 7cqw;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4cqw;
-    width: 112%;
+    grid-template-columns: var(--fw) 1fr;
+    align-items: center;
+    gap: 5cqw;
+    padding-inline: var(--pad) 5cqw;
+    translate: 0 -50%;
+    transform-origin: calc(var(--pad) + var(--fw) / 2) 50%;
+    will-change: transform, opacity;
   }
 
   .fm__side {
     display: grid;
-    justify-items: center;
-    gap: 0.6cqh;
+    justify-items: start;
+    gap: 1.2cqh;
+    text-align: left;
+    text-shadow: 0 0 2px rgba(255, 249, 238, 0.95), 0 0 10px rgba(255, 249, 238, 0.9);
   }
 
-  .fm__oval {
+  .fm__rel {
+    font: 700 clamp(9px, 2.8cqw, 12px) / 1.3 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #85540f;
+  }
+
+  .fm__name {
+    font: 400 clamp(24px, 7.8cqw, 34px) / 1.05 var(--font-script);
+    color: #6a0f1f;
+    -webkit-text-stroke: 0.3px currentColor;
+  }
+
+  .fm__tbp {
+    font: 500 12px / 1.3 var(--font-body);
+    color: #85540f;
+    -webkit-text-stroke: 0;
+  }
+
+  .fm__work {
+    font: 600 clamp(15px, 4.6cqw, 19px) / 1.25 var(--font-display);
+    color: #1d5232;
+  }
+
+  .fm__work::before {
+    content: '';
+    display: block;
+    width: 34px;
+    height: 1px;
+    margin-bottom: 1cqh;
+    background: linear-gradient(90deg, #b8863a, transparent);
+  }
+
+  /* A grand frame: the invitation card's gold beaded border around a velvet mat */
+  .fm__frame {
+    aspect-ratio: 4 / 5;
+    padding: calc(var(--fw) * 0.05);
+    border: calc(var(--fw) * 0.075) solid transparent;
+    border-image: var(--frame) 34 round;
+    background: var(--velvet) center / 64px;
+    box-shadow: 0 10px 22px rgba(50, 20, 5, 0.38), 0 2px 5px rgba(50, 20, 5, 0.25);
+  }
+
+  .fm__mat {
     position: relative;
-    width: 22cqw;
-    max-width: 120px;
-    aspect-ratio: 160 / 200;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(230, 196, 120, 0.8);
+    background: radial-gradient(ellipse at 50% 40%, #fbf3e3, #ead9b8);
   }
 
   .fm__photo {
-    position: absolute;
-    inset: 9% 10%;
-    width: 80%;
-    height: 82%;
-    object-fit: cover;
-    border-radius: 50%;
-  }
-
-  .fm__photo--ph {
-    display: grid;
-    place-items: center;
-    background: radial-gradient(circle at 50% 40%, var(--jasmine), var(--sandal));
-    font: 600 14px/1 var(--font-display);
-    color: var(--gold-text);
-  }
-
-  .fm__oval-frame {
-    position: absolute;
-    inset: 0;
     width: 100%;
     height: 100%;
+    object-fit: cover;
   }
 
-  .fm__sprig {
+  .fm__ph {
     position: absolute;
-    left: 50%;
-    top: -14%;
-    width: 46%;
-    translate: -50% 0;
-    rotate: 45deg;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 6px;
+    text-align: center;
   }
 
-  .fm__tree-btn {
-    min-height: 44px;
-    padding: 0 12px;
-    font-size: 12px;
-    line-height: 1.2;
+  .fm__ph-mono {
+    font: 600 calc(var(--fw) * 0.2) / 1 var(--font-display);
+    color: #b08a45;
   }
 
-  @container app (max-height: 760px) {
-    .fm__arch {
-      width: 62cqw;
-    }
+  .fm__ph-note {
+    font: 500 10px / 1.25 var(--font-body);
+    color: #85540f;
+    padding-inline: 8px;
   }
 
-  @container app (max-height: 699px) {
-    .fm__arch {
-      width: 60cqw;
-    }
+  /* Without scripts the family is a plain list down the page (the frame pictures are applied by
+     src/motion/pages/cover.ts after the door photograph, so they stay out of the first load) */
+  html:not(.js) .fm .page__content {
+    position: relative;
+    inset: auto;
+    padding-block: calc(var(--safe-top) + 7cqh) 8cqh;
+  }
 
-    .fm__oval {
-      width: 15cqw;
-    }
+  html:not(.js) .fm__head {
+    position: static;
+    margin-bottom: 4cqh;
+  }
 
-    .fm__text {
-      top: 27%;
-      bottom: 4%;
-      left: 11%;
-      right: 11%;
-      gap: 0.3cqh;
-    }
+  html:not(.js) .fm__gallery,
+  html:not(.js) .fm__list {
+    position: static;
+  }
 
-    .fm__text .display {
-      font-size: 13px;
-    }
+  html:not(.js) .fm__list {
+    display: grid;
+    gap: 4cqh;
+  }
 
-    .fm__text .lead {
-      font-size: 19px;
-    }
+  html:not(.js) .fm__card {
+    position: relative;
+    top: auto;
+    translate: none;
+  }
 
-    .fm__frames .eyebrow {
-      font-size: 10px;
-    }
+  html:not(.js) .fm__dots {
+    display: none;
+  }
+
+  .fm__dots {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .fm__dot {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .fm__dot::before {
+    content: '';
+    display: block;
+    width: 7px;
+    height: 7px;
+    margin: auto;
+    border-radius: 50%;
+    background: rgba(133, 84, 15, 0.35);
+    transition: background-color 0.3s, transform 0.3s;
+  }
+
+  .fm__dot.is-active::before {
+    background: #85540f;
+    transform: scale(1.35);
   }
 </style>

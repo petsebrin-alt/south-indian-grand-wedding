@@ -27,7 +27,7 @@ export function checkContent(d: WeddingData): CheckItem[] {
   need(d.family.groom.grandparents.length + d.family.bride.grandparents.length > 0, 'M-05', 'family.*.grandparents', 'Grandparents', false);
   need(d.family.groom.siblings.length + d.family.bride.siblings.length > 0, 'M-06', 'family.*.siblings', 'Siblings and other relatives', false);
   need(d.loveStory.filter((m) => m.photo).length >= 3, 'M-11', 'loveStory', 'At least 3 love-story photos');
-  need(!!(d.family.groom.photo && d.family.bride.photo), 'M-12', 'family.*.photo', 'Family photos', false);
+  need(!![d.family.groom, d.family.bride].every((f) => f.fatherPhoto && f.motherPhoto), 'M-12', 'family.*.fatherPhoto / motherPhoto', 'Photos of the parents', false);
 
   for (const [id, m] of [['ceremony', 'M-13'], ['function-hall', 'M-14'], ['bride-home', 'M-15'], ['groom-home', 'M-16']] as const) {
     const v = venue(id);

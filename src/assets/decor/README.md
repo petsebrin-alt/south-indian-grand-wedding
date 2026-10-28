@@ -85,37 +85,40 @@ The page's background is the Welcome courtyard with the temple tower and the pal
 
 `src/assets/couple/scene.json` holds each polaroid's corners (snapped to its white frame automatically), the title boxes, the people's outlines, and how each side is rebuilt. A replacement picture needs these measured again.
 
+## Wedding Events and Parents pages: the client's events picture
+
+`src/assets/events/source/events.webp` is the client's picture of both Wedding Events pages side by side (page 1 on the left half, page 2 on the right): a temple background, the "Wedding Events" signboard, and five medallions joined by gold rods. `npm run events:assets` turns it into:
+
+- each medallion with its flowers and still-life (the mehendi cones, the turmeric, the instruments, the mandap, the reception table), cut out, with the printed wording in its cream disc painted out so the live details can be set there;
+- the two page backgrounds (signboard kept), with the medallions and the thin connecting rods and strands taken out, because the rods are drawn live;
+- the Parents page's background (`src/assets/family/background.*`): the same, with the signboard taken out too.
+
+The dates, times and venues on the pages come from `src/data/wedding.ts`, not from the picture (whose printed dates differ). The picture's Engagement medallion has no matching event and is not used. `src/assets/events/scene.json` holds each medallion's ring and disc, the focus threshold and the areas to clear. A replacement picture needs these measured again.
+
+The Parents page's photograph frames use the invitation card's gold border and velvet from `src/assets/stage/`. Photographs of the parents and siblings go in `family.groom` and `family.bride` in `src/data/wedding.ts` (`fatherPhoto`, `motherPhoto`, and each sibling's `photo`).
+
 ## All decoration slots
 
 | File name (`.webp`, `.avif` or `.png`) | Asset ID | Used on |
 |---|---|---|
 | `jasmine-swag` | D-01 | Love Story, Venues, Wishing Wall |
 | `jasmine-strand-short`, `jasmine-strand-medium`, `jasmine-strand-long` | D-02 | Ceremony |
-| `jasmine-cluster` (top-left corner bunch) | D-03 | Family, Dress Code, Travel, RSVP, Thank You |
-| `arch-garland` | D-04 | Family |
+| `jasmine-cluster` (top-left corner bunch) | D-03 | Dress Code, Travel, RSVP, Thank You |
 | `kuthuvilakku` (no flames; flames are drawn in code) | D-06 | Ceremony, Thank You |
-| `agal-diya` | D-07 | Family |
-| `temple-bell` (one hanging brass bell, chain at top centre) | D-08 | Events, Wishing Wall |
+| `agal-diya` | D-07 | Wishing Wall |
+| `temple-bell` (one hanging brass bell, chain at top centre) | D-08 | Wishing Wall |
 | `temple-pillar` | D-09 | Ceremony, Venues |
 | `gopuram-misty` | D-12 | Thank You |
 | `mango-toran` | D-13 | Ceremony, Travel |
 | `silk-drape` | D-15 | Ceremony, Thank You |
 | `kalasam-crest` | D-17 | RSVP |
 | `rose-petal-1…4` (made from the opening courtyard photograph by `npm run welcome:assets`), `jasmine-petal-1…3` | D-30, D-31 | Falling petals |
-| `arch-nameplate` | S-06 / D-18 | Family |
-| `oval-frame` | S-09 | Family |
-| `jasmine-wreath` | D-04 | Events timeline medallions |
-| `celebration-signboard` (no lettering; text is live) | D-04 | Events timeline |
-| `marigold-swag`, `marigold-strand`, `marigold-cluster` | D-05 | Events, Venues, Travel |
-| `mehndi-bowl` | D-23 | Mehndi |
-| `turmeric-bowls` | D-24 | Haldi |
-| `music-instruments` (veena and mridangam) | D-26 | Sangeet |
-| `hanging-lamp` (no flames) | D-29 | Sangeet |
+| `marigold-swag`, `marigold-strand`, `marigold-cluster` | D-05 | Venues, Travel |
 | `brass-kalasam` | D-25 | Ceremony |
 | `thali-plate` (family check) | D-22 | Wedding, Ceremony |
 | `banana-plant` | D-14 | Ceremony |
 | `mandapam-beam`, `flower-chandelier` | D-21 | Ceremony |
-| `reception-backdrop`, `floral-urn` | D-27 | Reception, Events |
+| `reception-backdrop`, `floral-urn` | D-27 | Reception |
 | `silk-curtain`, `silk-curtain-right` (stretch to the page height) | D-28 | Reception |
 | `venue-map` (one illustrated map per confirmed venue) | MAP | Venues |
 | `attire-woman`, `attire-man` (used as tinted masks) | S-20 | Dress Code |

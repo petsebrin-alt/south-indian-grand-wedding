@@ -9,6 +9,7 @@ import '@fontsource/manrope/600.css';
 import '@fontsource/pinyon-script/400.css';
 import cinzelFont from '@fontsource/cinzel/files/cinzel-latin-500-normal.woff2?url';
 import cinzelBoldFont from '@fontsource/cinzel/files/cinzel-latin-600-normal.woff2?url';
+import manropeFont from '@fontsource/manrope/files/manrope-latin-400-normal.woff2?url';
 import '../styles/fonts.css';
 import '../styles/tokens.css';
 import '../styles/base.css';
@@ -27,7 +28,6 @@ import CalendarSheet from '../components/CalendarSheet.astro';
 import EventSheet from '../components/EventSheet.astro';
 import TravelSheet from '../components/TravelSheet.astro';
 import { travelTiles } from '../lib/travel';
-import FamilyTree from '../components/FamilyTree.astro';
 import WishComposer from '../components/WishComposer.astro';
 import WishesAll from '../components/WishesAll.astro';
 import RsvpForm from '../components/RsvpForm.astro';
@@ -87,9 +87,10 @@ const p = (id: string) => {
     <meta property="og:image:alt" content={`Wedding invitation of ${g.name} and ${b.name}`} />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- The two faces on the temple-door screen ("Tap the bell to enter", Skip); everything else may follow the door photograph -->
+    <!-- The faces on the temple-door screen ("Tap the bell to enter", Skip, the page label); everything else may follow the door photograph -->
     <link rel="preload" href={cinzelFont} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={cinzelBoldFont} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={manropeFont} as="font" type="font/woff2" crossorigin />
     <script is:inline>
       document.documentElement.classList.add('js');
       if (/[?&]preview=1\b/.test(location.search)) document.documentElement.classList.add('preview');
@@ -125,8 +126,6 @@ const p = (id: string) => {
         {wedding.events.map((e) => <CalendarSheet eventId={e.id} />)}
         {wedding.events.map((e) => <EventSheet event={e} />)}
         {travelTiles.map((t) => <TravelSheet item={t.key} icon={t.icon} />)}
-        <FamilyTree side="groom" />
-        <FamilyTree side="bride" />
         <WishComposer />
         <WishesAll />
         <RsvpForm />

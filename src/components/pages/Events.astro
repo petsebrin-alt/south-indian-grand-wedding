@@ -1,13 +1,24 @@
 ---
 /**
- * Pages 8–9 — Wedding Events Timeline (PRD §6.9, THEME §13 P9/P10).
- * Part 1: Mehndi, Haldi, Sangeet · Part 2: Wedding, Reception. Motion: src/motion/pages/events.ts
+ * Pages 8–9 — Wedding Events (PRD §6.9), from the client's two-page picture (src/assets/events/,
+ * npm run events:assets): the temple background with the "Wedding Events" signboard, and below it
+ * each celebration's medallion with its flowers and still-life, connected by a gold rod. Each
+ * medallion shows the event's current details in live text (the picture's printed dates differ).
+ * Part 1: Mehndi, Haldi · Part 2: Sangeet, the Wedding, the Reception, so each medallion keeps the
+ * still-life that belongs to it. Tapping a medallion opens the event's details (venue, calendar).
+ * Motion: src/motion/pages/events.ts (the rod draws to each medallion, which then appears).
  */
 import PageShell from '../PageShell.astro';
-import Decor from '../Decor.astro';
-import EventItem from '../EventItem.astro';
+import ScenePhoto from '../ScenePhoto.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
+import { formatDateLong, formatTime } from '../../lib/format';
+import { venueById } from '../../lib/venue';
+import medallions from '../../assets/events/medallions.json';
+import page1 from '../../assets/events/page-1.webp';
+import page1Avif from '../../assets/events/page-1.avif';
+import page2 from '../../assets/events/page-2.webp';
+import page2Avif from '../../assets/events/page-2.avif';
 
 interface Props {
   page: BookPage;
@@ -16,356 +27,294 @@ interface Props {
 }
 
 const { page, index, part } = Astro.props;
-const ids = part === 1 ? ['mehndi', 'haldi', 'sangeet'] : ['wedding', 'reception'];
-const events = wedding.events.filter((e) => ids.includes(e.id));
+const images = import.meta.glob<{ default: ImageMetadata }>('../../assets/events/medallion-*.webp', { eager: true });
+const medallionImg = (id: string) => images[`../../assets/events/medallion-${id}.webp`].default;
+
+// Where each medallion's disc sits on the page, in the picture's own pixels (768 × 1024 per page),
+// chosen so the whole medallion stays on a narrow phone screen and the medallions zigzag
+const BOX = { w: 768, h: 1024 };
+const SCALE = 0.96;
+const layout: Record<1 | 2, { id: string; cx: number; cy: number }[]> = {
+  1: [
+    { id: 'mehndi', cx: 462, cy: 420 },
+    { id: 'haldi', cx: 292, cy: 760 },
+  ],
+  2: [
+    { id: 'sangeet', cx: 350, cy: 345 },
+    { id: 'wedding', cx: 492, cy: 596 },
+    { id: 'reception', cx: 330, cy: 838 },
+  ],
+};
+const sign = part === 1 ? { x: 395, y: 210 } : { x: 397, y: 212 };
+const bg = part === 1 ? { webp: page1, avif: page1Avif } : { webp: page2, avif: page2Avif };
+
+type Meta = { width: number; height: number; disc: number[] };
+const items = layout[part].map((slot) => {
+  const event = wedding.events.find((e) => e.id === slot.id)!;
+  const m = (medallions as Record<string, Meta>)[slot.id];
+  const w = m.width * SCALE, h = m.height * SCALE;
+  const dx = (m.disc[0] / 100) * w, dy = (m.disc[1] / 100) * h;
+  const r = (m.disc[2] / 100) * w; // the cream disc
+  const ring = r * 1.14; // the gold ring around it
+  const venue = venueById(event.venueId);
+  const [weekday, date] = formatDateLong(event.startISO).split(', ');
+  return {
+    event,
+    img: medallionImg(slot.id),
+    style: `left:${((slot.cx - dx) / BOX.w) * 100}%;top:${((slot.cy - dy) / BOX.h) * 100}%;width:${(w / BOX.w) * 100}%`,
+    disc: `left:${((dx - r) / w) * 100}%;top:${((dy - r) / h) * 100}%;width:${((2 * r) / w) * 100}%`,
+    top: { x: slot.cx, y: slot.cy - ring },
+    bottom: { x: slot.cx, y: slot.cy + ring },
+    weekday,
+    date,
+    venue: venue.name ?? (venue.privacy === 'onRequest' ? venue.label : 'To be provided'),
+  };
+});
+
+// The gold rod: from the signboard to the top of the first medallion, then from each medallion's
+// foot to the next one's top, in gentle S-curves
+const curve = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+  const k = (b.y - a.y) * 0.55;
+  return `M${a.x} ${a.y} C${a.x} ${a.y + k} ${b.x} ${b.y - k} ${b.x} ${b.y}`;
+};
+const rods = items.map((it, i) => curve(i === 0 ? sign : items[i - 1].bottom, it.top));
+const drops = items.map((it, i) => {
+  const a = i === 0 ? sign : items[i - 1].bottom;
+  return { x: (a.x + it.top.x) / 2, y: (a.y + it.top.y) / 2 };
+});
 ---
 
-<PageShell
-  page={page}
-  index={index}
-  watermark={false}
-  class:list={['ev', `ev--part${part}`]}
-  note={part === 1
-    ? 'Placeholder art: D-04 signboard and jasmine wreaths, D-05 marigolds, D-23 mehndi still-life, D-24 turmeric still-life, D-26 veena and mridangam, D-29 hanging lamp, S-05 golden thread.'
-    : 'Placeholder art: D-04 jasmine wreaths, D-22 thali plate, D-27 floral urn, D-08 bells, S-05 golden thread and sacred knot.'}
->
+<PageShell page={page} index={index} watermark={false} class:list={['ev', `ev--part${part}`]}>
   <Fragment slot="architecture">
-    <svg class="ev__thread layer layer--architecture" aria-hidden="true">
-      <path class="ev__thread-main" />
-      <path class="ev__thread-hi" />
-    </svg>
-    {events.slice(1).map(() => <Decor name="temple-bell" asset="D-08" class="layer layer--architecture ev__bell" />)}
+    <div class="layer layer--architecture ev__box" aria-hidden="true">
+      <ScenePhoto class="ev__bg" avif={bg.avif} webp={bg.webp} defer />
+    </div>
   </Fragment>
 
-  {
-    part === 1 ? (
-      <div class="ev__sign">
-        <Decor name="celebration-signboard" asset="D-04" class="ev__sign-board" />
-        <h2 class="ev__sign-text" tabindex="-1" data-page-heading>
-          Wedding Celebrations
-        </h2>
-        <Decor name="marigold-strand" asset="D-05" class="ev__sign-swag ev__sign-swag--l sway" style="--sway:2deg;--sway-dur:5s" />
-        <Decor name="marigold-strand" asset="D-05" class="ev__sign-swag ev__sign-swag--r sway" style="--sway:2deg;--sway-dur:5.6s;--sway-delay:-1s" />
-      </div>
-    ) : (
-      <div class="stack-xs ev__head">
-        <p class="eyebrow">Wedding Celebrations</p>
-        <h2 class="page-title" tabindex="-1" data-page-heading>
-          The Wedding Day
-        </h2>
-      </div>
-    )
-  }
+  <div class="ev__stage">
+   <h2 class="sr-only" tabindex="-1" data-page-heading>Wedding Events{part === 2 ? ': Sangeet, the Wedding and the Reception' : ': Mehndi and Haldi'}</h2>
+   <div class="ev__box">
+    <svg class="ev__rods" viewBox={`0 0 ${BOX.w} ${BOX.h}`} aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id={`ev-gold-${part}`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#8a5a16" />
+          <stop offset="0.35" stop-color="#f7dc8e" />
+          <stop offset="0.6" stop-color="#d4a443" />
+          <stop offset="1" stop-color="#7a4c10" />
+        </linearGradient>
+      </defs>
+      {
+        rods.map((d) => (
+          <g class="ev__rod">
+            <path class="ev__rod-body" d={d} stroke={`url(#ev-gold-${part})`} />
+            <path class="ev__rod-shine" d={d} />
+          </g>
+        ))
+      }
+      {
+        drops.map((p) => (
+          <g class="ev__drop" transform={`translate(${p.x} ${p.y})`}>
+            <circle r="6" fill="#e7c06a" stroke="#8a5a16" stroke-width="1.2" />
+            <path d="M0 6 C-6 14 -6 22 0 27 C6 22 6 14 0 6Z" fill="#b3122b" stroke="#6d0614" stroke-width="1" />
+            <ellipse cx="-1.6" cy="16" rx="1.4" ry="3" fill="#fff" opacity=".5" />
+          </g>
+        ))
+      }
+    </svg>
 
-  <ol class="ev__list">
-    {events.map((event, i) => <EventItem event={event} side={i % 2 === 0 ? 'left' : 'right'} />)}
-  </ol>
-
-  {
-    part === 2 && (
-      <div class="ev__end">
-        <svg class="ev__knot" viewBox="0 0 80 48" aria-hidden="true">
-          <path d="M40 22C28 4 8 8 12 20s20 10 28 2c8 8 24 10 28-2S52 4 40 22Z" fill="none" stroke="#c49a45" stroke-width="2.2" />
-          <path d="M40 22L32 44M40 22L48 44" stroke="#c49a45" stroke-width="2" stroke-linecap="round" />
-          <circle cx="40" cy="22" r="3.4" fill="#7a2635" />
-        </svg>
-        <p class="caption">All times IST · Proposed timings will be confirmed</p>
-      </div>
-    )
-  }
+    <ol class="ev__list">
+      {
+        items.map((it) => (
+          <li class="ev__item" data-event={it.event.id} style={it.style}>
+            <img class="ev__medallion" src={it.img.src} width={it.img.width} height={it.img.height} alt="" decoding="async" loading="lazy" />
+            <div class="ev__disc" style={it.disc}>
+              <h3 class="ev__name">{it.event.name.replace('Hindu Wedding Ceremony', 'Wedding').replace('Grand Wedding Reception', 'Reception').replace('Sangeet Night', 'Sangeet')}</h3>
+              <p class="ev__date">
+                <span class="ev__weekday">{it.weekday}</span>
+                <span>{it.date}</span>
+              </p>
+              <p class="ev__time">
+                {formatTime(it.event.startISO)} IST
+                {it.event.timeStatus === 'proposed' && <span class="ev__tag">Proposed</span>}
+                {it.event.id === 'wedding' && <span class="ev__tag ev__tag--muhurtham">Muhurtham</span>}
+              </p>
+              <span class="ev__rule" aria-hidden="true" />
+              <p class="ev__venue">
+                <span class="ev__venue-label">Venue</span>
+                <span>{it.venue}</span>
+              </p>
+              <button class="ev__open" type="button" data-open-dialog={`event-${it.event.id}`} aria-haspopup="dialog" aria-label={`Details of ${it.event.name}: venue, map and calendar`} />
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+   </div>
+  </div>
 </PageShell>
 
 <style is:global>
-  .ev .page__content {
-    inset-inline: 5cqw;
-    gap: 1.6cqh;
+  .ev .page__frame {
+    display: none;
   }
 
-  /* S-05 golden thread, path set at runtime from the medallion positions */
-  .ev__thread {
+  .ev .page__content {
+    inset: 0;
+    display: block;
+  }
+
+  /* The picture covers the page at its own proportions (narrow screens crop its sides); the
+     medallions and rods are laid out in the same box, so they stay in place on the picture */
+  .ev__box {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    height: max(100cqh, calc(100cqw * 1024 / 768));
+    aspect-ratio: 768 / 1024;
+    translate: -50% -50%;
+  }
+
+  .ev__bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* The page-sized window the picture-sized box is clipped to */
+  .ev__stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .ev__rods {
+    position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     overflow: visible;
+    pointer-events: none;
   }
 
-  .ev__thread path {
+  .ev__rod path {
     fill: none;
     stroke-linecap: round;
   }
 
-  .ev__thread-main {
-    stroke: var(--gold);
-    stroke-width: 2.2;
+  .ev__rod-body {
+    stroke-width: 8;
+    filter: drop-shadow(0 2px 2px rgba(60, 30, 5, 0.45));
   }
 
-  .ev__thread-hi {
-    stroke: var(--gold-highlight);
-    stroke-width: 0.6;
+  .ev__rod-shine {
+    stroke: rgba(255, 246, 214, 0.85);
+    stroke-width: 1.8;
+    transform: translate(-1px, 0);
   }
 
-  .ev__bell {
-    width: 4.4cqw;
-    translate: -50% -15%;
-    transform-origin: 50% 0;
-  }
-
-  /* Carved signboard header (page 9) */
-  .ev__sign {
-    position: relative;
-    width: 76cqw;
-    max-width: 420px;
-    aspect-ratio: 900 / 250;
-    flex: none;
-  }
-
-  .ev__sign-board {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(0 6px 10px rgba(75, 48, 38, 0.25));
-  }
-
-  .ev__sign-text {
-    position: absolute;
-    inset: 32% 8% 12%;
-    display: grid;
-    place-items: center;
-    font: 600 clamp(14px, 4.4cqw, 22px) / 1 var(--font-royal);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--gold-highlight);
-    text-shadow: 0 1px 0 rgba(75, 48, 38, 0.6);
-  }
-
-  .ev__sign-swag {
-    position: absolute;
-    top: 30%;
-    width: 4.5%;
-  }
-
-  .ev__sign-swag--l {
-    left: 1%;
-  }
-
-  .ev__sign-swag--r {
-    right: 1%;
-  }
-
-  /* Ivory backing so the golden thread passes behind the heading */
-  .ev__head {
-    position: relative;
-    z-index: 1;
-    flex: none;
-    padding: 0.8cqh 5cqw;
-    border-radius: 12px;
-    background: rgba(255, 249, 239, 0.94);
-  }
-
-  /* Rows */
   .ev__list {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    display: grid;
-    gap: 1.1cqh;
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
   .ev__item {
-    display: grid;
-    grid-template-columns: 36% 1fr;
-    align-items: center;
-    gap: 3cqw;
-  }
-
-  .ev__item--right {
-    grid-template-columns: 1fr 36%;
-  }
-
-  .ev__item--right .ev__medallion {
-    order: 2;
+    position: absolute;
   }
 
   .ev__medallion {
-    position: relative;
+    display: block;
     width: 100%;
-    aspect-ratio: 1;
-    max-width: min(150px, 15cqh);
-    justify-self: center;
+    height: auto;
+    filter: drop-shadow(0 6px 10px rgba(60, 30, 5, 0.35));
   }
 
-  .ev__item--wedding .ev__medallion {
-    max-width: 170px;
-  }
-
-  .ev__wreath {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
+  /* The event's details in the cream disc */
   .ev__disc {
     position: absolute;
-    inset: 22%;
+    aspect-ratio: 1;
+    container-type: inline-size;
     display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: radial-gradient(circle at 50% 40%, var(--jasmine), var(--sandal-light));
-    box-shadow:
-      inset 0 0 0 1.5px var(--gold),
-      inset 0 0 0 4px var(--jasmine),
-      inset 0 0 0 5px var(--hairline);
-    color: var(--gold-text);
-  }
-
-  .ev__item--wedding .ev__disc {
-    box-shadow:
-      inset 0 0 0 2px var(--maroon),
-      inset 0 0 0 5px var(--jasmine),
-      inset 0 0 0 6px var(--gold);
-    color: var(--maroon);
-  }
-
-  .ev__emblem {
-    width: 58%;
-    height: 58%;
-  }
-
-  .ev__still {
-    position: absolute;
-    bottom: -8%;
-    width: 64%;
-    filter: drop-shadow(0 4px 6px rgba(75, 48, 38, 0.2));
-  }
-
-  .ev__item--left .ev__still {
-    right: -22%;
-  }
-
-  .ev__item--right .ev__still {
-    left: -22%;
-  }
-
-  .ev__hanging {
-    position: absolute;
-    left: 50%;
-    top: -24%;
-    width: 9%;
-    translate: -50% 0;
-  }
-
-  .ev__plate {
-    position: relative;
-    z-index: 2;
-    display: grid;
-    gap: 3px;
-    padding: 1.2cqh 3.4cqw;
-    text-align: left;
-    background: rgba(255, 253, 248, 0.94);
-    box-shadow:
-      inset 0 0 0 1px var(--gold),
-      inset 0 0 0 4px var(--jasmine),
-      inset 0 0 0 5px var(--hairline),
-      0 6px 16px var(--shadow);
+    align-content: center;
+    justify-items: center;
+    gap: 1.2cqw;
+    padding: 4.5cqw;
+    text-align: center;
+    color: #4a2418;
   }
 
   .ev__name {
-    font: 600 clamp(12px, 3.5cqw, 15px) / 1.25 var(--font-royal);
-    letter-spacing: 0.08em;
-    color: var(--brown);
-  }
-
-  .ev__when {
-    display: grid;
-    gap: 1px;
+    margin-bottom: 1.5cqw;
+    font: 400 20.5cqw / 1 var(--font-script);
+    color: #8a1426;
+    -webkit-text-stroke: 0.25px currentColor;
   }
 
   .ev__date {
-    font: 600 clamp(15px, 4.4cqw, 19px) / 1.2 var(--font-display);
-    color: var(--brown);
+    display: grid;
+    font: 600 9.8cqw / 1.15 var(--font-display);
+  }
+
+  .ev__weekday {
+    font-weight: 500;
   }
 
   .ev__time {
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--brown-soft);
-  }
-
-  /* One line; the full venue text is in the event's detail sheet */
-  .ev__venue {
-    font-size: 12px;
-    line-height: 1.4;
-    color: var(--brown-soft);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .ev__plate .ev-actions {
-    margin-top: 3px;
-  }
-
-  .ev__end {
     display: grid;
     justify-items: center;
-    gap: 2px;
+    font: 700 9.8cqw / 1.15 var(--font-display);
   }
 
-  .ev__knot {
-    width: 16cqw;
-    max-width: 80px;
+  .ev__tag {
+    margin-top: 0.8cqw;
+    padding: 0.4cqw 3cqw;
+    border: 1px solid rgba(168, 120, 42, 0.6);
+    border-radius: 999px;
+    font: 700 6cqw / 1.2 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #85540f;
   }
 
-  @container app (max-height: 760px) {
-    .ev__medallion {
-      max-width: 112px;
-    }
+  .ev__tag--muhurtham {
+    border-color: rgba(138, 20, 38, 0.55);
+    color: #8a1426;
   }
 
-  @container app (max-height: 699px) {
-    .ev .page__content {
-      gap: 1cqh;
-    }
+  .ev__rule {
+    width: 46%;
+    height: 1px;
+    margin-block: 1cqw;
+    background: linear-gradient(90deg, transparent, #b8863a 20%, #b8863a 80%, transparent);
+  }
 
-    .ev__list {
-      gap: 0.8cqh;
-    }
+  .ev__venue {
+    display: grid;
+    font: 500 8cqw / 1.15 var(--font-display);
+  }
 
-    .ev__medallion {
-      max-width: 96px;
-    }
+  .ev__venue-label {
+    font-weight: 700;
+    color: #6a0f1f;
+  }
 
-    .ev__plate {
-      padding-block: 0.8cqh;
-      gap: 1px;
-    }
+  /* The whole disc opens the event's details */
+  .ev__open {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-    .ev__when {
-      display: flex;
-      flex-wrap: wrap;
-      column-gap: 6px;
-      align-items: baseline;
-    }
-
-    .ev__date,
-    .ev__time {
-      white-space: nowrap;
-    }
-
-    .ev__date {
-      font-size: 14px;
-    }
-
-    .ev__time {
-      font-size: 12px;
-    }
-
-    .ev__hanging {
-      display: none;
-    }
-
-    .ev__sign {
-      width: 64cqw;
-    }
+  .ev__open:focus-visible {
+    outline: 2px solid #8a1426;
+    outline-offset: 2px;
+    box-shadow: none;
   }
 </style>

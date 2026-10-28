@@ -29,8 +29,10 @@ describe('confirmed wedding facts', () => {
 });
 
 describe('no invented personal details (PRD §4)', () => {
-  it('keeps every family name, venue, contact and end time empty until provided', () => {
-    expect(Object.values(wedding.family).flatMap((f) => [f.father, f.mother])).toEqual([null, null, null, null]);
+  it('holds only the family details the client supplied, and keeps venues, contacts and end time empty until provided', () => {
+    // Supplied by the client on 28 October 2026
+    expect(Object.values(wedding.family).flatMap((f) => [f.father, f.mother])).toEqual(['Ravichandran', 'Sopna', 'Ravichandran', 'Kanimalar']);
+    expect(Object.values(wedding.family).every((f) => f.siblings.length === 0 && f.grandparents.length === 0 && f.fatherPhoto === null && f.motherPhoto === null)).toBe(true);
     expect(wedding.venues.every((v) => v.name === null && v.address === null && v.mapsUrl === null)).toBe(true);
     expect(wedding.contacts.every((c) => c.name === null && c.phone === null)).toBe(true);
     expect(wedding.ceremony.endISO).toBeNull();
@@ -40,12 +42,13 @@ describe('no invented personal details (PRD §4)', () => {
 describe('launch check', () => {
   it('blocks production while launch-critical details are missing', () => {
     const blockers = launchBlockers(wedding);
-    expect(blockers.map((b) => b.id)).toEqual(expect.arrayContaining(['M-01', 'M-13', 'M-19', 'M-28']));
+    expect(blockers.map((b) => b.id)).toEqual(expect.arrayContaining(['M-13', 'M-19', 'M-28']));
   });
 
   it('accepts a field the families chose to hide', () => {
-    const hidden = { ...wedding, site: { ...wedding.site, hiddenFields: ['family.groom.father'] } };
-    expect(launchBlockers(hidden).some((b) => b.path === 'family.groom.father')).toBe(false);
+    expect(launchBlockers(wedding).some((b) => b.path === 'site.url')).toBe(true);
+    const hidden = { ...wedding, site: { ...wedding.site, hiddenFields: ['site.url'] } };
+    expect(launchBlockers(hidden).some((b) => b.path === 'site.url')).toBe(false);
   });
 
   it('treats a home marked "shared personally" as resolved', () => {

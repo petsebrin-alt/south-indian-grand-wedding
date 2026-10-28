@@ -50,8 +50,8 @@ const data: WeddingData = {
   ],
 
   family: {
-    groom: { father: null, mother: null, grandparents: [], siblings: [], others: [], photo: null },
-    bride: { father: null, mother: null, grandparents: [], siblings: [], others: [], photo: null },
+    groom: { father: 'Ravichandran', fatherWork: 'College Principal', fatherPhoto: null, mother: 'Sopna', motherWork: 'College Lecturer', motherPhoto: null, grandparents: [], siblings: [], others: [], photo: null },
+    bride: { father: 'Ravichandran', fatherWork: 'Businessman', fatherPhoto: null, mother: 'Kanimalar', motherWork: 'Teacher', motherPhoto: null, grandparents: [], siblings: [], others: [], photo: null },
   },
 
   contacts: [

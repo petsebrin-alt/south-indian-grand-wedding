@@ -16,7 +16,11 @@ const draft = z.object({ text, status: z.enum(['draft', 'approved']) });
 const relative = z.object({ name: text, relation: text, photo });
 const familySide = z.object({
   father: maybeText,
+  fatherWork: maybeText,
+  fatherPhoto: photo,
   mother: maybeText,
+  motherWork: maybeText,
+  motherPhoto: photo,
   grandparents: z.array(relative),
   siblings: z.array(relative),
   others: z.array(relative),
