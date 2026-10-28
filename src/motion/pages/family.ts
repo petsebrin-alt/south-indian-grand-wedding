@@ -3,7 +3,7 @@ import { defineChoreo, gsap, isReducedMotion, timelineChoreo } from '../choreo';
 /**
  * Parents and Family (PRD §6.7), after the client's reference video: a focus gallery. The card in
  * focus sits in the middle with its name and relation on one side and what they do on the other;
- * the cards before and after wait above and below as small frames, the rest out of sight. Every few
+ * the cards before and after wait above and below as small tilted frames, the rest out of sight. Every few
  * seconds the next person slides up into focus. A tap on a waiting frame, a horizontal swipe, the
  * arrow keys or the dots move it by hand (and pause the slideshow for a while). Under reduced motion
  * the cards change without sliding and nothing moves by itself.
@@ -36,10 +36,10 @@ function initFamily(page: HTMLElement) {
       const near = Math.abs(k) === 1;
       const state =
         k === 0
-          ? { y: 0, scale: 1, autoAlpha: 1 }
+          ? { y: 0, scale: 1, autoAlpha: 1, rotation: 0 }
           : near
-            ? { y: k * h * 0.86, scale: 0.42, autoAlpha: 0.8 }
-            : { y: Math.sign(k) * h * 1.2, scale: 0.3, autoAlpha: 0 };
+            ? { y: k * h * 0.86, scale: 0.42, autoAlpha: 0.8, rotation: k * 5 }
+            : { y: Math.sign(k) * h * 1.2, scale: 0.3, autoAlpha: 0, rotation: Math.sign(k) * 9 };
       const sides = card.querySelectorAll('.fm__side');
       const vars = { ...state, zIndex: k === 0 ? 3 : near ? 2 : 1 };
       if (animate && !isReducedMotion()) {

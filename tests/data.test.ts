@@ -32,7 +32,14 @@ describe('no invented personal details (PRD §4)', () => {
   it('holds only the family details the client supplied, and keeps venues, contacts and end time empty until provided', () => {
     // Supplied by the client on 28 October 2026
     expect(Object.values(wedding.family).flatMap((f) => [f.father, f.mother])).toEqual(['Ravichandran', 'Sopna', 'Ravichandran', 'Kanimalar']);
-    expect(Object.values(wedding.family).every((f) => f.siblings.length === 0 && f.grandparents.length === 0 && f.fatherPhoto === null && f.motherPhoto === null)).toBe(true);
+    expect(Object.values(wedding.family).every((f) => f.siblings.length === 0 && f.grandparents.length === 0)).toBe(true);
+    // The four parents' photographs, supplied by the client on 29 October 2026 (none for anyone else)
+    expect(Object.values(wedding.family).flatMap((f) => [f.fatherPhoto?.src, f.motherPhoto?.src])).toEqual([
+      '/photos/family/groom-father.webp',
+      '/photos/family/groom-mother.webp',
+      '/photos/family/bride-father.webp',
+      '/photos/family/bride-mother.webp',
+    ]);
     expect(wedding.venues.every((v) => v.name === null && v.address === null && v.mapsUrl === null)).toBe(true);
     expect(wedding.contacts.every((c) => c.name === null && c.phone === null)).toBe(true);
     expect(wedding.ceremony.endISO).toBeNull();

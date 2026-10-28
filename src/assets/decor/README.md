@@ -94,7 +94,7 @@ The page's background is the Welcome courtyard with the temple tower and the pal
 
 The dates, times and venues on the pages come from `src/data/wedding.ts`, not from the picture (whose printed dates differ). The picture's Engagement medallion has no matching event, so it shows "Engagement" and "Details to be provided" until there is one. `src/assets/events/scene.json` holds each disc and ring (`discs`), how the printed wording is found (`paper`), and the areas rebuilt for the Parents background. A replacement picture needs these measured again.
 
-The Parents page's photograph frames use the invitation card's gold border and velvet from `src/assets/stage/`. Photographs of the parents and siblings go in `family.groom` and `family.bride` in `src/data/wedding.ts` (`fatherPhoto`, `motherPhoto`, and each sibling's `photo`).
+The Parents page's picture frame is the client's ornate gold oval frame (`src/assets/family/source/frame.webp`, photographed on a cream wall). `npm run family:assets` cuts it out of the wall (`src/assets/family/frame.webp`, with its opening measured in `frame.json`) and prepares the portraits from `src/assets/family/source/` (`bride-father`, `bride-mother`, `groom-father`, `groom-mother`) at web size in `public/photos/family/`. Each portrait shows in the frame's opening under a red border. The photographs are named in `family.groom` and `family.bride` in `src/data/wedding.ts` (`fatherPhoto`, `motherPhoto`, and each sibling's `photo`); a new photograph goes in `source/` with the same name, then run the command.
 
 ## All decoration slots
 

@@ -612,3 +612,21 @@ I had cut the medallions out of the picture, rebuilt the background behind them 
 - `npm run qa:book`: **69/69 checks pass.** AC-20 now checks all six medallions (the Engagement as described above), the details sheets, and the three rings on the second page. `npx astro check`: 0 errors.
 - Each page is about 113 KB (AVIF) and is requested only after the door photograph, so the first load is unchanged.
 
+## 29 October 2026 — Gold oval frames and portraits on the Parents page
+
+The client sent an ornate gold oval frame and four portraits, and asked for the Parents frames to be replaced by that gold frame, with each portrait in it and only a red border inside the gold. They also asked that the photos show their card effect when a guest taps the buttons, and that every photo still appears by itself, in turn, when nobody touches anything.
+
+### Decisions
+
+1. **The frame is the client's picture** (`npm run family:assets`): cut out of its cream wall by colour (the gold is far more colourful than the wall and its soft shadow, so the shadow is left out), edges cleaned of wall colour, trimmed, with its oval opening measured. Its openwork stays see-through.
+2. **Each portrait** sits in the opening as an oval, a little larger than the opening so its edge is under the gold. A **red border** (deep red, about 3% of the frame's width) lies just inside the gold, and nothing else. The old beaded gold border and velvet mat are removed.
+3. **Which portrait is whom:** the client did not say. The two men and two women are used in the order sent: the first man is the bride's father, the second man the groom's father, the first woman the bride's mother, the second woman the groom's mother. If this is wrong, swap the file names in `src/assets/family/source/` and run `npm run family:assets` (or swap the names in `src/data/wedding.ts`).
+4. **How it moves** (unchanged from the reference video, with the frames now tilting a little): the person in focus sits in the middle with their name and work beside them; the people before and after wait above and below as small frames, tilted a few degrees like cards, and straighten as they slide into focus. Tapping a waiting frame, swiping, the arrow keys and the dots move it by hand. If nobody touches anything, the next person slides into focus every 3.6 seconds, through all the parents in order. After a touch it pauses for 9 seconds, then carries on. Nothing moves by itself under reduced motion.
+5. **Loading:** the frame and portraits load after the door photograph, like the page's other pictures, with plain copies for browsers without scripts.
+6. **Siblings:** still shown as "Name to be provided" cards in preview builds only; no photos were sent for them, none are invented.
+
+### Results
+
+- `npm run qa:book`: **69/69 checks pass.** Unit tests: 58 pass (the data test now expects the four supplied photographs). `npx astro check`: 0 errors.
+- `npm run perf`: mobile performance 89, accessibility 100, best practices 100.
+

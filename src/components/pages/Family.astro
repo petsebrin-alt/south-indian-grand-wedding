@@ -3,8 +3,10 @@
  * Page 6 — Parents and Family (PRD §6.7), after the client's reference video: on the events
  * picture's temple background (signboard taken out; src/assets/family/), a focus gallery that slides
  * through the family one at a time. The person in focus has their photograph in a grand gold frame
- * (the invitation card's beaded border) on one side and their relation, name and what they do on
+ on one side and their relation, name and what they do on
  * the other; the people before and after wait above and below as small frames.
+ * The frame is the client's ornate gold oval frame (src/assets/family/, npm run family:assets) with
+ * the portrait in its opening and a red border just inside the gold.
  * Parents first (the bride's, then the groom's), then the siblings. Sibling cards appear in preview
  * builds as placeholders until their names are supplied. Motion: src/motion/pages/family.ts
  */
@@ -15,8 +17,8 @@ import { wedding } from '../../data/wedding';
 import { siteMode } from '../../lib/site-mode';
 import background from '../../assets/family/background.webp';
 import backgroundAvif from '../../assets/family/background.avif';
-import frame from '../../assets/stage/frame.webp';
-import velvet from '../../assets/stage/velvet.webp';
+import frame from '../../assets/family/frame.webp';
+import frameMeta from '../../assets/family/frame.json';
 
 interface Props {
   page: BookPage;
@@ -24,6 +26,7 @@ interface Props {
 }
 
 const { page, index } = Astro.props;
+const [ox, oy, ow, oh] = frameMeta.opening;
 const { groom, bride } = wedding.family;
 type Member = { relation: string; name: string | null; work: string | null; photo: { src: string; alt: string } | null; key: string };
 const parents: Member[] = [
@@ -62,7 +65,7 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     role="group"
     aria-roledescription="carousel"
     aria-label="The family, one at a time. Use the arrow keys to move between them."
-    data-vars={`--frame:url("${frame.src}");--velvet:url("${velvet.src}")`}
+    style={`--ox:${ox}%;--oy:${oy}%;--ow:${ow}%;--oh:${oh}%;--frame-ratio:${frameMeta.width} / ${frameMeta.height}`}
   >
     <ol class="fm__list">
       {
@@ -71,7 +74,10 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
             <div class="fm__frame" aria-hidden="true">
               <div class="fm__mat">
                 {m.photo ? (
-                  <img class="fm__photo" src={m.photo.src} alt="" decoding="async" loading="lazy" />
+                  <>
+                    <img class="fm__photo" data-src={m.photo.src} alt="" decoding="async" />
+                    <noscript><img class="fm__photo" src={m.photo.src} alt="" decoding="async" /></noscript>
+                  </>
                 ) : (
                   <span class="fm__ph">
                     <span class="fm__ph-mono">R·D</span>
@@ -79,6 +85,8 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
                   </span>
                 )}
               </div>
+              <img class="fm__gold" data-src={frame.src} width={frame.width} height={frame.height} alt="" decoding="async" />
+              <noscript><img class="fm__gold" src={frame.src} width={frame.width} height={frame.height} alt="" decoding="async" /></noscript>
             </div>
             <div class="fm__side" aria-hidden="true">
               <span class="fm__rel">{m.relation}</span>
@@ -171,7 +179,7 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
 
   /* The photograph on the left, the words on the right; the waiting frames line up with it */
   .fm__card {
-    --fw: min(40cqw, 25cqh);
+    --fw: min(42cqw, 26cqh);
     --pad: 7cqw;
     position: absolute;
     left: 0;
@@ -228,29 +236,42 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     background: linear-gradient(90deg, #b8863a, transparent);
   }
 
-  /* A grand frame: the invitation card's gold beaded border around a velvet mat */
+  /* The client's gold oval frame, with the portrait in its opening under a red border */
   .fm__frame {
-    aspect-ratio: 4 / 5;
-    padding: calc(var(--fw) * 0.05);
-    border: calc(var(--fw) * 0.075) solid transparent;
-    border-image: var(--frame) 34 round;
-    background: var(--velvet) center / 64px;
-    box-shadow: 0 10px 22px rgba(50, 20, 5, 0.38), 0 2px 5px rgba(50, 20, 5, 0.25);
+    position: relative;
+    width: var(--fw);
+    aspect-ratio: var(--frame-ratio);
+    filter: drop-shadow(0 9px 12px rgba(50, 20, 5, 0.38)) drop-shadow(0 1px 2px rgba(50, 20, 5, 0.3));
   }
 
+  /* The oval picture, a little larger than the opening so its edge lies under the gold */
   .fm__mat {
-    position: relative;
+    position: absolute;
+    left: calc(var(--ox) - 1%);
+    top: calc(var(--oy) - 0.8%);
+    width: calc(var(--ow) + 2%);
+    height: calc(var(--oh) + 1.6%);
+    box-sizing: border-box;
+    overflow: hidden;
+    border: calc(var(--fw) * 0.034) solid #8c1023;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 40%, #fbf3e3, #ead9b8);
+    box-shadow: inset 0 2px 5px rgba(40, 0, 8, 0.45);
+  }
+
+  .fm__gold {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    overflow: hidden;
-    border: 1px solid rgba(230, 196, 120, 0.8);
-    background: radial-gradient(ellipse at 50% 40%, #fbf3e3, #ead9b8);
+    pointer-events: none;
   }
 
   .fm__photo {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: 50% 22%;
   }
 
   .fm__ph {
@@ -273,7 +294,7 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     padding-inline: 8px;
   }
 
-  /* Without scripts the family is a plain list down the page (the frame pictures are applied by
+  /* Without scripts the family is a plain list down the page (the frame and portraits are loaded by
      src/motion/pages/cover.ts after the door photograph, so they stay out of the first load) */
   html:not(.js) .fm .page__content {
     position: relative;
