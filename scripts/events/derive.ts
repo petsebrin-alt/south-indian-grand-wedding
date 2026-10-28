@@ -1,18 +1,15 @@
 /**
- * npm run events:assets → the Wedding Events pages' layers (src/assets/events/) and the Family
- * page's background (src/assets/family/), from the client's two-page picture source/events.webp
- * (page 1 on the left half, page 2 on the right) and the measurements in scene.json:
- *   medallion-<id>  each event's medallion with its flowers and still-life (the mehendi cones, the
- *                   turmeric, the instruments, the mandap, the reception table), lifted out: the
- *                   sharp, in-focus parts inside a generous outline (the background is soft), plus
- *                   the ring; the printed wording inside the cream disc is painted out so the
- *                   current details can be set there in live text
- *   page-1, page-2  each half with the medallions, the gold connectors and hanging strands
- *                   between them taken out (the "Wedding Events" signboard stays); the rods are
- *                   drawn live and the medallions placed live (AVIF + WebP)
- *   ../family/background  page 1's background with the signboard taken out too
- *   medallions.json each medallion's size and disc (centre and radius, in % of the medallion)
- * The printed Engagement medallion has no matching event and is taken out with the rest.
+ * npm run events:assets → the Wedding Events pages (src/assets/events/) and the Family page's
+ * background (src/assets/family/), from the client's two-page picture source/events.webp (page 1 on
+ * the left half, page 2 on the right) and the measurements in scene.json:
+ *   page-1, page-2  each half of the picture exactly as it is (the signboard, garlands, pillars,
+ *                   lamps, flowers, medallions and their gold rods), except that the printed wording
+ *                   inside each cream disc is painted out so the current details can be set there
+ *                   in live text (AVIF + WebP)
+ *   discs.json      each disc's centre, radius and ring in the page's own pixels
+ *   ../family/background  page 1's background with the signboard, medallions and rods taken out
+ *                   (the medallions are lifted out by their sharpness, since the picture's
+ *                   background is in soft focus, and the background is rebuilt from its own texture)
  * Re-run after replacing the picture or adjusting scene.json.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -91,8 +88,7 @@ for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = y * 
 const energy = boxBlur(grad, W, H, scene.sharp.radius);
 const sharpAt = (i: number) => energy[i] > scene.sharp.threshold;
 
-// 1. The medallions
-const meta: Record<string, unknown> = {};
+// 1. The medallions' areas (for the Family page's background)
 const unitMasks: Uint8Array[] = [];
 for (const u of scene.medallions) {
   const [cx, cy, r] = u.circle;
@@ -123,45 +119,10 @@ for (const u of scene.medallions) {
   }
   for (let i = 0; i < n; i++) mask[i] = outside[i] ? 0 : 1;
   unitMasks.push(mask);
-
-  // Soft edge
-  const af = new Float32Array(n);
-  for (let i = 0; i < n; i++) af[i] = mask[i];
-  const soft = boxBlur(af, W, H, 1);
-  let x0 = W, y0 = H, x1 = 0, y1 = 0;
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (mask[y * W + x]) (x0 = Math.min(x0, x)), (x1 = Math.max(x1, x)), (y0 = Math.min(y0, y)), (y1 = Math.max(y1, y));
-  x0 -= 2; y0 -= 2; x1 += 2; y1 += 2;
-  const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
-
-  // The printed wording inside the disc, painted out from the cream around it
-  const [dcx, dcy, dr] = u.disc;
-  const sub = new Float32Array(bw * bh * 3), hole = new Uint8Array(bw * bh), avoid = new Uint8Array(bw * bh);
-  for (let y = 0; y < bh; y++)
-    for (let x = 0; x < bw; x++) {
-      const sx = x0 + x, sy = y0 + y, s = (sy * W + sx) * 3, i = y * bw + x;
-      for (let c = 0; c < 3; c++) sub[i * 3 + c] = d[s + c];
-      const rr = Math.hypot(sx - dcx, sy - dcy);
-      if (rr > dr) avoid[i] = 1;
-      else if (Math.min(d[s], d[s + 1], d[s + 2]) < scene.ink) hole[i] = 1;
-    }
-  const holeGrown = grow(hole, bw, bh, 3);
-  for (let i = 0; i < bw * bh; i++) if (avoid[i]) holeGrown[i] = 0;
-  const cleared = inpaint({ w: bw, h: bh, d: sub }, holeGrown, avoid, () => {}, { finest: 1, grain: 1.2 });
-  const rgba = Buffer.alloc(bw * bh * 4);
-  for (let y = 0; y < bh; y++)
-    for (let x = 0; x < bw; x++) {
-      const i = y * bw + x, o = i * 4;
-      for (let c = 0; c < 3; c++) rgba[o + c] = Math.round(Math.min(255, Math.max(0, cleared.d[i * 3 + c])));
-      rgba[o + 3] = Math.round(Math.min(1, soft[(y0 + y) * W + x0 + x] * 1.15) * 255);
-    }
-  await write(join(dir, `medallion-${u.id}`), sharp(rgba, { raw: { width: bw, height: bh, channels: 4 } }), ['webp'], { avif: 0, webp: 86 });
-  meta[u.id] = { width: bw, height: bh, disc: [+(((dcx - x0) / bw) * 100).toFixed(2), +(((dcy - y0) / bh) * 100).toFixed(2), +((dr / bw) * 100).toFixed(2)] };
 }
-writeFileSync(join(dir, 'medallions.json'), JSON.stringify(meta, null, 2) + '\n');
 
-// 2. The two page backgrounds: the medallions out, and the thin gold connectors and hanging strands
-//    between them (thin sharp lines in the band below the signboard), rebuilt from the soft
-//    background around them
+// 2. The areas to rebuild for the Family page's background: the medallions, and the thin gold connectors
+//    and hanging strands between them (thin sharp lines in the band below the signboard)
 const backgrounds: { name: string; span: number[]; band: number[][]; also: number[][][] }[] = scene.pages;
 const holes: Record<string, Uint8Array> = {};
 for (const page of backgrounds) {
@@ -205,11 +166,6 @@ const rebuild = (span: number[], hole: Uint8Array) => {
   }
   return { pic, hw };
 };
-for (const page of backgrounds) {
-  const { pic, hw } = rebuild(page.span, holes[page.name]);
-  await write(join(dir, page.name), sharp(Buffer.from(Uint8ClampedArray.from(pic)), { raw: { width: hw, height: H, channels: 3 } }), ['avif', 'webp'], { avif: 58, webp: 80 });
-}
-
 // 3. The Family page's background: page 1's, with the signboard taken out as well
 {
   const page = backgrounds[0];
@@ -219,3 +175,79 @@ for (const page of backgrounds) {
   const { pic } = rebuild(page.span, grow(hole, hw, H, 2));
   await write(join(familyDir, 'background'), sharp(Buffer.from(Uint8ClampedArray.from(pic)), { raw: { width: hw, height: H, channels: 3 } }), ['avif', 'webp'], { avif: 58, webp: 80 });
 }
+
+// 4. The Wedding Events pages: the picture as it is, with only the printed wording inside each cream
+//    disc painted out
+const discsOut: Record<string, { page: number; cx: number; cy: number; r: number; ring: number }> = {};
+for (const [pageNo, page] of backgrounds.entries()) {
+  const [hx0, hx1] = page.span;
+  const hw = hx1 - hx0;
+  const pic = new Float32Array(hw * H * 3);
+  for (let y = 0; y < H; y++) for (let x = 0; x < hw; x++) for (let c = 0; c < 3; c++) pic[(y * hw + x) * 3 + c] = d[(y * W + hx0 + x) * 3 + c];
+  for (const u of scene.discs.filter((k: { page: string }) => k.page === page.name)) {
+    const cx = u.cx - hx0, cy = u.cy, r = u.r, M = 18;
+    const x0 = Math.floor(cx - r - M), y0 = Math.floor(cy - r - M), bw = Math.ceil(2 * (r + M) + 1), bh = bw;
+    const inDisc = new Uint8Array(bw * bh), lum = new Float32Array(bw * bh), reddish = new Uint8Array(bw * bh);
+    for (let y = 0; y < bh; y++)
+      for (let x = 0; x < bw; x++) {
+        const i = y * bw + x, s0 = ((y0 + y) * hw + x0 + x) * 3;
+        inDisc[i] = Math.hypot(x0 + x + 0.5 - cx, y0 + y + 0.5 - cy) <= r || (u.extra ?? []).some((b: number[]) => hx0 + x0 + x >= b[0] && hx0 + x0 + x < b[2] && y0 + y >= b[1] && y0 + y < b[3]) ? 1 : 0;
+        lum[i] = 0.299 * pic[s0] + 0.587 * pic[s0 + 1] + 0.114 * pic[s0 + 2];
+        reddish[i] = pic[s0 + 1] < 0.36 * pic[s0] && pic[s0 + 2] >= 0.8 * pic[s0 + 1] ? 1 : 0; // the wording's dark red (blue above green), not the ring's gold (green above blue)
+      }
+    // The printed wording is darker than the smooth cream around it: estimate the cream, flag what is
+    // darker, estimate again without it
+    let ink = new Uint8Array(bw * bh);
+    for (let pass = 0; pass < 3; pass++) {
+      const wgt = new Float32Array(bw * bh), val = new Float32Array(bw * bh);
+      for (let i = 0; i < bw * bh; i++) if (inDisc[i] && !ink[i]) (wgt[i] = 1), (val[i] = lum[i]);
+      const w2 = boxBlur(wgt, bw, bh, scene.paper.radius), v2 = boxBlur(val, bw, bh, scene.paper.radius);
+      ink = new Uint8Array(bw * bh);
+      for (let i = 0; i < bw * bh; i++) if (inDisc[i] && w2[i] > 0.02 && lum[i] < v2[i] / w2[i] - scene.paper.darker) ink[i] = 1;
+    }
+    // A flourish can run a little past the disc's measured edge: follow it there (dark red only)
+    const edgeOf = new Uint8Array(bw * bh);
+    for (let step = 0; step < 14; step++) {
+      const add: number[] = [];
+      for (let i = 0; i < bw * bh; i++) {
+        if (ink[i]) continue;
+        const x = i % bw, y = (i / bw) | 0;
+        if (x < 1 || y < 1 || x >= bw - 1 || y >= bh - 1 || !reddish[i] || lum[i] > 185) continue;
+        if (ink[i - 1] || ink[i + 1] || ink[i - bw] || ink[i + bw]) add.push(i);
+      }
+      for (const i of add) (ink[i] = 1), (edgeOf[i] = 1);
+      if (!add.length) break;
+    }
+    const cells = grow(ink, bw, bh, scene.paper.grow);
+    // Fillable: the disc, and the flourish where it runs past it; nothing else (the gold ring, the flowers)
+    const fillable = new Uint8Array(bw * bh);
+    const pastEdge = grow(edgeOf, bw, bh, 2);
+    for (let i = 0; i < bw * bh; i++) fillable[i] = inDisc[i] || edgeOf[i] || (pastEdge[i] && reddish[i]) || (pastEdge[i] && lum[i] < 215 && pic[(((y0 + ((i / bw) | 0)) * hw) + x0 + (i % bw)) * 3 + 2] >= 0.7 * pic[(((y0 + ((i / bw) | 0)) * hw) + x0 + (i % bw)) * 3 + 1]) ? 1 : 0;
+    for (let i = 0; i < bw * bh; i++) if (!fillable[i]) cells[i] = 0;
+    for (let i = 0; i < bw * bh; i++) if (pastEdge[i] && fillable[i]) cells[i] = 1;
+    const list: number[] = [];
+    for (let i = 0; i < bw * bh; i++) if (cells[i]) list.push(i);
+    // Smooth fill: each painted-out pixel takes the average of its neighbours; the cream beside it is
+    // fixed, and nothing outside the disc and the flourish (the gold ring) is used
+    for (let c = 0; c < 3; c++) {
+      const f = new Float32Array(bw * bh);
+      let sum = 0, cnt = 0;
+      for (let i = 0; i < bw * bh; i++) {
+        f[i] = pic[(((y0 + ((i / bw) | 0)) * hw) + x0 + (i % bw)) * 3 + c];
+        if (inDisc[i] && !cells[i]) (sum += f[i]), cnt++;
+      }
+      for (const i of list) f[i] = sum / Math.max(cnt, 1);
+      for (let it = 0; it < 1500; it++)
+        for (const i of list) {
+          const x = i % bw, y = (i / bw) | 0;
+          let t = 0, k = 0;
+          for (const j of [x > 0 ? i - 1 : -1, x < bw - 1 ? i + 1 : -1, y > 0 ? i - bw : -1, y < bh - 1 ? i + bw : -1]) if (j >= 0 && (inDisc[j] || cells[j])) (t += f[j]), k++;
+          if (k) f[i] += 1.9 * (t / k - f[i]);
+        }
+      for (const i of list) pic[(((y0 + ((i / bw) | 0)) * hw) + x0 + (i % bw)) * 3 + c] = f[i];
+    }
+    discsOut[u.id] = { page: pageNo + 1, cx: +cx.toFixed(1), cy: +cy.toFixed(1), r: u.r, ring: u.ring };
+  }
+  await write(join(dir, page.name), sharp(Buffer.from(Uint8ClampedArray.from(pic)), { raw: { width: hw, height: H, channels: 3 } }), ['avif', 'webp'], { avif: 62, webp: 84 });
+}
+writeFileSync(join(dir, 'discs.json'), JSON.stringify(discsOut, null, 2) + '\n');

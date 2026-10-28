@@ -1,12 +1,15 @@
 ---
 /**
- * Pages 8–9 — Wedding Events (PRD §6.9), from the client's two-page picture (src/assets/events/,
- * npm run events:assets): the temple background with the "Wedding Events" signboard, and below it
- * each celebration's medallion with its flowers and still-life, connected by a gold rod. Each
- * medallion shows the event's current details in live text (the picture's printed dates differ).
- * Part 1: Mehndi, Haldi · Part 2: Sangeet, the Wedding, the Reception, so each medallion keeps the
- * still-life that belongs to it. Tapping a medallion opens the event's details (venue, calendar).
- * Motion: src/motion/pages/events.ts (the rod draws to each medallion, which then appears).
+ * Pages 8–9 — Wedding Events (PRD §6.9), the client's two-page picture exactly as it is
+ * (src/assets/events/, npm run events:assets): the temple, the "Wedding Events" signboard, the
+ * garlands, pillars and lamps, and each celebration's medallion with its flowers and still-life,
+ * joined by their gold rods. Only the wording printed in each cream disc is replaced, by the
+ * event's current details in live text (the picture's printed dates differ).
+ * Part 1: Engagement, Haldi, Mehndi · Part 2: Sangeet, the Wedding, the Reception (as in the picture).
+ * The picture has an Engagement medallion but the invitation has no Engagement event yet, so it shows
+ * its name and "Details to be provided". Tapping a medallion opens its event's details (venue, calendar).
+ * Motion: src/motion/pages/events.ts (a bright gold ring draws round each medallion in turn, and its
+ * details appear).
  */
 import PageShell from '../PageShell.astro';
 import ScenePhoto from '../ScenePhoto.astro';
@@ -14,7 +17,7 @@ import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
 import { formatDateLong, formatTime } from '../../lib/format';
 import { venueById } from '../../lib/venue';
-import medallions from '../../assets/events/medallions.json';
+import discs from '../../assets/events/discs.json';
 import page1 from '../../assets/events/page-1.webp';
 import page1Avif from '../../assets/events/page-1.avif';
 import page2 from '../../assets/events/page-2.webp';
@@ -27,60 +30,28 @@ interface Props {
 }
 
 const { page, index, part } = Astro.props;
-const images = import.meta.glob<{ default: ImageMetadata }>('../../assets/events/medallion-*.webp', { eager: true });
-const medallionImg = (id: string) => images[`../../assets/events/medallion-${id}.webp`].default;
 
-// Where each medallion's disc sits on the page, in the picture's own pixels (768 × 1024 per page),
-// chosen so the whole medallion stays on a narrow phone screen and the medallions zigzag
+// The picture is 768 × 1024 per page; the medallions are placed in the same box, so they stay on it
 const BOX = { w: 768, h: 1024 };
-const SCALE = 0.96;
-const layout: Record<1 | 2, { id: string; cx: number; cy: number }[]> = {
-  1: [
-    { id: 'mehndi', cx: 462, cy: 420 },
-    { id: 'haldi', cx: 292, cy: 760 },
-  ],
-  2: [
-    { id: 'sangeet', cx: 350, cy: 345 },
-    { id: 'wedding', cx: 492, cy: 596 },
-    { id: 'reception', cx: 330, cy: 838 },
-  ],
-};
-const sign = part === 1 ? { x: 395, y: 210 } : { x: 397, y: 212 };
+const order: Record<1 | 2, string[]> = { 1: ['engagement', 'haldi', 'mehndi'], 2: ['sangeet', 'wedding', 'reception'] };
+const shortName = (name: string) => name.replace('Hindu Wedding Ceremony', 'Wedding').replace('Grand Wedding Reception', 'Reception').replace('Sangeet Night', 'Sangeet');
 const bg = part === 1 ? { webp: page1, avif: page1Avif } : { webp: page2, avif: page2Avif };
 
-type Meta = { width: number; height: number; disc: number[] };
-const items = layout[part].map((slot) => {
-  const event = wedding.events.find((e) => e.id === slot.id)!;
-  const m = (medallions as Record<string, Meta>)[slot.id];
-  const w = m.width * SCALE, h = m.height * SCALE;
-  const dx = (m.disc[0] / 100) * w, dy = (m.disc[1] / 100) * h;
-  const r = (m.disc[2] / 100) * w; // the cream disc
-  const ring = r * 1.14; // the gold ring around it
-  const venue = venueById(event.venueId);
-  const [weekday, date] = formatDateLong(event.startISO).split(', ');
+const items = order[part].map((id) => {
+  const d = (discs as Record<string, { cx: number; cy: number; r: number; ring: number }>)[id];
+  const event = wedding.events.find((e) => e.id === id) ?? null;
+  const venue = event ? venueById(event.venueId) : null;
+  const [weekday, date] = event ? formatDateLong(event.startISO).split(', ') : ['', ''];
   return {
+    id,
     event,
-    img: medallionImg(slot.id),
-    style: `left:${((slot.cx - dx) / BOX.w) * 100}%;top:${((slot.cy - dy) / BOX.h) * 100}%;width:${(w / BOX.w) * 100}%`,
-    disc: `left:${((dx - r) / w) * 100}%;top:${((dy - r) / h) * 100}%;width:${((2 * r) / w) * 100}%`,
-    top: { x: slot.cx, y: slot.cy - ring },
-    bottom: { x: slot.cx, y: slot.cy + ring },
+    name: event ? shortName(event.name) : 'Engagement',
+    style: `left:${((d.cx - d.r) / BOX.w) * 100}%;top:${((d.cy - d.r) / BOX.h) * 100}%;width:${((2 * d.r) / BOX.w) * 100}%`,
+    ringR: (d.ring / d.r) * 50,
     weekday,
     date,
-    venue: venue.name ?? (venue.privacy === 'onRequest' ? venue.label : 'To be provided'),
+    venue: venue ? (venue.name ?? (venue.privacy === 'onRequest' ? venue.label : 'To be provided')) : '',
   };
-});
-
-// The gold rod: from the signboard to the top of the first medallion, then from each medallion's
-// foot to the next one's top, in gentle S-curves
-const curve = (a: { x: number; y: number }, b: { x: number; y: number }) => {
-  const k = (b.y - a.y) * 0.55;
-  return `M${a.x} ${a.y} C${a.x} ${a.y + k} ${b.x} ${b.y - k} ${b.x} ${b.y}`;
-};
-const rods = items.map((it, i) => curve(i === 0 ? sign : items[i - 1].bottom, it.top));
-const drops = items.map((it, i) => {
-  const a = i === 0 ? sign : items[i - 1].bottom;
-  return { x: (a.x + it.top.x) / 2, y: (a.y + it.top.y) / 2 };
 });
 ---
 
@@ -92,58 +63,44 @@ const drops = items.map((it, i) => {
   </Fragment>
 
   <div class="ev__stage">
-   <h2 class="sr-only" tabindex="-1" data-page-heading>Wedding Events{part === 2 ? ': Sangeet, the Wedding and the Reception' : ': Mehndi and Haldi'}</h2>
+   <h2 class="sr-only" tabindex="-1" data-page-heading>Wedding Events{part === 2 ? ': Sangeet, the Wedding and the Reception' : ': Engagement, Haldi and Mehndi'}</h2>
    <div class="ev__box">
-    <svg class="ev__rods" viewBox={`0 0 ${BOX.w} ${BOX.h}`} aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id={`ev-gold-${part}`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#8a5a16" />
-          <stop offset="0.35" stop-color="#f7dc8e" />
-          <stop offset="0.6" stop-color="#d4a443" />
-          <stop offset="1" stop-color="#7a4c10" />
-        </linearGradient>
-      </defs>
-      {
-        rods.map((d) => (
-          <g class="ev__rod">
-            <path class="ev__rod-body" d={d} stroke={`url(#ev-gold-${part})`} />
-            <path class="ev__rod-shine" d={d} />
-          </g>
-        ))
-      }
-      {
-        drops.map((p) => (
-          <g class="ev__drop" transform={`translate(${p.x} ${p.y})`}>
-            <circle r="6" fill="#e7c06a" stroke="#8a5a16" stroke-width="1.2" />
-            <path d="M0 6 C-6 14 -6 22 0 27 C6 22 6 14 0 6Z" fill="#b3122b" stroke="#6d0614" stroke-width="1" />
-            <ellipse cx="-1.6" cy="16" rx="1.4" ry="3" fill="#fff" opacity=".5" />
-          </g>
-        ))
-      }
-    </svg>
-
     <ol class="ev__list">
       {
         items.map((it) => (
-          <li class="ev__item" data-event={it.event.id} style={it.style}>
-            <img class="ev__medallion" src={it.img.src} width={it.img.width} height={it.img.height} alt="" decoding="async" loading="lazy" />
-            <div class="ev__disc" style={it.disc}>
-              <h3 class="ev__name">{it.event.name.replace('Hindu Wedding Ceremony', 'Wedding').replace('Grand Wedding Reception', 'Reception').replace('Sangeet Night', 'Sangeet')}</h3>
-              <p class="ev__date">
-                <span class="ev__weekday">{it.weekday}</span>
-                <span>{it.date}</span>
-              </p>
-              <p class="ev__time">
-                {formatTime(it.event.startISO)} IST
-                {it.event.timeStatus === 'proposed' && <span class="ev__tag">Proposed</span>}
-                {it.event.id === 'wedding' && <span class="ev__tag ev__tag--muhurtham">Muhurtham</span>}
-              </p>
-              <span class="ev__rule" aria-hidden="true" />
-              <p class="ev__venue">
-                <span class="ev__venue-label">Venue</span>
-                <span>{it.venue}</span>
-              </p>
-              <button class="ev__open" type="button" data-open-dialog={`event-${it.event.id}`} aria-haspopup="dialog" aria-label={`Details of ${it.event.name}: venue, map and calendar`} />
+          <li class="ev__item" data-event={it.id} style={it.style}>
+            <svg class="ev__ring" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+              <circle class="ev__ring-glow" cx="50" cy="50" r={it.ringR} transform="rotate(-90 50 50)" />
+              <circle class="ev__ring-line" cx="50" cy="50" r={it.ringR} transform="rotate(-90 50 50)" />
+            </svg>
+            <div class="ev__disc">
+              <h3 class="ev__name">{it.name}</h3>
+              {it.event ? (
+                <>
+                  <p class="ev__date">
+                    <span class="ev__weekday">{it.weekday}</span>
+                    <span>{it.date}</span>
+                  </p>
+                  <p class="ev__time">
+                    {formatTime(it.event.startISO)} IST
+                    {it.event.timeStatus === 'proposed' && <span class="ev__tag">Proposed</span>}
+                    {it.event.id === 'wedding' && <span class="ev__tag ev__tag--muhurtham">Muhurtham</span>}
+                  </p>
+                  <span class="ev__rule" aria-hidden="true" />
+                  <p class="ev__venue">
+                    <span class="ev__venue-label">Venue</span>
+                    <span>{it.venue}</span>
+                  </p>
+                  <button class="ev__open" type="button" data-open-dialog={`event-${it.event.id}`} aria-haspopup="dialog" aria-label={`Details of ${it.event.name}: venue, map and calendar`} />
+                </>
+              ) : (
+                <>
+                  <span class="ev__rule" aria-hidden="true" />
+                  <p class="ev__venue">
+                    <span>Details to be provided</span>
+                  </p>
+                </>
+              )}
             </div>
           </li>
         ))
@@ -163,15 +120,16 @@ const drops = items.map((it, i) => {
     display: block;
   }
 
-  /* The picture covers the page at its own proportions (narrow screens crop its sides); the
-     medallions and rods are laid out in the same box, so they stay in place on the picture */
+  /* The picture covers the page at its own proportions (narrow screens crop its sides, a little more
+     from the left so the medallions stay centred); the medallions are laid out in the same box, so
+     they stay in place on the picture */
   .ev__box {
     position: absolute;
     left: 50%;
     top: 50%;
-    height: max(100cqh, calc(100cqw * 1024 / 768));
+    height: max(100cqh, calc(100cqw * 1024 / 768 * 1.04));
     aspect-ratio: 768 / 1024;
-    translate: -50% -50%;
+    translate: calc(-50% - 1.8%) -50%;
   }
 
   .ev__bg {
@@ -188,31 +146,6 @@ const drops = items.map((it, i) => {
     overflow: hidden;
   }
 
-  .ev__rods {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-    pointer-events: none;
-  }
-
-  .ev__rod path {
-    fill: none;
-    stroke-linecap: round;
-  }
-
-  .ev__rod-body {
-    stroke-width: 8;
-    filter: drop-shadow(0 2px 2px rgba(60, 30, 5, 0.45));
-  }
-
-  .ev__rod-shine {
-    stroke: rgba(255, 246, 214, 0.85);
-    stroke-width: 1.8;
-    transform: translate(-1px, 0);
-  }
-
   .ev__list {
     position: absolute;
     inset: 0;
@@ -221,21 +154,42 @@ const drops = items.map((it, i) => {
     list-style: none;
   }
 
+  /* Each item is the medallion's cream disc */
   .ev__item {
     position: absolute;
+    aspect-ratio: 1;
   }
 
-  .ev__medallion {
-    display: block;
+  /* A bright gold ring that draws round the picture's own ring as the details appear */
+  .ev__ring {
+    position: absolute;
+    inset: 0;
     width: 100%;
-    height: auto;
-    filter: drop-shadow(0 6px 10px rgba(60, 30, 5, 0.35));
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .ev__ring circle {
+    fill: none;
+    stroke-linecap: round;
+    opacity: 0;
+  }
+
+  .ev__ring-glow {
+    stroke: rgba(255, 214, 120, 0.55);
+    stroke-width: 6;
+  }
+
+  .ev__ring-line {
+    stroke: #fff6d2;
+    stroke-width: 1.6;
   }
 
   /* The event's details in the cream disc */
   .ev__disc {
     position: absolute;
-    aspect-ratio: 1;
+    inset: 0;
     container-type: inline-size;
     display: grid;
     align-content: center;

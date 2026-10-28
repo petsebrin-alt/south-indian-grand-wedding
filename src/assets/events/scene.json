@@ -1,5 +1,5 @@
 {
-  "_note": "Measurements of source/events.webp (1536 \u00d7 1024 px) for scripts/events/derive.ts. sharp: the local-contrast level (box radius, threshold) above which a pixel is in focus. ink: darker than this inside a disc is printed wording. Each medallion: its ring [cx, cy, r], its cream disc [cx, cy, r] and a generous outline of its flowers and still-life (only the sharp parts inside it are kept). Each page: its x span, the band between the signboard and the floor where thin sharp lines (connectors, strands; edges above sharp.edge, thinner than about 2 \u00d7 thin px) are taken out, and other areas to take out entirely (the printed Engagement medallion). signboard: the Wedding Events board, taken out for the Family background. calm: how far the fill deep inside large areas eases towards a smooth blend (0\u20131).",
+  "_note": "Measurements of source/events.webp (1536 \u00d7 1024 px) for scripts/events/derive.ts. sharp: the local-contrast level (box radius, threshold) above which a pixel is in focus. ink: darker than this inside a disc is printed wording. Each medallion: its ring [cx, cy, r], its cream disc [cx, cy, r] and a generous outline of its flowers and still-life (only the sharp parts inside it are kept). Each page: its x span, the band between the signboard and the floor where thin sharp lines (connectors, strands; edges above sharp.edge, thinner than about 2 \u00d7 thin px) are taken out, and other areas to take out entirely (the printed Engagement medallion). signboard: the Wedding Events board, taken out for the Family background. calm: how far the fill deep inside large areas eases towards a smooth blend (0\u20131). discs: each medallion's cream disc [centre, radius] and the middle of its gold ring, in the picture's pixels. paper: how the printed wording in a disc is found (it is darker than the smooth cream around it by this much, the cream being estimated over this radius) and painted out (grown by this many px, then filled smoothly from the cream beside it). discs[].extra: boxes just beyond a disc's measured edge where printed flourishes also run (painted out the same way).",
   "sharp": {
     "radius": 4,
     "threshold": 22,
@@ -552,5 +552,68 @@
     ]
   ],
   "thin": 5,
-  "calm": 0.5
+  "calm": 0.5,
+  "discs": [
+    {
+      "id": "engagement",
+      "page": "page-1",
+      "cx": 372.0,
+      "cy": 333.1,
+      "r": 98,
+      "ring": 104.75
+    },
+    {
+      "id": "haldi",
+      "page": "page-1",
+      "cx": 420.4,
+      "cy": 580.0,
+      "r": 102.5,
+      "ring": 109
+    },
+    {
+      "id": "mehndi",
+      "page": "page-1",
+      "cx": 410.9,
+      "cy": 826.6,
+      "r": 105.5,
+      "ring": 112.25
+    },
+    {
+      "id": "sangeet",
+      "page": "page-2",
+      "cx": 1133.5,
+      "cy": 339.3,
+      "r": 98,
+      "ring": 104.5
+    },
+    {
+      "id": "wedding",
+      "page": "page-2",
+      "cx": 1244.6,
+      "cy": 593.6,
+      "r": 107,
+      "ring": 114.25,
+      "extra": [
+        [
+          1146,
+          516,
+          1168,
+          544
+        ]
+      ]
+    },
+    {
+      "id": "reception",
+      "page": "page-2",
+      "cx": 1127.4,
+      "cy": 830.5,
+      "r": 105.5,
+      "ring": 112.75
+    }
+  ],
+  "paper": {
+    "radius": 12,
+    "darker": 26,
+    "grow": 3
+  }
 }

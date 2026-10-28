@@ -658,8 +658,12 @@ async function main() {
       page.evaluate((pid) => {
         return [...document.querySelectorAll<HTMLElement>(`#${pid} .ev__item`)].map((item) => ({
           id: item.dataset.event,
-          text: !!item.querySelector('.ev__name')?.textContent && !!item.querySelector('.ev__date')?.textContent && /IST/.test(item.querySelector('.ev__time')?.textContent ?? '') && !!item.querySelector('.ev__venue')?.textContent,
-          visible: Number(getComputedStyle(item.querySelector('.ev__medallion')!).opacity) > 0.95 && Number(getComputedStyle(item.querySelector('.ev__name')!).opacity) > 0.95,
+          // The Engagement has no event yet: its name and "Details to be provided"
+          text:
+            item.dataset.event === 'engagement'
+              ? /Engagement/.test(item.querySelector('.ev__name')?.textContent ?? '') && /Details to be provided/.test(item.querySelector('.ev__venue')?.textContent ?? '')
+              : !!item.querySelector('.ev__name')?.textContent && !!item.querySelector('.ev__date')?.textContent && /IST/.test(item.querySelector('.ev__time')?.textContent ?? '') && !!item.querySelector('.ev__venue')?.textContent,
+          visible: Number(getComputedStyle(item.querySelector('.ev__name')!).opacity) > 0.95,
           onScreen: (() => {
             const r = item.querySelector('.ev__disc')!.getBoundingClientRect();
             return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight;
@@ -674,7 +678,7 @@ async function main() {
     await page.waitForTimeout(5600);
     const part2 = await read('events-wedding');
     const rows = [...part1, ...part2];
-    check('AC-20a', 'All five events appear (Mehndi, Haldi; Sangeet, Wedding, Reception) with name, date, IST time and venue, fully on screen', rows.length === 5 && rows.every((r) => r.text && r.visible && r.onScreen), JSON.stringify(rows));
+    check('AC-20a', 'All six medallions of the picture appear (Engagement, Haldi, Mehndi; Sangeet, Wedding, Reception) with name, date, IST time and venue (the Engagement: its name and "Details to be provided"), fully on screen', rows.length === 6 && rows.every((r) => r.text && r.visible && r.onScreen), JSON.stringify(rows));
 
     const sheet = (id: string) =>
       page.evaluate((eid) => {
@@ -696,11 +700,11 @@ async function main() {
     const calendarOpen = await page.evaluate(() => !document.getElementById('calendar-wedding')!.hidden);
     check('AC-20b', 'Each event opens its details: Location waits for a venue, Calendar only for the confirmed wedding; the sheet fits and explains', okSheets && detailsFit && /venue is confirmed/.test(toastText ?? '') && calendarOpen, JSON.stringify({ all, detailsFit, toastText, calendarOpen }));
     await page.keyboard.press('Escape');
-    const rods = await page.evaluate(() => {
-      const paths = [...document.querySelectorAll<SVGPathElement>('#events-wedding .ev__rod-body')];
-      return { n: paths.length, len: Math.min(...paths.map((p) => p.getTotalLength())) };
+    const rings = await page.evaluate(() => {
+      const circles = [...document.querySelectorAll<SVGCircleElement>('#events-wedding .ev__ring-line')];
+      return { n: circles.length, len: Math.min(...circles.map((c) => c.getTotalLength())) };
     });
-    check('PH3-thread', 'A gold rod connects the signboard to each medallion in turn (3 rods on the second page)', rods.n === 3 && rods.len > 40, JSON.stringify(rods));
+    check('PH3-thread', 'A bright gold ring draws round each medallion in turn (3 rings on the second page)', rings.n === 3 && rings.len > 100, JSON.stringify(rings));
     await ctx.close();
   }
 

@@ -87,13 +87,12 @@ The page's background is the Welcome courtyard with the temple tower and the pal
 
 ## Wedding Events and Parents pages: the client's events picture
 
-`src/assets/events/source/events.webp` is the client's picture of both Wedding Events pages side by side (page 1 on the left half, page 2 on the right): a temple background, the "Wedding Events" signboard, and five medallions joined by gold rods. `npm run events:assets` turns it into:
+`src/assets/events/source/events.webp` is the client's picture of both Wedding Events pages side by side (page 1 on the left half, page 2 on the right): a temple background, the "Wedding Events" signboard, garlands, pillars and lamps, and six medallions joined by gold rods. `npm run events:assets` turns it into:
 
-- each medallion with its flowers and still-life (the mehendi cones, the turmeric, the instruments, the mandap, the reception table), cut out, with the printed wording in its cream disc painted out so the live details can be set there;
-- the two page backgrounds (signboard kept), with the medallions and the thin connecting rods and strands taken out, because the rods are drawn live;
-- the Parents page's background (`src/assets/family/background.*`): the same, with the signboard taken out too.
+- the two Wedding Events pages (`page-1.*`, `page-2.*`): each half of the picture exactly as it is, except that the wording printed in each medallion's cream disc is painted out (smoothly, from the cream beside it) so the live details can be set there. `discs.json` records each disc and its ring in the page's own pixels;
+- the Parents page's background (`src/assets/family/background.*`): page 1 with the signboard, medallions and rods taken out and rebuilt from the picture's own soft texture.
 
-The dates, times and venues on the pages come from `src/data/wedding.ts`, not from the picture (whose printed dates differ). The picture's Engagement medallion has no matching event and is not used. `src/assets/events/scene.json` holds each medallion's ring and disc, the focus threshold and the areas to clear. A replacement picture needs these measured again.
+The dates, times and venues on the pages come from `src/data/wedding.ts`, not from the picture (whose printed dates differ). The picture's Engagement medallion has no matching event, so it shows "Engagement" and "Details to be provided" until there is one. `src/assets/events/scene.json` holds each disc and ring (`discs`), how the printed wording is found (`paper`), and the areas rebuilt for the Parents background. A replacement picture needs these measured again.
 
 The Parents page's photograph frames use the invitation card's gold border and velvet from `src/assets/stage/`. Photographs of the parents and siblings go in `family.groom` and `family.bride` in `src/data/wedding.ts` (`fatherPhoto`, `motherPhoto`, and each sibling's `photo`).
 

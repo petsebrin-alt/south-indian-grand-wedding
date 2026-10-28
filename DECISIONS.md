@@ -549,7 +549,7 @@ The client asked for the parents section and both event pages to be replaced:
    - Nothing moves by itself under reduced motion.
    - Without scripts the family is a plain list down the page.
 3. **The frames** use the invitation card's gold beaded border around a velvet mat: the same pieces as the desktop background (`src/assets/stage/`), so the family matches the card.
-4. **Wedding Events pages:**
+4. **Wedding Events pages** (rebuilt on 29 October to be the picture exactly, see the section at the end):
    - **Design:** each page is the client's picture: the temple background, the "Wedding Events" signboard, and the medallions with their own flowers and still-lifes (the mehendi cones, the turmeric, the veena and tabla, the wedding mandap, the reception table). Their rods are the picture's gold.
    - **Dates and times:** the picture's printed details differ from the invitation's (an Engagement on 31 March, Haldi on 1 April, the wedding at 10:00 AM instead of the confirmed 10:30 AM). The client chose to keep the current details, so each medallion's disc shows the current ones as live text: Mehndi Mon 5 April 4:00 PM, Haldi Tue 6 April 9:00 AM, Sangeet Tue 6 April 6:30 PM, Wedding Wed 7 April 10:30 AM (Muhurtham), Reception Wed 7 April 6:30 PM; the proposed ones are marked "Proposed". The venue line shows the venue name, or "Bride's Family Home" / "Groom's Family Home" / "To be provided". The Engagement is not shown.
    - **Pages:** Mehndi and Haldi on the first page; Sangeet, the Wedding and the Reception on the second, as in the picture's own second page, so each medallion keeps its still-life.
@@ -587,4 +587,28 @@ The client's picture has the polaroids on top of the garden, so the garden behin
 
 - `npm run qa:book`: **69/69 checks pass.** Unit tests: 58 pass. `npx astro check`: 0 errors.
 - `npm run perf`: mobile performance 89, accessibility 100, best practices 100. The two photographs are about 13–19 KB larger each (AVIF).
+
+## 29 October 2026 — Wedding Events pages exactly as the client's picture
+
+The client saw the Wedding Events page and said the design was not right: the temple behind was blurry and "unstructured", and the medallions were cluttered with leftover flowers and cut edges. They asked for the third image (their two-page picture) exactly, with only the background slightly soft, as it is in the picture.
+
+### What was wrong
+
+I had cut the medallions out of the picture, rebuilt the background behind them by filling it from its own surroundings, and drawn new rods. The fill smeared the temple and the garlands and pillars, and the cut-outs left halos and blotchy discs.
+
+### Decisions
+
+1. **The pages are the picture as it is** (`npm run events:assets`): the signboard, garlands, pillars, lamps, flowers, still-lifes, medallions and gold rods are the client's own pixels, in the picture's soft focus. Nothing is cut out or rebuilt. Only the wording printed inside each cream disc is painted out (found as darker than the smooth cream around it, then filled smoothly from the cream beside it, nothing from the gold ring), and the current details are set there in live text.
+2. **Six medallions, as in the picture:** Engagement, Haldi, Mehndi on page 1 and Sangeet, Wedding, Reception on page 2, in the picture's own order and places. Each shows the current details from `src/data/wedding.ts` and opens its details sheet when tapped.
+3. **The Engagement medallion** is in the picture but there is no Engagement event in the invitation's details, so it shows its name and "Details to be provided" and does not open a sheet. No date was invented. If the client wants it gone, or gives its details, that is a small change.
+4. **Order:** the picture puts Haldi above Mehndi, but the current dates are Mehndi 5 April and Haldi 6 April. The picture's order is kept so that each medallion keeps its own still-life (the turmeric belongs to Haldi, the cones to Mehndi).
+5. **Phone framing:** the picture covers the page at its own proportions and is centred a little to the right, so every disc is fully on screen; the outer garlands and the edge of the props are cropped on narrow phones.
+6. **The effect, since the rods are in the picture:** as each page turns in, a bright gold ring draws round each medallion in turn (0.9 s, a slow ease) and fades into the picture's own ring while its details appear in the disc. Revisits and reduced motion show the finished page.
+7. **Removed:** the medallion cut-outs and `medallions.json`, the live-drawn rods and their fittings, and the rebuilt page backgrounds.
+8. **The Parents page's background** still comes from page 1 with the signboard and medallions taken out, so it is still a soft rebuilt background (it is not part of this change).
+
+### Results
+
+- `npm run qa:book`: **69/69 checks pass.** AC-20 now checks all six medallions (the Engagement as described above), the details sheets, and the three rings on the second page. `npx astro check`: 0 errors.
+- Each page is about 113 KB (AVIF) and is requested only after the door photograph, so the first load is unchanged.
 
