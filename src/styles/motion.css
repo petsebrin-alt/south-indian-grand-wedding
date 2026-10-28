@@ -143,8 +143,7 @@
   }
 }
 
-.page:not([data-state='current']):not([data-state='flow']) :is(.sway, .flame, .glow-breathe, .wl-couple__body, .sd__heart svg, .cd__carry, .cd__trunk, .cd__tip, .cv-open),
-.page:not([data-state='current']):not([data-state='flow']) .sd__tie::before {
+.page:not([data-state='current']):not([data-state='flow']) :is(.sway, .flame, .glow-breathe, .wl-couple__body, .sd__heart svg, .sd__hand, .sd__tap-ring, .cd__carry, .cd__trunk, .cd__tip, .cv-open) {
   animation-play-state: paused;
 }
 

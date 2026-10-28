@@ -26,11 +26,6 @@ export function checkContent(d: WeddingData): CheckItem[] {
   need(!!d.family.bride.mother, 'M-04', 'family.bride.mother', "Bride's mother's name");
   need(d.family.groom.grandparents.length + d.family.bride.grandparents.length > 0, 'M-05', 'family.*.grandparents', 'Grandparents', false);
   need(d.family.groom.siblings.length + d.family.bride.siblings.length > 0, 'M-06', 'family.*.siblings', 'Siblings and other relatives', false);
-  need(!!d.couple.groom.portrait, 'M-08', 'couple.groom.portrait', "Rahul's portrait");
-  need(!!d.couple.groom.bio, 'M-08', 'couple.groom.bio', "Rahul's biography", false);
-  need(!!d.couple.bride.portrait, 'M-09', 'couple.bride.portrait', "Divya's portrait");
-  need(!!d.couple.bride.bio, 'M-09', 'couple.bride.bio', "Divya's biography", false);
-  need(d.couple.groom.memories.length + d.couple.bride.memories.length > 0, 'M-10', 'couple.*.memories', 'Memory polaroid photos', false);
   need(d.loveStory.filter((m) => m.photo).length >= 3, 'M-11', 'loveStory', 'At least 3 love-story photos');
   need(!!(d.family.groom.photo && d.family.bride.photo), 'M-12', 'family.*.photo', 'Family photos', false);
 

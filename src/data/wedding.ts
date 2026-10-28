@@ -20,8 +20,8 @@ const data: WeddingData = {
   },
 
   couple: {
-    groom: { name: 'Rahul', fullName: null, honorific: null, portrait: null, bio: null, memories: [] },
-    bride: { name: 'Divya', fullName: null, honorific: null, portrait: null, bio: null, memories: [] },
+    groom: { name: 'Rahul', fullName: null, honorific: null },
+    bride: { name: 'Divya', fullName: null, honorific: null },
   },
 
   ceremony: {

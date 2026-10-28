@@ -3,7 +3,7 @@
  * Page 2 — Save the Date (PRD §6.4), as the client asked: the courtyard photograph behind, and in it
  * the couple holding a gold board (the client's picture, its middle opened; src/assets/save-the-date/,
  * npm run save-the-date:assets). Red curtains inside the board (made from their curtain photograph)
- * are tied with the photo's gold rope; tapping it (or waiting a few seconds) draws them open to
+ * show a blinking tap hand; tapping it (or waiting a few seconds) draws them open to
  * reveal "Save the Date" written in script and the wedding month, with red hearts on the
  * celebration days and Add to Calendar below. Rose petals lie at the board's foot.
  * Motion: src/motion/pages/save-the-date.ts
@@ -21,7 +21,6 @@ import coupleBoard from '../../assets/save-the-date/couple-board.webp';
 import coupleBoardAvif from '../../assets/save-the-date/couple-board.avif';
 import boardInside from '../../assets/save-the-date/board-inside.png';
 import curtain from '../../assets/save-the-date/curtain.webp';
-import tie from '../../assets/save-the-date/tie.webp';
 import petal1 from '../../assets/decor/rose-petal-1.webp';
 import petal2 from '../../assets/decor/rose-petal-2.webp';
 import petal3 from '../../assets/decor/rose-petal-3.webp';
@@ -107,11 +106,21 @@ const petals = [petal1, petal2, petal3, petal4];
       <span class="sd__curtain sd__curtain--l" data-curtain style={`${opening.replace(/width:[^;]+/, `width:${((o.right - o.left) / 2 + 0.6).toFixed(2)}%`)};--curtain:url("${curtain.src}")`} aria-hidden="true"></span>
       <span class="sd__curtain sd__curtain--r" data-curtain style={`${opening.replace(/left:[^;]+;/, '').replace(/width:[^;]+/, `width:${((o.right - o.left) / 2 + 0.6).toFixed(2)}%`)};right:${(100 - o.right).toFixed(2)}%;--curtain:url("${curtain.src}")`} aria-hidden="true"></span>
     </div>
-    <!-- The gold rope that ties the curtains together: tap it to open them (they also open by
-         themselves after a few seconds) -->
-    <button class="sd__tie" type="button" data-tie aria-label="Open the curtains" style={`left:${((o.left + o.right) / 2).toFixed(2)}%;top:${(o.top + (o.bottom - o.top) * 0.3).toFixed(2)}%;height:${((o.bottom - o.top) * 0.36).toFixed(2)}%`}>
-      <img class="sd__tie-half" src={tie.src} width={tie.width} height={tie.height} alt="" decoding="async" loading="lazy" />
-      <img class="sd__tie-half sd__tie-half--r" src={tie.src} width={tie.width} height={tie.height} alt="" decoding="async" loading="lazy" />
+    <!-- A tapping hand on the closed curtains, blinking softly: tap it to open them (they also
+         open by themselves after a few seconds) -->
+    <button class="sd__tap" type="button" data-tie aria-label="Open the curtains" style={`left:${((o.left + o.right) / 2).toFixed(2)}%;top:${(o.top + (o.bottom - o.top) * 0.42).toFixed(2)}%`}>
+      <span class="sd__tap-ring"></span>
+      <span class="sd__tap-ring sd__tap-ring--late"></span>
+      <svg class="sd__hand" viewBox="0 0 40 48" aria-hidden="true" focusable="false">
+        <g fill="url(#sd-hand-fill)" stroke="#6b3a10" stroke-width="1.1" stroke-linejoin="round">
+          <rect x="4" y="23" width="7" height="14" rx="3.5" transform="rotate(-36 7.5 30)" />
+          <rect x="30.5" y="19.5" width="5.6" height="12" rx="2.8" />
+          <rect x="24.5" y="17" width="6.4" height="14" rx="3.2" />
+          <rect x="18.5" y="15" width="6.6" height="16" rx="3.3" />
+          <path d="M12 26h24v6c0 8-5 14-12 14h-2c-5 0-8-2.5-10-7z" />
+          <rect x="12" y="2" width="7" height="30" rx="3.5" />
+        </g>
+      </svg>
     </button>
     <ScenePhoto class="sd__frame" avif={coupleBoardAvif} webp={coupleBoard} defer />
     </div>
@@ -119,6 +128,11 @@ const petals = [petal1, petal2, petal3, petal4];
 
   <svg class="sd__defs" aria-hidden="true" focusable="false">
     <defs>
+      <linearGradient id="sd-hand-fill" x1="0" y1="0" x2="0.6" y2="1">
+        <stop offset="0" stop-color="#fff2c9" />
+        <stop offset="0.45" stop-color="#e9c46f" />
+        <stop offset="1" stop-color="#b8862f" />
+      </linearGradient>
       <radialGradient id="sd-heart-fill" cx="0.38" cy="0.3" r="0.85">
         <stop offset="0" stop-color="#ff5a6a" />
         <stop offset="0.45" stop-color="#d81b33" />
@@ -359,60 +373,105 @@ const petals = [petal1, petal2, petal3, petal4];
     transform: scaleX(-1);
   }
 
-  /* The rope tie: two of the photographed tie-backs, the second mirrored, crossing at the seam */
-  .sd__tie {
+  /* The tapping hand: a gold hand pointing at the curtains, tapping and blinking, with soft rings
+     spreading from its fingertip */
+  .sd__tap {
     position: absolute;
-    display: flex;
-    align-items: flex-start;
+    width: 17%;
+    aspect-ratio: 40 / 48;
     padding: 0;
     border: 0;
     background: none;
-    translate: -50% 0;
+    translate: -50% -15%;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    filter: drop-shadow(0 3px 3px rgba(50, 10, 5, 0.45));
   }
 
-  /* A soft glow at the knot, breathing, to invite a tap */
-  .sd__tie::before {
+  /* At least 44 px to tap */
+  .sd__tap::before {
     content: '';
     position: absolute;
-    left: 50%;
-    top: 30%;
-    width: 140%;
-    aspect-ratio: 1;
-    translate: -50% -50%;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 224, 150, 0.55), rgba(255, 224, 150, 0) 65%);
-    animation: sd-glow 2.2s ease-in-out infinite;
-    pointer-events: none;
+    inset: -12px;
   }
 
-  @keyframes sd-glow {
-    50% {
-      opacity: 0.35;
+  .sd__hand {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 3px 4px rgba(40, 8, 4, 0.55));
+    animation: sd-tap 1.4s ease-in-out infinite;
+  }
+
+  @keyframes sd-tap {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    30% {
+      transform: translateY(9%) scale(0.94);
+      opacity: 0.72;
+    }
+
+    55% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
     }
   }
 
-  .reduce-motion .sd__tie::before {
+  /* Rings from the fingertip, as if touched */
+  .sd__tap-ring {
+    position: absolute;
+    left: 38.75%;
+    top: 4%;
+    width: 120%;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 236, 190, 0.95);
+    box-shadow: 0 0 12px rgba(255, 220, 150, 0.7);
+    animation: sd-ring 1.4s ease-out infinite;
+    pointer-events: none;
+  }
+
+  .sd__tap-ring--late {
+    animation-delay: 0.7s;
+  }
+
+  @keyframes sd-ring {
+    0%,
+    20% {
+      transform: scale(0.2);
+      opacity: 0;
+    }
+
+    32% {
+      opacity: 1;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
+
+  .reduce-motion .sd__hand,
+  .reduce-motion .sd__tap-ring {
     animation: none;
   }
 
-  .sd__tie-half {
-    position: relative;
-    height: 100%;
-    width: auto;
+  .reduce-motion .sd__tap-ring {
+    opacity: 0.6;
+    transform: scale(0.7);
   }
 
-  .sd__tie-half--r {
-    margin-left: -14%;
-    transform: scaleX(-1);
-  }
-
-  .sd__tie:focus-visible {
+  .sd__tap:focus-visible {
     outline: 2px solid #fff3cf;
-    outline-offset: 4px;
-    border-radius: 8px;
+    outline-offset: 6px;
+    border-radius: 12px;
+    box-shadow: none;
   }
 
   .sd__defs {

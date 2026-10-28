@@ -66,6 +66,7 @@ svg {
 /* Headings receive focus on each page turn (for screen readers); they are not controls, so no ring */
 [data-page-heading]:focus-visible {
   outline: none;
+  box-shadow: none;
 }
 
 .sr-only {

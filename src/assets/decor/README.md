@@ -76,22 +76,31 @@ The page's background is the Welcome courtyard with the temple tower and the pal
 
 `src/assets/countdown/scene.json` holds the sky region and colours, the board's panel, and each trunk's outline, base, pivot and joint. After changing a picture, the Welcome courtyard or `scene.json`, run `npm run countdown:assets`.
 
+## Rahul and Divya pages: the groom-and-bride picture
+
+`src/assets/couple/source/groom-bride.webp` is the client's picture of both pages side by side: the groom with his interest polaroids on the left half, the bride with hers on the right. `npm run couple:assets` turns it into:
+
+- the two photographs with their polaroids and printed titles taken out (the titles become live lettering);
+- each polaroid, and the groom's gaming cluster, cut out on its own to pop in one by one.
+
+`src/assets/couple/scene.json` holds each polaroid's corners (snapped to its white frame automatically), the title boxes, the people's outlines, and how each side is rebuilt. A replacement picture needs these measured again.
+
 ## All decoration slots
 
 | File name (`.webp`, `.avif` or `.png`) | Asset ID | Used on |
 |---|---|---|
 | `jasmine-swag` | D-01 | Love Story, Venues, Wishing Wall |
-| `jasmine-strand-short`, `jasmine-strand-medium`, `jasmine-strand-long` | D-02 | Rahul, Divya, Ceremony |
-| `jasmine-cluster` (top-left corner bunch) | D-03 | Save the Date, Bride, Family |
+| `jasmine-strand-short`, `jasmine-strand-medium`, `jasmine-strand-long` | D-02 | Ceremony |
+| `jasmine-cluster` (top-left corner bunch) | D-03 | Family, Dress Code, Travel, RSVP, Thank You |
 | `arch-garland` | D-04 | Family |
 | `kuthuvilakku` (no flames; flames are drawn in code) | D-06 | Ceremony, Thank You |
 | `agal-diya` | D-07 | Family |
 | `temple-bell` (one hanging brass bell, chain at top centre) | D-08 | Events, Wishing Wall |
-| `temple-pillar` | D-09 | Rahul, Divya, Ceremony, Venues |
-| `gopuram-misty` | D-12 | Rahul, Divya, Thank You |
+| `temple-pillar` | D-09 | Ceremony, Venues |
+| `gopuram-misty` | D-12 | Thank You |
 | `mango-toran` | D-13 | Ceremony, Travel |
 | `silk-drape` | D-15 | Ceremony, Thank You |
-| `kalasam-crest`, `gold-filigree` | D-17 | Rahul |
+| `kalasam-crest` | D-17 | RSVP |
 | `rose-petal-1…4` (made from the opening courtyard photograph by `npm run welcome:assets`), `jasmine-petal-1…3` | D-30, D-31 | Falling petals |
 | `arch-nameplate` | S-06 / D-18 | Family |
 | `oval-frame` | S-09 | Family |

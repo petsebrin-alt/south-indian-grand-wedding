@@ -471,7 +471,8 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-17 portraits enter from the correct side and never leave the screen */
+  /* AC-17 Meet the Couple: the photograph enters from the partner's side, the name's letters and
+     the interest cards appear one by one, and every card ends fully on screen */
   for (const [id, side] of [
     ['groom', 'left'],
     ['bride', 'right'],
@@ -480,24 +481,43 @@ async function main() {
     const page = await ctx.newPage();
     await page.goto(BASE);
     await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
-    await page.goto(`${BASE}#welcome`);
+    await page.goto(`${BASE}#countdown`);
     await settle(page);
-    const samples: { left: number; right: number; centre: number }[] = await page.evaluate(async (pageId) => {
-      const frame = document.querySelector<HTMLElement>(`#${pageId} .pt__frame`)!;
-      const out: { left: number; right: number; centre: number }[] = [];
+    const result = await page.evaluate(async (pageId) => {
+      const root = document.getElementById(pageId)!;
+      const scene = root.querySelector<HTMLElement>('.pc__scene')!;
+      const cards = [...root.querySelectorAll<HTMLElement>('.pc__col--l .pc__card'), ...root.querySelectorAll<HTMLElement>('.pc__col--r .pc__card')];
+      const letters = [...root.querySelectorAll<HTMLElement>('.pc__ch')];
+      const offsets: number[] = [];
+      let mid: number[] = [];
+      let midLetters: number[] = [];
       location.hash = pageId;
-      for (let i = 0; i < 70; i++) {
+      const t0 = performance.now();
+      let current = 0; // when the page came to rest
+      while (performance.now() - t0 < 6000) {
         await new Promise((r) => setTimeout(r, 40));
-        const r = frame.getBoundingClientRect();
-        if (frame.closest('.page')!.getAttribute('data-state') === 'current' || out.length) out.push({ left: r.left, right: r.right, centre: (r.left + r.right) / 2 });
+        if (root.getAttribute('data-state') !== 'current') continue;
+        current ||= performance.now();
+        const r = scene.getBoundingClientRect();
+        offsets.push((r.left + r.right) / 2 - innerWidth / 2);
+        const t = performance.now() - current;
+        if (!midLetters.length && t > 800) midLetters = [letters[0], letters[letters.length - 1]].map((l) => Number(getComputedStyle(l).opacity));
+        if (!mid.length && t > 2400) mid = [cards[0], cards[cards.length - 1]].map((c) => Number(getComputedStyle(c).opacity));
       }
-      return out;
+      const onScreen = cards.every((c) => {
+        const r = c.getBoundingClientRect();
+        return r.left >= -1 && r.right <= innerWidth + 1 && r.top >= 0 && r.bottom <= innerHeight && Number(getComputedStyle(c).opacity) > 0.99;
+      });
+      return { early: offsets[1] ?? 0, final: offsets[offsets.length - 1] ?? 0, mid, midLetters, cards: cards.length, letters: letters.length, onScreen };
     }, id);
-    const finalCentre = samples[samples.length - 1]?.centre ?? 0;
-    const earlyOffset = samples.length > 2 ? samples[1].centre - finalCentre : 0;
-    const inView = samples.every((s) => s.left >= -1 && s.right <= 391);
-    const correctSide = side === 'left' ? earlyOffset < -2 : earlyOffset > 2;
-    check('AC-17', `${id === 'groom' ? 'Rahul' : 'Divya'}'s portrait enters from the ${side} and stays on screen`, correctSide && inView, `offset ${earlyOffset.toFixed(1)}px, ${samples.length} samples`);
+    const fromSide = side === 'left' ? result.early - result.final < -2 : result.early - result.final > 2;
+    const oneByOne = result.mid[0] > result.mid[1] && result.midLetters[0] > result.midLetters[1];
+    check(
+      'AC-17',
+      `${id === 'groom' ? "Rahul's" : "Divya's"} page enters from the ${side}; the name's letters and the ${result.cards} interest cards appear one by one and end fully on screen`,
+      fromSide && oneByOne && result.cards === 8 && result.onScreen,
+      JSON.stringify(result),
+    );
     await ctx.close();
   }
 

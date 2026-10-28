@@ -1,13 +1,20 @@
 ---
 /**
- * Pages 4–5 — Meet the Couple (PRD §6.6, THEME §13 P5/P6). One page per partner.
- * Motion: src/motion/pages/couple.ts (groom enters from the left, bride from the right).
+ * Pages 4–5 — Meet the Couple (PRD §6.6), one page per partner, from the client's groom-and-bride
+ * picture (src/assets/couple/, npm run couple:assets): the groom's or bride's photograph behind,
+ * "The Groom Rahul" / "The Bride Divya" in script letters that jump into place one by one, and their
+ * interest polaroids (cut from the same picture) popping in one by one down both edges, as in the
+ * client's reference video. Motion: src/motion/pages/couple.ts
  */
 import PageShell from '../PageShell.astro';
-import Decor from '../Decor.astro';
-import Ph from '../Ph.astro';
+import ScenePhoto from '../ScenePhoto.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
+import cards from '../../assets/couple/cards.json';
+import groomPhoto from '../../assets/couple/groom.webp';
+import groomPhotoAvif from '../../assets/couple/groom.avif';
+import bridePhoto from '../../assets/couple/bride.webp';
+import bridePhotoAvif from '../../assets/couple/bride.avif';
 
 interface Props {
   page: BookPage;
@@ -18,291 +25,167 @@ interface Props {
 const { page, index, role } = Astro.props;
 const person = wedding.couple[role];
 const isGroom = role === 'groom';
-const longBio = !!person.bio && person.bio.length > 220;
-
-// Polaroid slots in the margins (x %, y % of the portrait stage, resting tilt; the bride's tilts mirror).
-// The middle slot on the right sits further in so the pearl handle stays clear.
-const slots = [
-  { x: 2, y: 0, r: -6 },
-  { x: 5, y: 36, r: 5 },
-  { x: 1, y: 70, r: -4 },
-  { x: 80, y: 4, r: 6 },
-  { x: 74, y: 40, r: -5 },
-  { x: 80, y: 74, r: 4 },
+const photo = isGroom ? { webp: groomPhoto, avif: groomPhotoAvif } : { webp: bridePhoto, avif: bridePhotoAvif };
+const cardImages = import.meta.glob<{ default: ImageMetadata }>('../../assets/couple/card-*.webp', { eager: true });
+const cardSrc = (id: string) => cardImages[`../../assets/couple/card-${id}.webp`].default;
+const mine = cards[role];
+const columns = (['l', 'r'] as const).map((c) => mine.filter((card) => card.column === c));
+const lines = [
+  { text: 'The', size: 's' },
+  { text: isGroom ? 'Groom' : 'Bride', size: 'l' },
+  { text: person.name, size: 'l' },
 ];
-const memories = person.memories.length ? person.memories : slots.map(() => null);
-const placeholderMemories = person.memories.length === 0;
 ---
 
-<PageShell
-  page={page}
-  index={index}
-  watermark={false}
-  class:list={['pt', `pt--${role}`]}
-  note={isGroom
-    ? 'Placeholder art: D-09 pillar, D-16 maroon zari silk frame, D-17 filigree and kalasam crest, D-32 polaroids. Portrait P-01 and memories P-10 to be provided.'
-    : 'Placeholder art: D-09 pillar, D-15/D-16 ivory zari silk frame, D-03 jasmine, D-02 strand, D-32 polaroids. Portrait P-02 and memories P-11 to be provided.'}
->
+<PageShell page={page} index={index} watermark={false} class:list={['pc', `pc--${role}`]}>
   <Fragment slot="architecture">
-    <Decor name="gopuram-misty" asset="D-12" class="layer layer--architecture pt__wash" />
-    <Decor name="temple-pillar" asset="D-09" class="layer layer--architecture pt__pillar" />
+    <div class="layer layer--architecture pc__scene" aria-hidden="true">
+      <ScenePhoto class="pc__photo" avif={photo.avif} webp={photo.webp} defer />
+    </div>
+    <!-- A soft glow of light down each edge, behind the polaroids -->
+    <span class="layer layer--architecture pc__glow pc__glow--l" aria-hidden="true"></span>
+    <span class="layer layer--architecture pc__glow pc__glow--r" aria-hidden="true"></span>
   </Fragment>
 
-  <div class="stack-xs pt__heading">
-    <p class="eyebrow">{isGroom ? 'The Groom' : 'The Bride'}</p>
-    <h2 class="names names--l" tabindex="-1" data-page-heading>{person.name}</h2>
-  </div>
-
-  <div class="pt__stage">
-    <div class:list={['pt__frame', `pt__frame--${role}`]}>
-      <div class="pt__photo">
-        {
-          person.portrait ? (
-            <img src={person.portrait.src} alt={person.portrait.alt} />
-          ) : (
-            <div class="photo-ph pt__ph">
-              <span class="photo-ph__mono">R·D</span>
-              <Ph label={`${person.name}'s portrait`} />
-            </div>
-          )
-        }
-      </div>
-      {
-        isGroom ? (
-          <Fragment>
-            <Decor name="kalasam-crest" asset="D-17" class="pt__crest" />
-            <Decor name="gold-filigree" asset="D-17" class="pt__filigree pt__filigree--l" />
-            <Decor name="gold-filigree" asset="D-17" class="pt__filigree pt__filigree--r" />
-          </Fragment>
-        ) : (
-          <Fragment>
-            <Decor name="jasmine-cluster" asset="D-03" class="pt__jasmine pt__jasmine--l" />
-            <Decor name="jasmine-cluster" asset="D-03" class="pt__jasmine pt__jasmine--r" />
-            <Decor name="jasmine-strand-long" asset="D-02" class="pt__strand sway" style="--sway:0.8deg;--sway-dur:7s" />
-          </Fragment>
-        )
-      }
-    </div>
+  <h2 class="pc__title" tabindex="-1" data-page-heading aria-label={`The ${isGroom ? 'Groom' : 'Bride'}, ${person.name}`}>
     {
-      memories.map((m, i) => {
-        const s = slots[i];
-        return (
-          <figure class:list={['pt__polaroid', placeholderMemories && 'preview-only']} style={`left:${s.x}%;top:${s.y}%;rotate:${isGroom ? s.r : -s.r}deg`}>
-            {m ? <img src={m.photo.src} alt={m.photo.alt} /> : <span class="pt__polaroid-ph" aria-hidden="true">R·D</span>}
-            <figcaption>{m ? m.caption : 'Memory'}</figcaption>
-          </figure>
-        );
-      })
+      lines.map((l) => (
+        <span class={`pc__line pc__line--${l.size}`} aria-hidden="true">
+          {[...l.text].map((ch) => (
+            <span class="pc__ch">{ch}</span>
+          ))}
+        </span>
+      ))
     }
-  </div>
+  </h2>
 
-  <div class="pt__bio">
-    <p class:list={['body-text', longBio && 'pt__bio-text--clamped']} data-hide-if-missing>
-      <Ph value={person.bio} label={`${person.name}'s biography`} />
-    </p>
-    {
-      longBio && (
-        <button class="pt__more" type="button" data-open-dialog={`bio-${role}`} aria-haspopup="dialog">
-          Read more
-        </button>
-      )
-    }
-  </div>
+  <!-- Their interests, down both edges -->
+  {
+    columns.map((col, c) => (
+      <ul class={`pc__col pc__col--${c ? 'r' : 'l'}`} aria-label={c ? undefined : `${person.name}'s interests`}>
+        {col.map((card) => {
+          const img = cardSrc(card.id);
+          return (
+            <li class="pc__card">
+              <img src={img.src} width={img.width} height={img.height} alt={card.label} decoding="async" loading="lazy" />
+            </li>
+          );
+        })}
+      </ul>
+    ))
+  }
 </PageShell>
 
 <style is:global>
-  .pt__wash {
-    left: 50%;
-    bottom: 0;
-    width: 120cqw;
-    translate: -50% 0;
-    opacity: 0.12;
+  .pc .page__frame {
+    display: none;
   }
 
-  .pt__pillar {
-    bottom: calc(var(--safe-bottom) + 2cqh);
-    height: min(66cqh, 130cqw);
-    opacity: 0.85;
-  }
-
-  .pt--groom .pt__pillar {
-    left: -3cqw;
-  }
-
-  .pt--bride .pt__pillar {
-    right: -3cqw;
-    transform: scaleX(-1);
-  }
-
-  .pt__stage {
-    position: relative;
-    width: 100cqw;
-    margin-inline: -12cqw;
-    display: grid;
-    justify-items: center;
-  }
-
-  .pt__frame {
-    position: relative;
-    width: 60cqw;
-    max-width: 320px;
-    aspect-ratio: 4 / 5;
-    padding: 3cqw;
-    border-radius: 50% 50% 8px 8px / 34% 34% 8px 8px;
-    box-shadow:
-      0 0 0 1.5px var(--gold),
-      0 14px 30px var(--shadow-deep);
-  }
-
-  .pt__frame--groom {
-    background:
-      url('../../assets/placeholders/zari-band.svg') 0 0 / 64px auto,
-      linear-gradient(135deg, #5e1c28 0%, #8a2c3b 48%, #5e1c28 100%);
-  }
-
-  .pt__frame--bride {
-    background:
-      url('../../assets/placeholders/zari-band.svg') 0 0 / 64px auto,
-      radial-gradient(ellipse at 40% 25%, #fffdf8 0%, #f6ecd8 60%, #e8d9b9 100%);
-  }
-
-  .pt__photo {
-    width: 100%;
-    height: 100%;
+  /* The photograph covers the page at its own proportions; the person stays in the middle */
+  .pc__scene {
+    inset: 0;
     overflow: hidden;
-    border-radius: 50% 50% 4px 4px / 32% 32% 4px 4px;
-    box-shadow: 0 0 0 2px var(--gold), 0 0 0 5px rgba(255, 253, 248, 0.55);
   }
 
-  .pt__photo img,
-  .pt__ph {
+  .pc__photo {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
+    object-position: 52% 50%;
   }
 
-  .pt__crest {
-    position: absolute;
-    left: 50%;
-    top: -7%;
-    width: 18%;
-    translate: -50% 0;
+  .pc--bride .pc__photo {
+    object-position: 49% 50%;
   }
 
-  .pt__filigree {
-    position: absolute;
-    bottom: -3%;
-    width: 24%;
-  }
-
-  .pt__filigree--l {
-    left: -4%;
-    transform: scaleY(-1);
-  }
-
-  .pt__filigree--r {
-    right: -4%;
-    transform: scale(-1, -1);
-  }
-
-  .pt__jasmine {
-    position: absolute;
-    top: 4%;
-    width: 34%;
-  }
-
-  .pt__jasmine--l {
-    left: -10%;
-  }
-
-  .pt__jasmine--r {
-    right: -10%;
-    transform: scaleX(-1);
-  }
-
-  .pt__strand {
-    position: absolute;
-    right: -4%;
+  /* Warm light down each edge, so the polaroids sit on a soft backdrop */
+  .pc__glow {
     top: 18%;
-    width: 7%;
+    bottom: 3%;
+    width: 36%;
   }
 
-  .pt__polaroid {
+  .pc__glow--l {
+    left: 0;
+    background: radial-gradient(ellipse 100% 56% at 0% 50%, rgba(255, 246, 228, 0.86), rgba(255, 246, 228, 0.55) 52%, rgba(255, 246, 228, 0) 100%);
+  }
+
+  .pc__glow--r {
+    right: 0;
+    background: radial-gradient(ellipse 100% 56% at 100% 50%, rgba(255, 246, 228, 0.86), rgba(255, 246, 228, 0.55) 52%, rgba(255, 246, 228, 0) 100%);
+  }
+
+  .pc .page__content {
+    inset: 0;
+    display: block;
+  }
+
+  /* "The Groom Rahul": script letters in the sky above the photograph's subject */
+  .pc__title {
     position: absolute;
-    z-index: 2;
-    width: 18%;
-    margin: 0;
-    padding: 0.8cqw 0.8cqw 0.6cqw;
-    background: #fffdf8;
-    box-shadow: 0 6px 14px var(--shadow);
-  }
-
-  .pt__polaroid::before {
-    content: '';
-    position: absolute;
-    left: 30%;
-    top: -6%;
-    width: 40%;
-    height: 12%;
-    background: rgba(234, 216, 183, 0.75);
-    rotate: -4deg;
-  }
-
-  .pt__polaroid img,
-  .pt__polaroid-ph {
-    display: grid;
-    place-items: center;
-    width: 100%;
-    aspect-ratio: 1;
-    object-fit: cover;
-    background: radial-gradient(circle at 50% 40%, var(--jasmine), var(--sandal));
-    font: 600 12px/1 var(--font-display);
-    color: var(--gold-text);
-  }
-
-  .pt__polaroid figcaption {
-    margin-top: 3px;
-    font: italic 500 11px/1.2 var(--font-display);
-    color: var(--brown-soft);
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .pt__bio {
+    left: 22cqw;
+    right: 22cqw;
+    top: calc(var(--safe-top) + 6.5cqh);
     display: grid;
     justify-items: center;
-    gap: 4px;
+    font-family: var(--font-script);
+    font-weight: 400;
+    color: #7a1f2b;
+    text-shadow: 0 0 2px rgba(255, 249, 238, 0.95), 0 0 12px rgba(255, 249, 238, 0.85);
+    -webkit-text-stroke: 0.35px currentColor;
+    white-space: nowrap;
   }
 
-  .pt__bio-text--clamped {
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  .pc__line {
+    display: block;
+    line-height: 1.02;
   }
 
-  .pt__more {
-    min-height: 44px;
-    border: 0;
-    background: none;
-    color: var(--maroon);
-    font: 600 14px/1 var(--font-body);
-    text-decoration: underline;
-    text-underline-offset: 3px;
+  .pc__line--s {
+    font-size: min(8cqw, 4.6cqh);
   }
 
-  @container app (max-height: 699px) {
-    .pt__frame {
-      width: 50cqw;
-    }
+  .pc__line--l {
+    font-size: min(15cqw, 8.4cqh);
+  }
 
-    .pt__polaroid:nth-of-type(3n) {
-      display: none;
-    }
+  .pc__line--l + .pc__line--l {
+    margin-top: -0.12em;
+  }
+
+  .pc__ch {
+    display: inline-block;
+  }
+
+  /* The polaroids: two columns at the edges, spread evenly from below the title to the foot */
+  .pc__col {
+    position: absolute;
+    top: calc(var(--safe-top) + 16cqh);
+    bottom: calc(var(--safe-bottom) + 5cqh);
+    width: min(26cqw, 15.5cqh);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .pc__col--l {
+    left: 2cqw;
+  }
+
+  .pc__col--r {
+    right: 2cqw;
+    top: calc(var(--safe-top) + 21cqh);
+  }
+
+  .pc__card img {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 3px 4px rgba(50, 25, 10, 0.35));
   }
 </style>

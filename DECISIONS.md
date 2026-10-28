@@ -496,3 +496,35 @@ The client did not want one large board holding the whole countdown. They asked 
 
 - `npm run qa:book`: **70/70 checks pass**, including no overflow at every phone size and the countdown checks AC-13 and AC-14. Unit tests: 58 pass.
 - `npm run perf`: mobile performance 89 (first paint 1.7 s), accessibility 100, best practices 100.
+
+## 28 October 2026 — Rahul and Divya pages from the client's picture; tap hand on the curtains
+
+The client supplied one picture of both pages side by side: "The Groom Rahul" and "The Bride Divya", each in the temple courtyard with eight interest polaroids. They asked for the pages to look like it and animate as in their reference video: when the page opens, the name's letters jump in one by one, then the interest cards pop up one by one. They also asked to replace the rope on the Save the Date curtains with a blinking hand that opens them when tapped.
+
+### Decisions
+
+1. **Built from the client's picture** (`npm run couple:assets`, `scripts/couple/`):
+   - Each half becomes its page's photograph, with the polaroids and printed title taken out.
+   - Each polaroid, and the groom's gaming cluster, is cut out on its own. Its rough corners are snapped to the edges of its white frame, so the cut follows the frame exactly, tape included.
+   - **Rebuilding the background:** each area is rebuilt only from its own surroundings. The titles come from the sky and palms; the card areas come from the flowers and pillars on the same side, never the temple tower or the person. The card areas lie in the soft, out-of-focus background, so their middles are a smooth blend of the surrounding colours with fine grain.
+2. **Phone layout:**
+   - The photograph covers the page with the person in the middle.
+   - The eight cards stand in two columns at the screen edges, spread evenly from below the title to the foot, on a soft warm glow of light. The glow also hides where the polaroids were taken out.
+   - Cards are about a quarter of the page wide, so the labels are readable. Their own slight tilts are kept.
+3. **The names** are live lettering in maroon script (Pinyon Script) in the sky: "The" small, then "Groom"/"Bride" and the name large. Screen readers hear "The Groom, Rahul".
+4. **Motion, as in the reference video:**
+   - The photograph settles: the groom's from the left, the bride's from the right.
+   - Each letter of the title drops in and bounces into place, one after another.
+   - The cards pop in one by one, down the left column and then the right, each with a small spin as if set down by hand.
+   - Revisits and reduced motion show the finished page.
+5. **Removed:** the old portrait frame, the placeholder polaroids, the biography text and its "Read more" sheet, and the `portrait`, `bio` and `memories` fields with their launch-check entries. The client's picture provides the portraits and interests.
+6. **Save the Date tap hand:**
+   - The gold rope is replaced by a gold hand pointing at the closed curtains. It taps and blinks, with soft rings spreading from its fingertip.
+   - Tapping it opens the curtains gently. They still open by themselves after 3 seconds if nobody taps, as asked earlier.
+   - The rope image and its cut-out step are removed.
+7. **No focus box around page headings:** the white ring left from the general focus style is removed.
+
+### Results
+
+- `npm run qa:book`: **70/70 checks pass**. AC-17 now checks, for each page, that the photograph enters from the partner's side, the letters and the eight cards appear one by one, and every card ends fully on screen. Unit tests: 58 pass.
+- `npm run perf`: mobile performance 87, accessibility 100, best practices 100. The two photographs and the cards are requested only after the door photograph.

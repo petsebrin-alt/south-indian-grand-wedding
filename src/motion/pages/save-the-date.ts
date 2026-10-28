@@ -3,8 +3,8 @@ import { courtyardLife } from '../courtyard';
 
 /**
  * Save the Date (PRD §6.4), as the client asked: the couple step forward holding their gold board,
- * whose curtains are closed and tied with a gold rope. Tapping the rope (or waiting AUTO_OPEN_MS
- * after the couple settle) unties it and the curtains draw gently open; "Save the Date" is written
+ * whose curtains are closed with a blinking tap hand on them. Tapping it (or waiting AUTO_OPEN_MS
+ * after the couple settle) draws the curtains gently open; "Save the Date" is written
  * in script letter by letter, the month appears, red hearts pop onto the celebration days and Add
  * to Calendar follows. The courtyard stirs in the breeze and rose petals drift down. Revisits and
  * reduced motion show the finished page (curtains open); reduced motion has no breeze, petals,
@@ -19,7 +19,6 @@ let life: ReturnType<typeof courtyardLife> | null = null;
 defineChoreo('save-the-date', (page) => {
   const $ = (sel: string) => [...page.querySelectorAll<HTMLElement | SVGElement>(sel)];
   const tie = page.querySelector<HTMLButtonElement>('[data-tie]')!;
-  const [tieL, tieR] = $('.sd__tie-half');
   const glyphs = $('.sd__glyph');
   const gap = glyphs.length > 1 ? (WRITE_S - LETTER_S) / (glyphs.length - 1) : 0;
 
@@ -34,10 +33,8 @@ defineChoreo('save-the-date', (page) => {
   const write = 1.3;
   const reveal = gsap
     .timeline({ paused: true })
-    // The rope comes untied, each half going with its curtain
-    .to(tieL, { xPercent: -45, rotation: -10, opacity: 0, duration: 0.8, ease: 'power1.in' }, 0)
-    .to(tieR, { xPercent: 45, rotation: 10, opacity: 0, duration: 0.8, ease: 'power1.in' }, 0)
-    .set(tie, { autoAlpha: 0 }, 0.8)
+    // The hand fades away as the curtains begin to part
+    .to(tie, { autoAlpha: 0, scale: 0.8, duration: 0.4, ease: 'power1.in' }, 0)
     // …and the curtains draw back, slowly and gently
     .from($('[data-curtain]'), { scaleX: 1, duration: 2.6, ease: 'sine.inOut', stagger: 0.06 }, 0.1)
     .fromTo(glyphs, { drawSVG: '0%', strokeWidth: 3 }, { drawSVG: '100%', duration: LETTER_S, ease: 'power1.inOut', stagger: gap }, write)

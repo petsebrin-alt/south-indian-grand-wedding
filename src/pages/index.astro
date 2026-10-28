@@ -24,7 +24,6 @@ import OrnamentSprite from '../components/OrnamentSprite.astro';
 import Chrome from '../components/Chrome.astro';
 import ContentsDialog from '../components/ContentsDialog.astro';
 import CalendarSheet from '../components/CalendarSheet.astro';
-import BioSheet from '../components/BioSheet.astro';
 import EventSheet from '../components/EventSheet.astro';
 import TravelSheet from '../components/TravelSheet.astro';
 import { travelTiles } from '../lib/travel';
@@ -126,8 +125,6 @@ const p = (id: string) => {
         {wedding.events.map((e) => <CalendarSheet eventId={e.id} />)}
         {wedding.events.map((e) => <EventSheet event={e} />)}
         {travelTiles.map((t) => <TravelSheet item={t.key} icon={t.icon} />)}
-        <BioSheet role="groom" />
-        <BioSheet role="bride" />
         <FamilyTree side="groom" />
         <FamilyTree side="bride" />
         <WishComposer />

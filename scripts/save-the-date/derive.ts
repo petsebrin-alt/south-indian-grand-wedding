@@ -6,8 +6,6 @@
  *   board-inside   the board's opening as a mask (PNG): the curtain and the card show only there
  *   curtain        one closed curtain panel, made from the photographed curtain's fabric (WebP;
  *                  the other half is its mirror image)
- *   tie            the photographed curtain's gold rope tie-back and tassel, lifted off the red
- *                  fabric (WebP; doubled and mirrored, it ties the closed curtains together)
  *   board.json     where the board and its opening sit in the picture (for laying out the page)
  * Re-run after replacing a source picture or adjusting scene.json.
  */
@@ -123,22 +121,3 @@ for (let y = 0; y < PH; y++) {
   }
 }
 await encode('curtain', sharp(panel, { raw: { width: PW, height: PH, channels: 3 } }), ['webp'], 84);
-
-// 3. The tie-back: gold rope and tassel lifted off the red fabric by colour (gold is high in green
-//    relative to red; the velvet is not), enlarged twice with a smooth filter
-{
-  const [tx0, ty0, tx1, ty1] = scene.curtain.tie;
-  const tw = tx1 - tx0, th = ty1 - ty0;
-  const out = Buffer.alloc(tw * th * 4);
-  for (let y = 0; y < th; y++)
-    for (let x = 0; x < tw; x++) {
-      const s = ((ty0 + y) * CW + tx0 + x) * 3, r = c[s], g = c[s + 1], bl = c[s + 2];
-      const a = Math.min(1, Math.max(0, (g / Math.max(r, 1) - 0.38) / 0.22)) * Math.min(1, Math.max(0, (r - 70) / 50));
-      const t = (y * tw + x) * 4;
-      out[t] = r;
-      out[t + 1] = g;
-      out[t + 2] = bl;
-      out[t + 3] = Math.round(a * 255);
-    }
-  await encode('tie', sharp(out, { raw: { width: tw, height: th, channels: 4 } }).resize({ width: tw * 2, kernel: 'lanczos3' }), ['webp'], 90);
-}

@@ -27,9 +27,6 @@ const partner = z.object({
   name: text,
   fullName: maybeText,
   honorific: maybeText,
-  portrait: photo,
-  bio: maybeText,
-  memories: z.array(z.object({ photo: photo.unwrap(), caption: maybeText })).max(6),
 });
 
 export const eventIds = ['mehndi', 'haldi', 'sangeet', 'wedding', 'reception'] as const;
