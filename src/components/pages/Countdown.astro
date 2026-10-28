@@ -1,12 +1,27 @@
 ---
-/** Page 3 — Wedding Countdown (PRD §6.5, THEME §13 P4). Motion: src/motion/pages/countdown.ts */
+/**
+ * Page 3 — Wedding Countdown (PRD §6.5), as the client asked: the courtyard photograph of the
+ * earlier pages with the temple tower and the palms taken out (warm morning sky in their place),
+ * and their elephant-and-peacock board standing in it with the countdown inside in one straight
+ * row. The two elephants raise and lower their trunks, slowly and smoothly (each trunk is cut in
+ * two jointed pieces that swing on its base and at the middle of its curve; src/assets/countdown/,
+ * npm run countdown:assets). Motion and counting: src/motion/pages/countdown.ts
+ */
 import PageShell from '../PageShell.astro';
-import Ornament from '../Ornament.astro';
-import Decor from '../Decor.astro';
-import Lamp from '../Lamp.astro';
+import ScenePhoto from '../ScenePhoto.astro';
+import CourtyardScene from '../CourtyardScene.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
 import { formatDateLong, formatTime } from '../../lib/format';
+import fit from '../../assets/countdown/board.json';
+import board from '../../assets/countdown/board.webp';
+import boardAvif from '../../assets/countdown/board.avif';
+import courtyardClear from '../../assets/countdown/courtyard-clear.webp';
+import courtyardClearAvif from '../../assets/countdown/courtyard-clear.avif';
+import trunkLLower from '../../assets/countdown/trunk-l-lower.webp';
+import trunkLUpper from '../../assets/countdown/trunk-l-upper.webp';
+import trunkRLower from '../../assets/countdown/trunk-r-lower.webp';
+import trunkRUpper from '../../assets/countdown/trunk-r-upper.webp';
 
 interface Props {
   page: BookPage;
@@ -21,98 +36,237 @@ const units = [
   { key: 'minutes', label: 'Minutes' },
   { key: 'seconds', label: 'Seconds' },
 ];
+
+type Piece = { box: number[]; pivot: number[] };
+const pct = (n: number) => `${+n.toFixed(3)}%`;
+const at = ([x0, y0, x1, y1]: number[]) => `left:${pct(x0)};top:${pct(y0)};width:${pct(x1 - x0)};height:${pct(y1 - y0)}`;
+// The curled upper piece sits inside the lower one, so it rides on the lower piece's swing
+const within = (inner: number[], outer: number[]) => {
+  const [ox0, oy0, ox1, oy1] = outer, w = ox1 - ox0, h = oy1 - oy0;
+  return `left:${pct(((inner[0] - ox0) / w) * 100)};top:${pct(((inner[1] - oy0) / h) * 100)};width:${pct(((inner[2] - inner[0]) / w) * 100)};height:${pct(((inner[3] - inner[1]) / h) * 100)}`;
+};
+const trunks = [
+  { side: 'l', lower: fit['trunk-l-lower'] as Piece, upper: fit['trunk-l-upper'] as Piece, lowerImg: trunkLLower, upperImg: trunkLUpper },
+  { side: 'r', lower: fit['trunk-r-lower'] as Piece, upper: fit['trunk-r-upper'] as Piece, lowerImg: trunkRLower, upperImg: trunkRUpper },
+];
 ---
 
-<PageShell page={page} index={index} class="cd" note="Placeholder art: D-08 brass bells, D-02 jasmine strands, D-06 brass lamp. Niche panels (S-07) are CSS.">
-  <Ornament name="divider-line" class="divider cd__rule" />
-  <h2 class="page-title cd__title" tabindex="-1" data-page-heading>Counting Down to the Muhurtham</h2>
-  <Ornament name="divider-line" class="divider cd__rule" />
+<PageShell page={page} index={index} watermark={false} class="cd">
+  <Fragment slot="architecture">
+    <CourtyardScene webp={courtyardClear} avif={courtyardClearAvif} without={['palm', 'palm-r']} />
+    <span class="layer layer--architecture cd__veil" aria-hidden="true"></span>
+  </Fragment>
 
-  <div class="cd__row" data-countdown={startISO} role="timer" aria-label="Time remaining until the wedding Muhurtham">
+  <h2 class="cd__title" tabindex="-1" data-page-heading>Counting down to the <span class="cd__title-script">Muhurtham</span></h2>
+
+  <div class="cd__board" style={`--board-ratio:${fit.ratio}`}>
+    <ScenePhoto class="cd__frame" avif={boardAvif} webp={board} defer />
     {
-      units.map((u) => (
-        <div class="cd__unit">
-          <Decor name="temple-bell" asset="D-08" class="cd__bell" />
-          <div class="cd__niche">
-            <span class="cd__num" data-unit={u.key} aria-hidden="true">
-              --
-            </span>
-            <span class="cd__label">{u.label}</span>
+      trunks.map((t) => (
+        <div class={`cd__trunk cd__trunk--${t.side}`} style={`${at(t.lower.box)};transform-origin:${t.lower.pivot[0]}% ${t.lower.pivot[1]}%`} aria-hidden="true">
+          <img src={t.lowerImg.src} width={t.lowerImg.width} height={t.lowerImg.height} alt="" decoding="async" loading="lazy" />
+          <div class={`cd__tip cd__tip--${t.side}`} style={`${within(t.upper.box, t.lower.box)};transform-origin:${t.upper.pivot[0]}% ${t.upper.pivot[1]}%`}>
+            <img src={t.upperImg.src} width={t.upperImg.width} height={t.upperImg.height} alt="" decoding="async" loading="lazy" />
           </div>
         </div>
       ))
     }
-    {[1, 2, 3].map((i) => <Decor name="jasmine-strand-short" asset="D-02" class="cd__strand sway lean" style={`left:${i * 25}%;--sway:1.6deg;--sway-dur:${5 + i * 0.7}s;--sway-delay:${-i}s`} />)}
-  </div>
-  <p class="sr-only" data-countdown-summary></p>
 
-  <div class="cd__arrived" data-arrived hidden>
-    <p class="display">{wedding.copy.countdownArrived.text}</p>
+    <div class="cd__panel" style={at(fit.panel)}>
+      <div class="cd__row" data-countdown={startISO} role="timer" aria-label="Time remaining until the wedding Muhurtham">
+        {
+          units.map((u) => (
+            <div class="cd__unit">
+              <span class="cd__num" data-unit={u.key} aria-hidden="true">
+                --
+              </span>
+              <span class="cd__label">{u.label}</span>
+            </div>
+          ))
+        }
+      </div>
+      <p class="sr-only" data-countdown-summary></p>
+      <div class="cd__arrived" data-arrived hidden>
+        <p>{wedding.copy.countdownArrived.text}</p>
+      </div>
+      <div class="cd__meta">
+        <p class="cd__when">{formatDateLong(startISO)}</p>
+        <p class="cd__time">{formatTime(startISO)} IST</p>
+        <p class="cd__local" data-localtime hidden></p>
+      </div>
+    </div>
   </div>
-
-  <div class="stack-xs cd__meta">
-    <p class="caption">{formatDateLong(startISO)} · {formatTime(startISO)} IST</p>
-    <p class="caption" data-localtime hidden></p>
-  </div>
-
-  <Fragment slot="foreground">
-    <Lamp class="layer layer--foreground cd__lamp" />
-  </Fragment>
 </PageShell>
 
 <style is:global>
-  .cd__rule {
-    width: 46cqw;
+  .page--countdown .page__frame {
+    display: none;
+  }
+
+  /* A soft ivory veil of morning light behind the heading */
+  .cd__veil {
+    inset: 0;
+    background: radial-gradient(ellipse 72% 12% at 50% 15%, rgba(255, 249, 238, 0.72), rgba(255, 249, 238, 0) 100%);
+  }
+
+  .page--countdown .page__content {
+    inset: 0;
+    display: block;
   }
 
   .cd__title {
-    max-width: 18em;
+    position: absolute;
+    left: 6cqw;
+    right: 6cqw;
+    top: calc(var(--safe-top) + 10cqh);
+    text-align: center;
+    font: 700 clamp(14px, 4.2cqw, 18px) / 1.3 var(--font-royal);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #6a0f1f;
+    text-shadow: 0 0 2px rgba(255, 249, 238, 0.95), 0 0 10px rgba(255, 249, 238, 0.9);
+  }
+
+  .cd__title-script {
+    display: block;
+    margin-top: 0.2em;
+    font: 400 2.5em / 1 var(--font-script);
+    letter-spacing: 0;
+    text-transform: none;
+    -webkit-text-stroke: 0.3px currentColor;
+  }
+
+  /* The board stands at the foot of the courtyard */
+  .cd__board {
+    --bw: min(98cqw, calc(70cqh / var(--board-ratio)));
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 5cqh);
+    width: var(--bw);
+    aspect-ratio: 1 / var(--board-ratio);
+    translate: -50% 0;
+  }
+
+  .cd__frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* The trunks: each lower piece swings on the trunk's base, and the curled upper piece swings at
+     the middle of the S a moment later, so the trunk bends as it rises and falls */
+  .cd__trunk,
+  .cd__tip {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .cd__trunk img,
+  .cd__tip img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .cd__trunk--l {
+    animation: cd-trunk-l 3.8s ease-in-out infinite alternate;
+  }
+
+  .cd__tip--l {
+    animation: cd-tip-l 3.8s ease-in-out -0.8s infinite alternate;
+  }
+
+  .cd__trunk--r {
+    animation: cd-trunk-r 4.2s ease-in-out -1.6s infinite alternate;
+  }
+
+  .cd__tip--r {
+    animation: cd-tip-r 4.2s ease-in-out -2.5s infinite alternate;
+  }
+
+  /* Raised (curled back) at one end, lowered (curled forward) at the other */
+  @keyframes cd-trunk-l {
+    from {
+      rotate: -4deg;
+    }
+
+    to {
+      rotate: 6deg;
+    }
+  }
+
+  @keyframes cd-tip-l {
+    from {
+      rotate: -7deg;
+    }
+
+    to {
+      rotate: 11deg;
+    }
+  }
+
+  @keyframes cd-trunk-r {
+    from {
+      rotate: 4deg;
+    }
+
+    to {
+      rotate: -6deg;
+    }
+  }
+
+  @keyframes cd-tip-r {
+    from {
+      rotate: 7deg;
+    }
+
+    to {
+      rotate: -11deg;
+    }
+  }
+
+  .reduce-motion :is(.cd__trunk, .cd__tip) {
+    animation: none;
+  }
+
+  /* The countdown, in one straight row on the board's cream panel */
+  .cd__panel {
+    position: absolute;
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 
   .cd__row {
-    position: relative;
+    width: 100%;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 3cqw;
-    width: 112%;
-    margin-top: 3cqh;
   }
 
   .cd__unit {
-    position: relative;
     display: grid;
     justify-items: center;
+    gap: 1.6cqw;
+    padding-block: 1cqw;
   }
 
-  .cd__bell {
-    width: 5.5cqw;
-    margin-bottom: -1.2cqh;
-    transform-origin: 50% 0;
-  }
-
-  .cd__niche {
-    width: 100%;
-    display: grid;
-    align-content: center;
-    gap: 6px;
-    aspect-ratio: 1 / 1.45;
-    border: 1px solid var(--gold);
-    border-radius: 50% 50% 6px 6px / 28% 28% 6px 6px;
-    background:
-      radial-gradient(ellipse at 50% 18%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 60%),
-      linear-gradient(180deg, var(--jasmine), var(--sandal-light));
-    box-shadow:
-      inset 0 0 0 3px var(--jasmine),
-      inset 0 0 0 4px var(--hairline),
-      0 8px 18px var(--shadow);
+  /* Fine gold rules between the units */
+  .cd__unit + .cd__unit {
+    border-left: 1px solid rgba(168, 120, 42, 0.45);
   }
 
   .cd__num {
     display: inline-flex;
     justify-content: center;
-    font: 600 clamp(24px, 7.6cqw, 44px) / 1 var(--font-display);
+    font: 700 max(20px, 11.5cqw) / 1 var(--font-display);
     font-variant-numeric: lining-nums tabular-nums;
-    color: var(--brown);
+    color: #6a0f1f;
   }
 
   .cd__slot {
@@ -132,63 +286,39 @@ const units = [
   }
 
   .cd__label {
-    font: 500 9px/1 var(--font-royal);
-    letter-spacing: 0.14em;
+    font: 700 max(8px, 3.6cqw) / 1 var(--font-royal);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--gold-text);
+    color: #8a5a1c;
   }
 
-  .cd__strand {
-    position: absolute;
-    top: 6cqh;
-    width: 3.6cqw;
-    translate: -50% 0;
-    z-index: 1;
-    pointer-events: none;
-  }
-
-  .cd__arrived {
-    padding: 3cqh 6cqw;
-    border: 1px solid var(--gold);
-    box-shadow: inset 0 0 0 4px var(--jasmine), inset 0 0 0 5px var(--hairline);
-    background: rgba(255, 253, 248, 0.9);
-  }
-
-  .cd__arrived .display {
-    font-size: clamp(24px, 7.6cqw, 34px);
-    color: var(--maroon);
+  .cd__arrived p {
+    font: 400 max(20px, 10cqw) / 1.15 var(--font-script);
+    color: #6a0f1f;
   }
 
   .cd__meta {
-    margin-top: 1cqh;
+    margin-top: 4cqw;
+    display: grid;
+    gap: 1cqw;
   }
 
-  .cd__lamp {
-    left: 50%;
-    bottom: calc(var(--safe-bottom) + 7cqh);
-    width: 13cqw;
-    translate: -50% 0;
+  .cd__when {
+    font: 700 max(13px, 6.2cqw) / 1.2 var(--font-display);
+    color: #6a0f1f;
   }
 
-  @container app (max-width: 339px) {
-    .cd__row {
-      grid-template-columns: repeat(2, 1fr);
-      width: 76%;
-      row-gap: 2cqh;
-    }
-
-    .cd__strand {
-      display: none;
-    }
+  .cd__time {
+    font: 700 max(9px, 4.2cqw) / 1.3 var(--font-royal);
+    letter-spacing: 0.18em;
+    color: #1d5232;
   }
 
-  @container app (max-height: 699px) {
-    .cd__lamp {
-      width: 10cqw;
-    }
-
-    .cd__row {
-      margin-top: 1cqh;
-    }
+  .cd__local {
+    max-width: 82cqw;
+    margin-inline: auto;
+    font: 500 max(9px, 3.6cqw) / 1.3 var(--font-body);
+    color: #5a3626;
+    text-wrap: balance;
   }
 </style>

@@ -63,17 +63,29 @@ Kept in `src/assets/save-the-date/source/`:
 
 `src/assets/save-the-date/scene.json` holds a point inside the board's opening, its paper colour, the board's outer edges, and where the curtain's fabric and embroidered edge lie. After changing a picture, run `npm run save-the-date:assets`. The page reuses the Welcome page's courtyard photograph behind the board.
 
+## Countdown page: the elephant board
+
+Kept in `src/assets/countdown/source/`:
+
+| File | What it shows |
+|---|---|
+| `board.webp` | The elephant-and-peacock board, on white. It is lifted off the white; the countdown sits on its cream panel. Each elephant's trunk is cut out in two jointed pieces (lower, and the curled tip) and painted out of the board beneath, so the trunks can rise and fall. |
+
+The page's background is the Welcome courtyard with the temple tower and the palms taken out: that part of the sky is repainted as warm morning sky with a low sun, keeping the sharp garlands and bells in front of it.
+
+`src/assets/countdown/scene.json` holds the sky region and colours, the board's panel, and each trunk's outline, base, pivot and joint. After changing a picture, the Welcome courtyard or `scene.json`, run `npm run countdown:assets`.
+
 ## All decoration slots
 
 | File name (`.webp`, `.avif` or `.png`) | Asset ID | Used on |
 |---|---|---|
 | `jasmine-swag` | D-01 | Love Story, Venues, Wishing Wall |
-| `jasmine-strand-short`, `jasmine-strand-medium`, `jasmine-strand-long` | D-02 | Countdown, Rahul, Divya, Ceremony |
+| `jasmine-strand-short`, `jasmine-strand-medium`, `jasmine-strand-long` | D-02 | Rahul, Divya, Ceremony |
 | `jasmine-cluster` (top-left corner bunch) | D-03 | Save the Date, Bride, Family |
 | `arch-garland` | D-04 | Family |
-| `kuthuvilakku` (no flames; flames are drawn in code) | D-06 | Countdown, Ceremony, Thank You |
+| `kuthuvilakku` (no flames; flames are drawn in code) | D-06 | Ceremony, Thank You |
 | `agal-diya` | D-07 | Family |
-| `temple-bell` (one hanging brass bell, chain at top centre) | D-08 | Countdown, Events, Wishing Wall |
+| `temple-bell` (one hanging brass bell, chain at top centre) | D-08 | Events, Wishing Wall |
 | `temple-pillar` | D-09 | Rahul, Divya, Ceremony, Venues |
 | `gopuram-misty` | D-12 | Rahul, Divya, Thank You |
 | `mango-toran` | D-13 | Ceremony, Travel |

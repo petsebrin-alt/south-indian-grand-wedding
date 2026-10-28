@@ -4,11 +4,23 @@
  * with the seated figure taken out; src/assets/welcome/, npm run welcome:assets). It covers the
  * page at its own proportions; garland strands, bells, a banana leaf and the palms are pieces of
  * it that sway in the breeze (src/motion/courtyard.ts). Requested after the door photograph.
+ * A page may pass its own version of the photograph (the same framing) and leave out pieces that
+ * are not in it (the Countdown page's sky has no palms).
  */
+import type { ImageMetadata } from 'astro';
 import ScenePhoto from './ScenePhoto.astro';
 import scene from '../assets/welcome/scene.json';
-import courtyard from '../assets/welcome/courtyard.webp';
-import courtyardAvif from '../assets/welcome/courtyard.avif';
+import welcomeCourtyard from '../assets/welcome/courtyard.webp';
+import welcomeCourtyardAvif from '../assets/welcome/courtyard.avif';
+
+interface Props {
+  webp?: ImageMetadata;
+  avif?: ImageMetadata;
+  /** Ids of swaying pieces to leave out (scene.json → wind.pieces). */
+  without?: string[];
+}
+
+const { webp: courtyard = welcomeCourtyard, avif: courtyardAvif = welcomeCourtyardAvif, without = [] } = Astro.props;
 
 const { width: PW, height: PH } = scene.photo;
 const pct = (n: number) => `${+n.toFixed(3)}%`;
@@ -21,7 +33,7 @@ const crop = ([x0, y0, x1, y1]: number[]) => `width:${pct((PW / (x1 - x0)) * 100
   <div class="courtyard__inner" data-courtyard>
     <ScenePhoto class="courtyard__photo" avif={courtyardAvif} webp={courtyard} defer />
     {
-      scene.wind.pieces.map((w) => (
+      scene.wind.pieces.filter((w) => !without.includes(w.id)).map((w) => (
         <div class={`courtyard__wind courtyard__wind--${w.feather}`} data-wind={w.amp} style={`${box(w.box)};transform-origin:${w.pivot[0]}% ${w.pivot[1]}%`}>
           <ScenePhoto avif={courtyardAvif} webp={courtyard} style={crop(w.box)} defer />
         </div>

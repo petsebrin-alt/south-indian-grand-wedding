@@ -440,3 +440,31 @@ The client asked for:
 
 - `npm run qa:book`: **70/70 checks pass.** AC-16 now taps the tie and checks the curtains open with the month, hearts and button. The new AC-16d checks that the curtains stay tied briefly and then open on their own. The gesture checks run Save the Date ↔ Countdown ↔ Rahul. Unit tests: 58 pass, including the new page count.
 - `npm run perf`: mobile performance 87 (first paint 1.9 s in all three runs), accessibility 100, best practices 100.
+
+## 28 October 2026 — Countdown page with the elephant board
+
+The client asked for the whole Countdown page to be replaced:
+- **Background:** the same courtyard as the earlier pages, but with the temple tower and the palm trees removed.
+- **Board:** their elephant-and-peacock board, with the countdown inside in one straight row for now (they will send another layout later).
+- **Elephants:** their trunks move up and down smoothly, in a realistic, wavy way.
+
+### Decisions
+
+1. **The courtyard without the tower and palms** (`courtyard-clear`):
+   - The part of the sky behind the garlands is repainted as warm morning sky: from the photograph's own pale sky at the top to golden haze at the horizon, with a low sun glowing through (the client's warm reference) and a fine grain to match the photograph.
+   - Sharp detail is kept only within the garland strands, bells, mango leaves and the right pillar. The palms' fronds, which are also sharp, go.
+   - The bushes below the horizon remain, and the two palm pieces that swayed on the earlier pages are left out here.
+2. **The board:** used as supplied, lifted off its white background. The countdown sits on its cream panel, in one straight row (days, hours, minutes, seconds, with fine gold rules between them), with the date, the confirmed time and the guest's local time below.
+   - The heading "Counting down to the Muhurtham" sits in the sky above the board, in maroon Cinzel with "Muhurtham" in script.
+   - The placeholder bells, jasmine strands and lamp of the old page are gone.
+3. **The trunks:**
+   - **Cut-out:** each trunk is cut from the board in two pieces (from its base to the middle of its S-curve, and the curled tip). The board beneath is rebuilt from its own cream and florals, never the tusks.
+   - **Swing:** the lower piece swings on the trunk's base and the tip swings at the joint a moment later and further. The trunk bends as it rises and falls, like a real trunk, rather than moving stiffly.
+   - **Timing:** slow ease-in-out (3.8 s and 4.2 s each way, so the two elephants are not in step), raised up to 4° back and lowered up to 6°, with the tip a further 7° and 11°. The pieces overlap and fade into each other at the joints, so no seam shows.
+   - **Pausing:** the motion pauses when the page is not showing, and is still under reduced motion.
+4. **Counting is unchanged:** the same countdown to 10:30 AM IST on 7 April 2027 from any time zone, with rolling digits and the arrival message at the Muhurtham.
+
+### Results
+
+- `npm run qa:book`: **70/70 checks pass** (AC-13 and AC-14 cover the countdown from other time zones and at the Muhurtham). Unit tests: 58 pass.
+- `npm run perf`: mobile performance 87 (first paint 1.9 s in all three runs), accessibility 100, best practices 100.
