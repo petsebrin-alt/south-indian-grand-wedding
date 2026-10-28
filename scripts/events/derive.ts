@@ -1,25 +1,19 @@
 /**
- * npm run events:assets → the Wedding Events pages (src/assets/events/) and the Family page's
- * background (src/assets/family/), from the client's two-page picture source/events.webp (page 1 on
- * the left half, page 2 on the right) and the measurements in scene.json:
+ * npm run events:assets → the Wedding Events pages (src/assets/events/), from the client's two-page
+ * picture source/events.webp (page 1 on the left half, page 2 on the right) and the measurements in
+ * scene.json:
  *   page-1, page-2  each half of the picture exactly as it is (the signboard, garlands, pillars,
  *                   lamps, flowers, medallions and their gold rods), except that the printed wording
  *                   inside each cream disc is painted out so the current details can be set there
  *                   in live text (AVIF + WebP)
  *   discs.json      each disc's centre, radius and ring in the page's own pixels
- *   ../family/background  page 1's background with the signboard, medallions and rods taken out
- *                   (the medallions are lifted out by their sharpness, since the picture's
- *                   background is in soft focus, and the background is rebuilt from its own texture)
  * Re-run after replacing the picture or adjusting scene.json.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp, { type Sharp } from 'sharp';
-import { inpaint } from '../welcome/inpaint';
 
 const dir = join(process.cwd(), 'src/assets/events');
-const familyDir = join(process.cwd(), 'src/assets/family');
-mkdirSync(familyDir, { recursive: true });
 const scene = JSON.parse(readFileSync(join(dir, 'scene.json'), 'utf8'));
 
 const write = async (path: string, img: Sharp, formats: ('avif' | 'webp')[], q = { avif: 58, webp: 82 }) => {
@@ -30,14 +24,6 @@ const write = async (path: string, img: Sharp, formats: ('avif' | 'webp')[], q =
     writeFileSync(`${path}.${f}`, buf);
     console.log(`✓ ${path.split('/src/assets/')[1]}.${f}  ${(buf.length / 1024).toFixed(0)} KB`);
   }
-};
-const insidePoly = (poly: number[][], x: number, y: number) => {
-  let c = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i], [xj, yj] = poly[j];
-    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
-  }
-  return c;
 };
 const boxBlur = (src: Float32Array, w: number, h: number, r: number) => {
   const tmp = new Float32Array(w * h), out = new Float32Array(w * h);
@@ -67,119 +53,15 @@ const grow = (m: Uint8Array, w: number, h: number, r: number) => {
   for (let i = 0; i < w * h; i++) o[i] = b[i] > 0.001 ? 1 : 0;
   return o;
 };
-const shrink = (m: Uint8Array, w: number, h: number, r: number) => {
-  const a = new Float32Array(w * h);
-  for (let i = 0; i < w * h; i++) a[i] = m[i];
-  const b = boxBlur(a, w, h, r);
-  const o = new Uint8Array(w * h);
-  for (let i = 0; i < w * h; i++) o[i] = b[i] > 0.999 ? 1 : 0;
-  return o;
-};
 
 const { data: d, info } = await sharp(join(dir, 'source/events.webp')).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-const W = info.width, H = info.height, n = W * H;
+const W = info.width, H = info.height;
+const pages: { name: string; span: number[] }[] = scene.pages;
 
-// Sharpness: local contrast, averaged a little. The picture's background is in soft focus, so the
-// medallions, flowers, still-lifes, rods and strands all stand out from it.
-const L = new Float32Array(n);
-for (let i = 0; i < n; i++) L[i] = 0.299 * d[i * 3] + 0.587 * d[i * 3 + 1] + 0.114 * d[i * 3 + 2];
-const grad = new Float32Array(n);
-for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = y * W + x; grad[i] = Math.hypot(L[i + 1] - L[i - 1], L[i + W] - L[i - W]); }
-const energy = boxBlur(grad, W, H, scene.sharp.radius);
-const sharpAt = (i: number) => energy[i] > scene.sharp.threshold;
-
-// 1. The medallions' areas (for the Family page's background)
-const unitMasks: Uint8Array[] = [];
-for (const u of scene.medallions) {
-  const [cx, cy, r] = u.circle;
-  const m = new Uint8Array(n);
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      const i = y * W + x;
-      if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) m[i] = 1;
-      else if (insidePoly(u.outline, x + 0.5, y + 0.5) && sharpAt(i)) m[i] = 1;
-    }
-  // Close small gaps, keep the piece joined to the ring, fill holes
-  let mask = shrink(grow(m, W, H, 5), W, H, 5);
-  const keep = new Uint8Array(n);
-  const stack = [cy * W + cx];
-  keep[stack[0]] = 1;
-  while (stack.length) {
-    const i = stack.pop()!, x = i % W;
-    for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) if (j >= 0 && j < n && mask[j] && !keep[j]) (keep[j] = 1), stack.push(j);
-  }
-  mask = keep;
-  const outside = new Uint8Array(n);
-  {
-    const st: number[] = [];
-    const seed = (i: number) => { if (!mask[i] && !outside[i]) (outside[i] = 1), st.push(i); };
-    for (let x = 0; x < W; x++) seed(x), seed((H - 1) * W + x);
-    for (let y = 0; y < H; y++) seed(y * W), seed(y * W + W - 1);
-    while (st.length) { const i = st.pop()!, x = i % W; for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) if (j >= 0 && j < n) seed(j); }
-  }
-  for (let i = 0; i < n; i++) mask[i] = outside[i] ? 0 : 1;
-  unitMasks.push(mask);
-}
-
-// 2. The areas to rebuild for the Family page's background: the medallions, and the thin gold connectors
-//    and hanging strands between them (thin sharp lines in the band below the signboard)
-const backgrounds: { name: string; span: number[]; band: number[][]; also: number[][][] }[] = scene.pages;
-const holes: Record<string, Uint8Array> = {};
-for (const page of backgrounds) {
-  const [hx0, hx1] = page.span;
-  const hw = hx1 - hx0;
-  const hole = new Uint8Array(hw * H);
-  // Thin sharp things in the band (rods, arcs, hanging strands): sharp, but gone after an opening
-  const sharpBand = new Uint8Array(hw * H);
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < hw; x++) {
-      const sx = hx0 + x;
-      if (insidePoly(page.band, sx + 0.5, y + 0.5) && grad[y * W + sx] > scene.sharp.edge) sharpBand[y * hw + x] = 1;
-    }
-  const thick = grow(shrink(sharpBand, hw, H, scene.thin), hw, H, scene.thin);
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < hw; x++) {
-      const sx = hx0 + x, i = y * W + sx, k = y * hw + x;
-      if (unitMasks.some((m) => m[i])) hole[k] = 1;
-      else if (sharpBand[k] && !thick[k]) hole[k] = 1;
-      else if (page.also.some((p) => insidePoly(p, sx + 0.5, y + 0.5))) hole[k] = 1;
-    }
-  holes[page.name] = grow(hole, hw, H, scene.grow);
-}
-const rebuild = (span: number[], hole: Uint8Array) => {
-  const [hx0, hx1] = span;
-  const hw = hx1 - hx0;
-  const pic = new Float32Array(hw * H * 3);
-  for (let y = 0; y < H; y++) for (let x = 0; x < hw; x++) for (let c = 0; c < 3; c++) pic[(y * hw + x) * 3 + c] = d[(y * W + hx0 + x) * 3 + c];
-  const avoid = new Uint8Array(hw * H);
-  const fine = inpaint({ w: hw, h: H, d: Float32Array.from(pic) }, hole, avoid, () => {});
-  const calm = inpaint({ w: hw, h: H, d: Float32Array.from(pic) }, hole, avoid, () => {}, { finest: 1, grain: 2.2 });
-  // Copied soft texture, easing towards a smooth blend only deep inside the largest areas
-  const dist = new Float32Array(hw * H);
-  for (let i = 0; i < hw * H; i++) dist[i] = hole[i] ? 1e9 : 0;
-  for (let y = 0; y < H; y++) for (let x = 0; x < hw; x++) { const i = y * hw + x; if (x) dist[i] = Math.min(dist[i], dist[i - 1] + 1); if (y) dist[i] = Math.min(dist[i], dist[i - hw] + 1); }
-  for (let y = H - 1; y >= 0; y--) for (let x = hw - 1; x >= 0; x--) { const i = y * hw + x; if (x < hw - 1) dist[i] = Math.min(dist[i], dist[i + 1] + 1); if (y < H - 1) dist[i] = Math.min(dist[i], dist[i + hw] + 1); }
-  for (let i = 0; i < hw * H; i++) {
-    if (!hole[i]) continue;
-    const t = Math.min(1, Math.max(0, (dist[i] - 30) / 60)) * scene.calm;
-    for (let c = 0; c < 3; c++) pic[i * 3 + c] = (1 - t) * fine.d[i * 3 + c] + t * calm.d[i * 3 + c];
-  }
-  return { pic, hw };
-};
-// 3. The Family page's background: page 1's, with the signboard taken out as well
-{
-  const page = backgrounds[0];
-  const hw = page.span[1] - page.span[0];
-  const hole = Uint8Array.from(holes[page.name]);
-  for (let y = 0; y < H; y++) for (let x = 0; x < hw; x++) if (insidePoly(scene.signboard, page.span[0] + x + 0.5, y + 0.5)) hole[y * hw + x] = 1;
-  const { pic } = rebuild(page.span, grow(hole, hw, H, 2));
-  await write(join(familyDir, 'background'), sharp(Buffer.from(Uint8ClampedArray.from(pic)), { raw: { width: hw, height: H, channels: 3 } }), ['avif', 'webp'], { avif: 58, webp: 80 });
-}
-
-// 4. The Wedding Events pages: the picture as it is, with only the printed wording inside each cream
+// The Wedding Events pages: the picture as it is, with only the printed wording inside each cream
 //    disc painted out
 const discsOut: Record<string, { page: number; cx: number; cy: number; r: number; ring: number }> = {};
-for (const [pageNo, page] of backgrounds.entries()) {
+for (const [pageNo, page] of pages.entries()) {
   const [hx0, hx1] = page.span;
   const hw = hx1 - hx0;
   const pic = new Float32Array(hw * H * 3);

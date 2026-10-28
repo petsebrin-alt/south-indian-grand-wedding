@@ -605,7 +605,7 @@ I had cut the medallions out of the picture, rebuilt the background behind them 
 5. **Phone framing:** the picture covers the page at its own proportions and is centred a little to the right, so every disc is fully on screen; the outer garlands and the edge of the props are cropped on narrow phones.
 6. **The effect, since the rods are in the picture:** as each page turns in, a bright gold ring draws round each medallion in turn (0.9 s, a slow ease) and fades into the picture's own ring while its details appear in the disc. Revisits and reduced motion show the finished page.
 7. **Removed:** the medallion cut-outs and `medallions.json`, the live-drawn rods and their fittings, and the rebuilt page backgrounds.
-8. **The Parents page's background** still comes from page 1 with the signboard and medallions taken out, so it is still a soft rebuilt background (it is not part of this change).
+8. **The Parents page's background** was still the soft rebuilt one at this point; it is replaced in the section at the end of this file.
 
 ### Results
 
@@ -630,3 +630,18 @@ The client sent an ornate gold oval frame and four portraits, and asked for the 
 - `npm run qa:book`: **69/69 checks pass.** Unit tests: 58 pass (the data test now expects the four supplied photographs). `npx astro check`: 0 errors.
 - `npm run perf`: mobile performance 89, accessibility 100, best practices 100.
 
+## 29 October 2026 — A structured temple behind the Parents page
+
+The client said the Parents page had the same problem as the Events page: the temple behind was blurred and unstructured. They sent a photograph of a temple courtyard (carved pillars with garlands and bells, banana leaves, brass lamps, a gopuram in the distance) to use as the background, and will send photographs to place on it.
+
+### Decisions
+
+1. **The background is that picture as it is** (`npm run family:assets`, `src/assets/family/source/temple.webp`): sharp stone carving, the garlands, the gopuram and the marble floor, nothing rebuilt or smoothed. It replaces the old background, which was the Events picture with its signboard and medallions smeared out. The Events script (`npm run events:assets`) no longer makes a Parents background, and its now-unused steps are removed.
+2. **Legibility over a real photograph:** the title and each person's words sit on soft ivory plaques (about 70% ivory, a thin gold edge), so they read over the stonework while the temple still shows around and through them. The relation and work text are a little darker. The frames sit on the left over the pillar, as in the picture's composition.
+3. **Phone framing:** the picture covers the page at its own proportions and shows the pillar, garland and banana leaves on the left and the gopuram on the right.
+4. **Quality note:** the picture is 736 × 1104 px, about the same as the Events picture, so on a very high-resolution phone it is enlarged slightly. A larger copy would be sharper if the client has one.
+
+### Results
+
+- `npm run qa:book`: 69/69 checks pass. Unit tests: 58 pass.
+- `npm run perf`: mobile performance 89 (91 in one run), accessibility 100, best practices 100. (A run while the computer was busy with other work scored 58–81 from slow main-thread time; the same build scored 89 once it was quiet.)

@@ -2,8 +2,10 @@
  * npm run family:assets → the Parents and Family gallery's picture frame and portraits, from the
  * client's pictures in src/assets/family/source/:
  *   frame.webp           the client's ornate gold oval frame (photographed on a cream wall)
+ *   temple.webp          the client's picture of a temple courtyard, the page's background
  *   <person>.webp        the portraits: bride-father, bride-mother, groom-father, groom-mother
  * and writes
+ *   src/assets/family/background.*  the temple picture as it is (AVIF + WebP)
  *   src/assets/family/frame.webp   the frame cut out of the wall (transparent, with its openwork and
  *                                  its opening), trimmed to its edges (the wall's soft shadow, which is
  *                                  brown but much paler than the gold, is left out)
@@ -18,6 +20,16 @@ import sharp from 'sharp';
 const dir = join(process.cwd(), 'src/assets/family');
 const photos = join(process.cwd(), 'public/photos/family');
 mkdirSync(photos, { recursive: true });
+
+// 0. The background: the client's temple picture, as it is
+{
+  const png = await sharp(join(dir, 'source/temple.webp')).removeAlpha().png().toBuffer();
+  for (const f of ['avif', 'webp'] as const) {
+    const out = await (f === 'avif' ? sharp(png).avif({ quality: 62, effort: 6 }) : sharp(png).webp({ quality: 84, effort: 6 })).toBuffer();
+    writeFileSync(join(dir, `background.${f}`), out);
+    console.log(`✓ family/background.${f}  ${(out.length / 1024).toFixed(0)} KB`);
+  }
+}
 
 // 1. The frame: gold is far more colourful than the cream wall and its shadow
 const { data, info } = await sharp(join(dir, 'source/frame.webp')).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -79,7 +91,7 @@ writeFileSync(
 console.log(`✓ family/frame.webp  ${(buf.length / 1024).toFixed(0)} KB, ${outW} × ${outH}`);
 
 // 2. The portraits, at web size
-for (const f of readdirSync(join(dir, 'source')).filter((n) => n.endsWith('.webp') && n !== 'frame.webp')) {
+for (const f of readdirSync(join(dir, 'source')).filter((n) => n.endsWith('.webp') && !['frame.webp', 'temple.webp'].includes(n))) {
   const out = await sharp(join(dir, 'source', f)).resize({ width: 520, withoutEnlargement: true }).webp({ quality: 84, effort: 6 }).toBuffer();
   writeFileSync(join(photos, f), out);
   console.log(`✓ photos/family/${f}  ${(out.length / 1024).toFixed(0)} KB`);
