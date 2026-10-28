@@ -5,9 +5,9 @@ import { dropPetals } from '../petals';
 /**
  * Wedding Countdown (PRD §6.5, THEME M-06). Counts to the fixed IST instant regardless of the
  * guest's time zone; only changed digits roll; at the Muhurtham the countdown gives way to "Our
- * Auspicious Wedding Day Has Arrived!". The page: the courtyard settles, the elephant board rises
- * into place and the units appear one by one; the elephants' trunks swing in CSS; the courtyard
- * stirs in the breeze and rose petals drift down.
+ * Auspicious Wedding Day Has Arrived!". The page: the courtyard settles, the heading appears and
+ * the four palanquins are carried in one after another; their sway and the elephants' trunks move
+ * in CSS; the courtyard stirs in the breeze and rose petals drift down.
  */
 const ROLL = { duration: 350, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' };
 
@@ -96,10 +96,9 @@ defineChoreo(
       initCountdown(page);
       const all = (sel: string) => [...page.querySelectorAll<HTMLElement | SVGElement>(sel)];
       tl.fromTo(all('[data-courtyard]'), { scale: 1.04 }, { scale: 1, duration: 2.4, ease: 'sine.out' }, 0)
-        .from(all('.cd__board'), { y: 20, opacity: 0, duration: 1.1, ease: 'power2.out' }, 0.1)
-        .from(all('.cd__title'), { opacity: 0, y: 8, duration: 0.7 }, 0.3)
-        .from(all('.cd__unit'), { opacity: 0, y: 10, duration: 0.5, stagger: 0.12 }, 0.9)
-        .from(all('.cd__meta'), { opacity: 0, y: 6, duration: 0.6 }, 1.5);
+        .from(all('.cd__head > *'), { opacity: 0, y: 8, duration: 0.7, stagger: 0.12 }, 0.2)
+        // The palanquins are carried in one after another, settling into their steps
+        .from(all('.cd__palki'), { opacity: 0, y: -26, duration: 0.9, ease: 'power2.out', stagger: 0.22 }, 0.5);
     },
     {
       enter: (page) => (life ??= courtyardLife(page)).start(false),

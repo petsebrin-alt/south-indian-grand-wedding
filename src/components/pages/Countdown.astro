@@ -2,10 +2,11 @@
 /**
  * Page 3 — Wedding Countdown (PRD §6.5), as the client asked: the courtyard photograph of the
  * earlier pages with the temple tower and the palms taken out (warm morning sky in their place),
- * and their elephant-and-peacock board standing in it with the countdown inside in one straight
- * row. The two elephants raise and lower their trunks, slowly and smoothly (each trunk is cut in
- * two jointed pieces that swing on its base and at the middle of its curve; src/assets/countdown/,
- * npm run countdown:assets). Motion and counting: src/motion/pages/countdown.ts
+ * the heading above, and below it four small palanquins stepping down the page, one for each of
+ * days, hours, minutes and seconds: the client's elephant-and-peacock board hanging from their gold
+ * rod like a doli on its carrying pole, the count inside it. The palanquins sway gently as if
+ * carried, and the elephants raise and lower their trunks (each trunk in two jointed pieces;
+ * src/assets/countdown/, npm run countdown:assets). Counting: src/motion/pages/countdown.ts
  */
 import PageShell from '../PageShell.astro';
 import ScenePhoto from '../ScenePhoto.astro';
@@ -16,6 +17,7 @@ import { formatDateLong, formatTime } from '../../lib/format';
 import fit from '../../assets/countdown/board.json';
 import board from '../../assets/countdown/board.webp';
 import boardAvif from '../../assets/countdown/board.avif';
+import rod from '../../assets/countdown/rod.webp';
 import courtyardClear from '../../assets/countdown/courtyard-clear.webp';
 import courtyardClearAvif from '../../assets/countdown/courtyard-clear.avif';
 import trunkLLower from '../../assets/countdown/trunk-l-lower.webp';
@@ -57,44 +59,44 @@ const trunks = [
     <span class="layer layer--architecture cd__veil" aria-hidden="true"></span>
   </Fragment>
 
-  <h2 class="cd__title" tabindex="-1" data-page-heading>Counting down to the <span class="cd__title-script">Muhurtham</span></h2>
+  <div class="cd__head">
+    <h2 class="cd__title" tabindex="-1" data-page-heading>Counting down to the <span class="cd__title-script">Muhurtham</span></h2>
+    <p class="sr-only" data-countdown-summary></p>
+    <p class="cd__when">{formatDateLong(startISO)} · <span class="cd__time">{formatTime(startISO)} IST</span></p>
+    <p class="cd__local" data-localtime hidden></p>
+  </div>
 
-  <div class="cd__board" style={`--board-ratio:${fit.ratio}`}>
-    <ScenePhoto class="cd__frame" avif={boardAvif} webp={board} defer />
+  <!-- Four palanquins, stepping down the page: days, hours, minutes, seconds -->
+  <div class="cd__palkis" data-countdown={startISO} role="timer" aria-label="Time remaining until the wedding Muhurtham" style={`--board-ratio:${fit.ratio}`}>
     {
-      trunks.map((t) => (
-        <div class={`cd__trunk cd__trunk--${t.side}`} style={`${at(t.lower.box)};transform-origin:${t.lower.pivot[0]}% ${t.lower.pivot[1]}%`} aria-hidden="true">
-          <img src={t.lowerImg.src} width={t.lowerImg.width} height={t.lowerImg.height} alt="" decoding="async" loading="lazy" />
-          <div class={`cd__tip cd__tip--${t.side}`} style={`${within(t.upper.box, t.lower.box)};transform-origin:${t.upper.pivot[0]}% ${t.upper.pivot[1]}%`}>
-            <img src={t.upperImg.src} width={t.upperImg.width} height={t.upperImg.height} alt="" decoding="async" loading="lazy" />
+      units.map((u, i) => (
+        <div class={`cd__palki cd__palki--${i % 2 ? 'r' : 'l'}`} style={`--i:${i}`}>
+          <div class="cd__carry">
+            <img class="cd__rod" src={rod.src} width={rod.width} height={rod.height} alt="" decoding="async" loading="lazy" />
+            <div class="cd__board">
+              <ScenePhoto class="cd__frame" avif={boardAvif} webp={board} defer />
+              {trunks.map((t) => (
+                <div class={`cd__trunk cd__trunk--${t.side}`} style={`${at(t.lower.box)};transform-origin:${t.lower.pivot[0]}% ${t.lower.pivot[1]}%`} aria-hidden="true">
+                  <img src={t.lowerImg.src} width={t.lowerImg.width} height={t.lowerImg.height} alt="" decoding="async" loading="lazy" />
+                  <div class={`cd__tip cd__tip--${t.side}`} style={`${within(t.upper.box, t.lower.box)};transform-origin:${t.upper.pivot[0]}% ${t.upper.pivot[1]}%`}>
+                    <img src={t.upperImg.src} width={t.upperImg.width} height={t.upperImg.height} alt="" decoding="async" loading="lazy" />
+                  </div>
+                </div>
+              ))}
+              <div class="cd__panel" style={at(fit.panel)}>
+                <span class="cd__num" data-unit={u.key} aria-hidden="true">
+                  --
+                </span>
+                <span class="cd__label">{u.label}</span>
+              </div>
+            </div>
           </div>
         </div>
       ))
     }
-
-    <div class="cd__panel" style={at(fit.panel)}>
-      <div class="cd__row" data-countdown={startISO} role="timer" aria-label="Time remaining until the wedding Muhurtham">
-        {
-          units.map((u) => (
-            <div class="cd__unit">
-              <span class="cd__num" data-unit={u.key} aria-hidden="true">
-                --
-              </span>
-              <span class="cd__label">{u.label}</span>
-            </div>
-          ))
-        }
-      </div>
-      <p class="sr-only" data-countdown-summary></p>
-      <div class="cd__arrived" data-arrived hidden>
-        <p>{wedding.copy.countdownArrived.text}</p>
-      </div>
-      <div class="cd__meta">
-        <p class="cd__when">{formatDateLong(startISO)}</p>
-        <p class="cd__time">{formatTime(startISO)} IST</p>
-        <p class="cd__local" data-localtime hidden></p>
-      </div>
-    </div>
+  </div>
+  <div class="cd__arrived" data-arrived hidden>
+    <p>{wedding.copy.countdownArrived.text}</p>
   </div>
 </PageShell>
 
@@ -106,7 +108,7 @@ const trunks = [
   /* A soft ivory veil of morning light behind the heading */
   .cd__veil {
     inset: 0;
-    background: radial-gradient(ellipse 72% 12% at 50% 15%, rgba(255, 249, 238, 0.72), rgba(255, 249, 238, 0) 100%);
+    background: radial-gradient(ellipse 76% 15% at 50% 14%, rgba(255, 249, 238, 0.78), rgba(255, 249, 238, 0) 100%);
   }
 
   .page--countdown .page__content {
@@ -114,37 +116,113 @@ const trunks = [
     display: block;
   }
 
-  .cd__title {
+  .cd__head {
     position: absolute;
-    left: 6cqw;
-    right: 6cqw;
-    top: calc(var(--safe-top) + 10cqh);
+    left: 5cqw;
+    right: 5cqw;
+    top: calc(var(--safe-top) + 6cqh);
+    display: grid;
+    gap: 0.6cqh;
     text-align: center;
-    font: 700 clamp(14px, 4.2cqw, 18px) / 1.3 var(--font-royal);
+    text-shadow: 0 0 2px rgba(255, 249, 238, 0.95), 0 0 10px rgba(255, 249, 238, 0.9);
+  }
+
+  .cd__title {
+    font: 700 clamp(13px, 3.9cqw, 17px) / 1.3 var(--font-royal);
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: #6a0f1f;
-    text-shadow: 0 0 2px rgba(255, 249, 238, 0.95), 0 0 10px rgba(255, 249, 238, 0.9);
   }
 
   .cd__title-script {
     display: block;
-    margin-top: 0.2em;
+    margin-top: 0.15em;
     font: 400 2.5em / 1 var(--font-script);
     letter-spacing: 0;
     text-transform: none;
     -webkit-text-stroke: 0.3px currentColor;
   }
 
-  /* The board stands at the foot of the courtyard */
-  .cd__board {
-    --bw: min(98cqw, calc(70cqh / var(--board-ratio)));
+  .cd__when {
+    font: 700 clamp(13px, 3.9cqw, 16px) / 1.3 var(--font-display);
+    color: #6a0f1f;
+  }
+
+  .cd__time {
+    font: 700 0.82em / 1 var(--font-royal);
+    letter-spacing: 0.14em;
+    color: #1d5232;
+    white-space: nowrap;
+  }
+
+  .cd__local {
+    font: 500 12px / 1.3 var(--font-body);
+    color: #4a2a1c;
+  }
+
+  /* The palanquins: two columns, each one a step lower than the last, so they read 1 → 4 down the
+     page; each board is B wide, its pole 1.5 B long (so its finials stay on screen) */
+  .cd__palkis {
+    --b: min(38cqw, 21cqh);
+    --step: calc(var(--b) * var(--board-ratio) * 0.68);
     position: absolute;
-    left: 50%;
-    bottom: calc(var(--safe-bottom) + 5cqh);
-    width: var(--bw);
+    left: 0;
+    right: 0;
+    top: calc(var(--safe-top) + 24cqh);
+    height: calc(var(--step) * 3 + var(--b) * var(--board-ratio));
+  }
+
+  .cd__palki {
+    position: absolute;
+    top: calc(var(--step) * var(--i));
+    width: var(--b);
     aspect-ratio: 1 / var(--board-ratio);
-    translate: -50% 0;
+    /* Earlier palanquins in front, so a later one's pole passes behind its neighbour */
+    z-index: calc(10 - var(--i));
+  }
+
+  .cd__palki--l {
+    left: calc(50% - var(--b) - 1cqw);
+  }
+
+  .cd__palki--r {
+    left: calc(50% + 1cqw);
+  }
+
+  /* Carried: a slow sway and bob from the pole, each palanquin at its own moment */
+  .cd__carry {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 12%;
+    animation: cd-carry 3.4s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * -0.85s);
+  }
+
+  @keyframes cd-carry {
+    from {
+      rotate: -1.4deg;
+      translate: 0 0;
+    }
+
+    to {
+      rotate: 1.4deg;
+      translate: 0 -3px;
+    }
+  }
+
+  /* The gold pole, level behind the top of the board, its finials showing either side */
+  .cd__rod {
+    position: absolute;
+    left: -25%;
+    top: 10%;
+    width: 150%;
+    height: auto;
+    filter: drop-shadow(0 2px 2px rgba(50, 25, 5, 0.4));
+  }
+
+  .cd__board {
+    position: absolute;
+    inset: 0;
   }
 
   .cd__frame {
@@ -153,6 +231,7 @@ const trunks = [
     width: 100%;
     height: 100%;
     pointer-events: none;
+    filter: drop-shadow(0 6px 8px rgba(50, 20, 5, 0.3));
   }
 
   /* The trunks: each lower piece swings on the trunk's base, and the curled upper piece swings at
@@ -173,18 +252,22 @@ const trunks = [
 
   .cd__trunk--l {
     animation: cd-trunk-l 3.8s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * -1.1s);
   }
 
   .cd__tip--l {
-    animation: cd-tip-l 3.8s ease-in-out -0.8s infinite alternate;
+    animation: cd-tip-l 3.8s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * -1.1s - 0.8s);
   }
 
   .cd__trunk--r {
-    animation: cd-trunk-r 4.2s ease-in-out -1.6s infinite alternate;
+    animation: cd-trunk-r 4.2s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * -0.7s - 1.6s);
   }
 
   .cd__tip--r {
-    animation: cd-tip-r 4.2s ease-in-out -2.5s infinite alternate;
+    animation: cd-tip-r 4.2s ease-in-out infinite alternate;
+    animation-delay: calc(var(--i) * -0.7s - 2.5s);
   }
 
   /* Raised (curled back) at one end, lowered (curled forward) at the other */
@@ -228,43 +311,25 @@ const trunks = [
     }
   }
 
-  .reduce-motion :is(.cd__trunk, .cd__tip) {
+  .reduce-motion :is(.cd__carry, .cd__trunk, .cd__tip) {
     animation: none;
   }
 
-  /* The countdown, in one straight row on the board's cream panel */
+  /* The count inside each palanquin, on the board's cream panel */
   .cd__panel {
     position: absolute;
     container-type: inline-size;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-  }
-
-  .cd__row {
-    width: 100%;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .cd__unit {
-    display: grid;
+    align-content: center;
     justify-items: center;
-    gap: 1.6cqw;
-    padding-block: 1cqw;
-  }
-
-  /* Fine gold rules between the units */
-  .cd__unit + .cd__unit {
-    border-left: 1px solid rgba(168, 120, 42, 0.45);
+    gap: 4cqw;
+    text-align: center;
   }
 
   .cd__num {
     display: inline-flex;
     justify-content: center;
-    font: 700 max(20px, 11.5cqw) / 1 var(--font-display);
+    font: 700 max(22px, 38cqw) / 1 var(--font-display);
     font-variant-numeric: lining-nums tabular-nums;
     color: #6a0f1f;
   }
@@ -286,39 +351,35 @@ const trunks = [
   }
 
   .cd__label {
-    font: 700 max(8px, 3.6cqw) / 1 var(--font-royal);
+    font: 700 max(8px, 11cqw) / 1 var(--font-royal);
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #8a5a1c;
   }
 
+  /* At the Muhurtham the palanquins give way to the message */
+  .cd__arrived {
+    position: absolute;
+    left: 8cqw;
+    right: 8cqw;
+    top: 42%;
+    text-align: center;
+  }
+
   .cd__arrived p {
-    font: 400 max(20px, 10cqw) / 1.15 var(--font-script);
+    font: 400 clamp(30px, 9cqw, 40px) / 1.15 var(--font-script);
     color: #6a0f1f;
+    text-shadow: 0 0 2px rgba(255, 249, 238, 0.95), 0 0 12px rgba(255, 249, 238, 0.9);
   }
 
-  .cd__meta {
-    margin-top: 4cqw;
-    display: grid;
-    gap: 1cqw;
-  }
+  @container app (max-height: 700px) {
+    .cd__palkis {
+      --b: min(36cqw, 18.5cqh);
+      top: calc(var(--safe-top) + 22cqh);
+    }
 
-  .cd__when {
-    font: 700 max(13px, 6.2cqw) / 1.2 var(--font-display);
-    color: #6a0f1f;
-  }
-
-  .cd__time {
-    font: 700 max(9px, 4.2cqw) / 1.3 var(--font-royal);
-    letter-spacing: 0.18em;
-    color: #1d5232;
-  }
-
-  .cd__local {
-    max-width: 82cqw;
-    margin-inline: auto;
-    font: 500 max(9px, 3.6cqw) / 1.3 var(--font-body);
-    color: #5a3626;
-    text-wrap: balance;
+    .cd__head {
+      top: calc(var(--safe-top) + 4cqh);
+    }
   }
 </style>

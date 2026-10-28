@@ -63,13 +63,14 @@ Kept in `src/assets/save-the-date/source/`:
 
 `src/assets/save-the-date/scene.json` holds a point inside the board's opening, its paper colour, the board's outer edges, and where the curtain's fabric and embroidered edge lie. After changing a picture, run `npm run save-the-date:assets`. The page reuses the Welcome page's courtyard photograph behind the board.
 
-## Countdown page: the elephant board
+## Countdown page: the elephant-board palanquins
 
 Kept in `src/assets/countdown/source/`:
 
 | File | What it shows |
 |---|---|
 | `board.webp` | The elephant-and-peacock board, on white. It is lifted off the white; the countdown sits on its cream panel. Each elephant's trunk is cut out in two jointed pieces (lower, and the curled tip) and painted out of the board beneath, so the trunks can rise and fall. |
+| `rod.png` | The gold rod, on white. It is lifted off the white and turned level: the carrying pole each board hangs from, so each countdown unit looks like a small palanquin. |
 
 The page's background is the Welcome courtyard with the temple tower and the palms taken out: that part of the sky is repainted as warm morning sky with a low sun, keeping the sharp garlands and bells in front of it.
 

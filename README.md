@@ -96,7 +96,7 @@ npm run perf               # Lighthouse mobile on the cover of the built site (r
 | `src/assets/stage/` | The desktop background (velvet, gold border, corner spray), made from the card photograph by `npm run opening:assets` |
 | `src/assets/welcome/` | The Welcome page's courtyard and couple (`source/`), their measurements (`scene.json`) and the layers made from them (`npm run welcome:assets`, `scripts/welcome/`) |
 | `src/assets/save-the-date/` | The Save the Date page's couple-with-board picture and curtain (`source/`) and the layers made from them (`npm run save-the-date:assets`, `scripts/save-the-date/`) |
-| `src/assets/countdown/` | The Countdown page's elephant board (`source/`), its moving trunk pieces and the courtyard without the tower and palms (`npm run countdown:assets`, `scripts/countdown/`) |
+| `src/assets/countdown/` | The Countdown page's elephant board and gold rod (`source/`), its moving trunk pieces and the courtyard without the tower and palms (`npm run countdown:assets`, `scripts/countdown/`) |
 | `src/assets/decor/`, `src/assets/placeholders/` | Real decoration assets, and their vector stand-ins |
 | `src/lib/calendar.ts` | Add to Calendar links and `.ics` files |
 | `src/lib/venue.ts` | When Location and Get Directions switch on (public venues with a map link or coordinates) |

@@ -7,6 +7,8 @@
  *   board            the elephant-and-peacock board, lifted off its white background, with the two
  *                    trunks painted out (the board's cream and florals rebuilt behind them)
  *   trunk-*          each trunk in two jointed pieces (lower and curled upper), for the swing
+ *   rod              the client's gold rod, lifted off its white background and turned level: the
+ *                    carrying pole each board hangs from, like a palanquin
  *   board.json       sizes, the panel inside the board, and each trunk piece's box and pivot
  * Re-run after replacing a source picture, the Welcome courtyard, or adjusting scene.json.
  */
@@ -200,4 +202,27 @@ const boxBlur = (src: Float32Array, w: number, h: number, r: number) => {
   }
   writeFileSync(join(dir, 'board.json'), JSON.stringify(fit, null, 2) + '\n');
   console.log(`  board ${W}×${H} → ${scene.width} px wide`);
+}
+
+// 3. The carrying pole: the gold rod, off its white background (flooded in from the edges, with a
+//    soft one-pixel edge), trimmed and turned level
+{
+  const { data: d, info } = await sharp(join(dir, 'source/rod.png')).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height, n = W * H;
+  const lo = (i: number) => Math.min(d[i * 3], d[i * 3 + 1], d[i * 3 + 2]);
+  const bg = new Uint8Array(n);
+  const stack: number[] = [];
+  const seed = (i: number) => { if (!bg[i] && lo(i) > 238) (bg[i] = 1), stack.push(i); };
+  for (let x = 0; x < W; x++) seed(x), seed((H - 1) * W + x);
+  for (let y = 0; y < H; y++) seed(y * W), seed(y * W + W - 1);
+  while (stack.length) {
+    const i = stack.pop()!, x = i % W;
+    for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) if (j >= 0 && j < n) seed(j);
+  }
+  const rgba = Buffer.alloc(n * 4);
+  for (let i = 0; i < n; i++) {
+    for (let c = 0; c < 3; c++) rgba[i * 4 + c] = d[i * 3 + c];
+    rgba[i * 4 + 3] = bg[i] ? 0 : Math.round(Math.min(1, (255 - lo(i)) / 40 + 0.3) * 255);
+  }
+  await write('rod', sharp(rgba, { raw: { width: W, height: H, channels: 4 } }).trim({ threshold: 1 }).rotate(90), ['webp'], { avif: 0, webp: 90 });
 }

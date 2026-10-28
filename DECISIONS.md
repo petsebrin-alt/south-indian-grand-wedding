@@ -468,3 +468,31 @@ The client asked for the whole Countdown page to be replaced:
 
 - `npm run qa:book`: **70/70 checks pass** (AC-13 and AC-14 cover the countdown from other time zones and at the Muhurtham). Unit tests: 58 pass.
 - `npm run perf`: mobile performance 87 (first paint 1.9 s in all three runs), accessibility 100, best practices 100.
+
+## 28 October 2026 — Countdown as four elephant-board palanquins
+
+The client did not want one large board holding the whole countdown. They asked for:
+- a separate, smaller elephant board for each of days, hours, minutes and seconds;
+- each board made into a palanquin (palki) carried on a pole, using their gold rod (their palanquin painting was a reference);
+- the four boards stepping down the screen one after another, with only the heading on top.
+
+### Decisions
+
+1. **Four palanquins:**
+   - **Each palanquin:** the client's elephant-and-peacock board hanging from their gold rod, lifted off its white background and turned level as the carrying pole (`rod.webp`), with its finials showing either side of the board.
+   - **Inside:** the count and its label sit on each board's cream panel.
+   - **Layout:** they stand in two columns, each one a step lower than the last: Days at top left, Hours a step lower on the right, then Minutes on the left and Seconds on the right. The screen reads 1 → 4 downwards with room around each board.
+   - **Board size:** 38% of the page width (or 21% of its height on short screens). The board is now exported at 600 px (102 KB AVIF), which is plenty at this size.
+2. **The heading, date and time** sit above the palanquins: "Counting down to the Muhurtham", Wednesday, 7 April 2027 · 10:30 AM IST, and the guest's local time if they are in another time zone.
+3. **Motion:**
+   - The palanquins are carried in one after another as the page arrives.
+   - Each then sways and bobs gently from its pole, as if carried (3.4 s, each at its own moment).
+   - The elephants on every board keep raising and lowering their trunks, each pair out of step with the others.
+   - All of it pauses off-page and is still under reduced motion.
+4. **Counting is unchanged.** At the Muhurtham the palanquins give way to "Our Auspicious Wedding Day Has Arrived!" in script.
+5. **The reference pictures are not used as artwork:** the palanquin painting and the watermarked clip-art palanquin are other people's work, so they guided the idea only.
+
+### Results
+
+- `npm run qa:book`: **70/70 checks pass**, including no overflow at every phone size and the countdown checks AC-13 and AC-14. Unit tests: 58 pass.
+- `npm run perf`: mobile performance 89 (first paint 1.7 s), accessibility 100, best practices 100.
