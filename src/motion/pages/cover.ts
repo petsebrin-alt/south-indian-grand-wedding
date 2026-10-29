@@ -157,27 +157,25 @@ export function greetGuest(page: HTMLElement) {
 }
 
 /**
- * Fit "Dear …" to its place on the card: one line, smaller for a longer name; a very long name
- * wraps onto two. Measured once the card is laid out and its script face has loaded.
+ * Fit the guest's name to its place under "Dear": one line, smaller for a longer name; a very long
+ * name wraps onto two. Measured once the card is laid out and its capitals face has loaded.
  */
 function fitGreeting(page: HTMLElement) {
   const box = q(page, '.cv-inv__dear');
-  const text = box.firstElementChild as HTMLElement;
-  void document.fonts.load(`400 40px ${getComputedStyle(box).fontFamily}`).then(() => {
+  const name = q(page, '[data-guest]');
+  void document.fonts.load(`600 40px ${getComputedStyle(name).fontFamily}`).then(() => {
     if (!box.clientWidth) return;
-    box.style.setProperty('--dear-scale', '1');
-    box.classList.remove('is-two-lines');
-    text.style.whiteSpace = 'nowrap';
-    const room = box.clientWidth / text.scrollWidth;
-    text.style.whiteSpace = '';
+    box.style.setProperty('--guest-scale', '1');
+    name.style.whiteSpace = 'nowrap';
+    const room = box.clientWidth / name.scrollWidth;
+    name.style.whiteSpace = '';
     let scale = Math.min(1, room * 0.98);
-    box.style.setProperty('--dear-scale', String(scale));
-    if (scale >= 0.6) return;
+    box.style.setProperty('--guest-scale', String(scale));
+    if (scale >= 0.62) return;
     // Too long for one line: the largest size at which it breaks onto two
-    box.classList.add('is-two-lines');
-    for (scale = 0.6; scale > 0.36; scale -= 0.02) {
-      box.style.setProperty('--dear-scale', String(scale));
-      if (text.offsetHeight <= parseFloat(getComputedStyle(box).fontSize) * 1.02 * 2.3) break;
+    for (scale = 0.7; scale > 0.4; scale -= 0.02) {
+      box.style.setProperty('--guest-scale', String(scale));
+      if (name.offsetHeight <= parseFloat(getComputedStyle(name).fontSize) * 1.2 * 2.1) break;
     }
   });
 }

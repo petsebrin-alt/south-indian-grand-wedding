@@ -380,7 +380,7 @@
     "_note": "origin: the point we walk towards; behind/near: the courtyard's scale as the doors open and once inside; shrine: the lit shrine door at the foot of the tower, where the logo comes from (% of courtyard.webp)."
   },
   "card": {
-    "_note": "Source pixels of source/card.webp (x0, y0, x1, y1): the card's edges, the printed greeting and divider to clear, a plain velvet patch, where the divider moves to, and the live-text areas. top: where the card's top edge starts and ends, in % of its width.",
+    "_note": "Source pixels of source/card.webp (x0, y0, x1, y1): the card's edges, the printed greeting and divider to clear, a plain velvet patch, where the divider is set (603 is where it was printed), and the live-text areas. top: where the card's top edge starts and ends, in % of its width.",
     "box": [
       73,
       137,
@@ -406,19 +406,19 @@
         712,
         666
       ],
-      "y": 527
+      "y": 603
     },
     "greeting": [
       250,
-      424,
+      418,
       792,
-      522
+      598
     ],
     "names": [
-      222,
-      592,
-      820,
-      658
+      290,
+      1252,
+      734,
+      1322
     ],
     "open": [
       268,

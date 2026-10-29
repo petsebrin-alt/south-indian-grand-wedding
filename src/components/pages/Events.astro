@@ -57,8 +57,11 @@ const items = order[part].map((id) => {
 
 <PageShell page={page} index={index} watermark={false} class:list={['ev', `ev--part${part}`]}>
   <Fragment slot="architecture">
+    <div class="layer layer--architecture ev__floor" aria-hidden="true"></div>
     <div class="layer layer--architecture ev__box" aria-hidden="true">
       <ScenePhoto class="ev__bg" avif={bg.avif} webp={bg.webp} defer />
+      <!-- The polished floor carries on below the picture: its foot, turned over and fading -->
+      <div class="ev__reflect"><ScenePhoto class="ev__reflect-img" avif={bg.avif} webp={bg.webp} defer /></div>
     </div>
   </Fragment>
 
@@ -120,16 +123,18 @@ const items = order[part].map((id) => {
     display: block;
   }
 
-  /* The picture covers the page at its own proportions (narrow screens crop its sides, a little more
-     from the left so the medallions stay centred); the medallions are laid out in the same box, so
+  /* The picture is shown a fifth smaller than filling the page, hung from the top, so more of each
+     medallion and its flowers is in view (narrow screens still crop its sides, a little more from the
+     left so the medallions stay centred); its foot is carried on below as a faint reflection on the
+     polished floor, fading into the floor colour. The medallions are laid out in the same box, so
      they stay in place on the picture */
   .ev__box {
     position: absolute;
     left: 50%;
-    top: 50%;
-    height: max(100cqh, calc(100cqw * 1024 / 768 * 1.04));
+    top: 0;
+    height: max(80cqh, calc(100cqw * 1024 / 768 * 1.04));
     aspect-ratio: 768 / 1024;
-    translate: calc(-50% - 1.8%) -50%;
+    translate: calc(-50% - 1.8%) 0;
   }
 
   .ev__bg {
@@ -139,11 +144,37 @@ const items = order[part].map((id) => {
     height: 100%;
   }
 
+  .ev__reflect {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 18%;
+    overflow: hidden;
+    opacity: 0.75;
+    mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 38%, transparent 92%);
+  }
+
+  .ev__reflect-img {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: calc(100% / 0.18);
+    transform: scaleY(-1);
+  }
+
   /* The page-sized window the picture-sized box is clipped to */
   .ev__stage {
     position: absolute;
     inset: 0;
     overflow: hidden;
+  }
+
+  /* The floor colour the reflection fades into */
+  .ev__floor {
+    inset: 0;
+    background: linear-gradient(180deg, #cea379 0%, #cea379 74%, #e6cba6 100%);
   }
 
   .ev__list {

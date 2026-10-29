@@ -13,7 +13,7 @@ The temple-entrance opening is built from six pictures the client supplied, kept
 | `bell.webp` | The heritage brass bell guests tap (peacock handles), on white. It is cut out and kept from its last chain link down. |
 | `bell-chain.webp` | Two bells on beaded chains, on white. Only the chain is used: one repeat of it (bead and links) is tiled up from the bell to the beam, drawn 1.43× so its links match the bell's own. |
 | `monogram.webp` | The R·D logo (asset D-54): pink and gold letters with lotus, buds and a jhumka, on a transparent background. It comes out of the temple's shrine door after the walk-in, and shows inside the card when it opens. |
-| `card.webp` | The maroon velvet invitation card with gold foil, on a transparent background. Its printed "Dear Guest" is painted out so each guest's name can be set there in the same gold; the divider below it moves down a little to make room for the couple's names; everything else, including the printed "Open the Invitation" (the button), is used as printed. |
+| `card.webp` | The maroon velvet invitation card with gold foil, on a transparent background. Its printed "Dear Guest" is painted out so "Dear" (calligraphy) and the guest's name (serif capitals) can be set there in the same gold; the divider stays where it was printed, above the button, and the couple's names are set under the couple; everything else, including the printed "Open the Invitation" (the button, whose ring blinks), is used as printed. |
 
 `src/assets/opening/scene.json` records where things sit in the entrance photograph, in % of its width and height: the doorway outline, the hanging buds and bells, the garland, swag and banana-leaf pieces that sway (with their pivot and strength), the bell, and how far the courtyard zooms as we walk in. Its `card` entry gives, in pixels of `card.webp`, the card's edges, the lettering to clear, a plain patch of velvet to copy grain from, where the divider moves to, and where the greeting, names and button sit.
 
@@ -72,7 +72,7 @@ Kept in `src/assets/countdown/source/`:
 | `board.webp` | The elephant-and-peacock board, on white. It is lifted off the white; the countdown sits on its cream panel. Each elephant's trunk is cut out in two jointed pieces (lower, and the curled tip) and painted out of the board beneath, so the trunks can rise and fall. |
 | `rod.png` | The gold rod, on white. It is lifted off the white and turned level: the carrying pole each board hangs from, so each countdown unit looks like a small palanquin. |
 
-The page's background is the Welcome courtyard with the temple tower and the palms taken out: that part of the sky is repainted as warm morning sky with a low sun, keeping the sharp garlands and bells in front of it.
+The page's background is the client's temple-courtyard picture (the same one as behind the Parents page, `src/assets/family/background.*`, turned the other way), shown at about a third of its strength over ivory so the boards stand out.
 
 `src/assets/countdown/scene.json` holds the sky region and colours, the board's panel, and each trunk's outline, base, pivot and joint. After changing a picture, the Welcome courtyard or `scene.json`, run `npm run countdown:assets`.
 

@@ -1,16 +1,13 @@
 /**
- * npm run countdown:assets → the Countdown page's layers (src/assets/countdown/), from the Welcome
- * courtyard and the client's elephant board (source/board.webp), measured in scene.json:
- *   courtyard-clear  the Welcome courtyard with the temple tower and the palms taken out: the sky
- *                    region is repainted as warm morning sky with a sun glow, except the sharp
- *                    garlands and bells hanging in front of it (within their known boxes)
+ * npm run countdown:assets → the Countdown page's layers (src/assets/countdown/), from the client's
+ * elephant board (source/board.webp) and gold rod (source/rod.png), measured in scene.json:
  *   board            the elephant-and-peacock board, lifted off its white background, with the two
  *                    trunks painted out (the board's cream and florals rebuilt behind them)
  *   trunk-*          each trunk in two jointed pieces (lower and curled upper), for the swing
  *   rod              the client's gold rod, lifted off its white background and turned level: the
  *                    carrying pole each board hangs from, like a palanquin
  *   board.json       sizes, the panel inside the board, and each trunk piece's box and pivot
- * Re-run after replacing a source picture, the Welcome courtyard, or adjusting scene.json.
+ * Re-run after replacing a source picture or adjusting scene.json.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -58,64 +55,7 @@ const boxBlur = (src: Float32Array, w: number, h: number, r: number) => {
   return out;
 };
 
-// 1. The courtyard without the tower and the palms
-{
-  const { data, info } = await sharp(join(process.cwd(), 'src/assets/welcome/courtyard.webp')).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-  const W = info.width, H = info.height, n = W * H;
-  const sky = scene.sky;
-  // Where to repaint: inside the sky region, feathered at its edges
-  const region = new Float32Array(n);
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) region[y * W + x] = insidePolygon(sky.region, x + 0.5, y + 0.5) ? 1 : 0;
-  const soft = boxBlur(boxBlur(region, W, H, sky.feather), W, H, sky.feather);
-  // What to keep: sharp detail (garlands, bells, carvings), found by local contrast
-  const L = new Float32Array(n);
-  for (let i = 0; i < n; i++) L[i] = 0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2];
-  const grad = new Float32Array(n);
-  for (let y = 1; y < H - 1; y++)
-    for (let x = 1; x < W - 1; x++) {
-      const i = y * W + x;
-      grad[i] = Math.hypot(L[i + 1] - L[i - 1], L[i + W] - L[i - W]);
-    }
-  const energy = boxBlur(grad, W, H, 3);
-  const sharpness = new Float32Array(n);
-  for (let i = 0; i < n; i++) sharpness[i] = Math.min(1, Math.max(0, (energy[i] - sky.sharp[0]) / (sky.sharp[1] - sky.sharp[0])));
-  // …but only where the garlands and bells hang (the palms' fronds are sharp too, and go)
-  const protect = new Uint8Array(n);
-  for (const [x0, y0, x1, y1] of sky.protect) for (let y = Math.max(0, y0); y < Math.min(H, y1); y++) for (let x = Math.max(0, x0); x < Math.min(W, x1); x++) protect[y * W + x] = 1;
-  // Grow what is kept a little, then soften its edge
-  const keep = boxBlur(boxBlur(sharpness.map((v, i) => (v > 0.5 && protect[i] ? 1 : 0)), W, H, 3), W, H, 2);
-  // The new sky: from the photograph's own pale sky at the top to golden haze at the horizon,
-  // with the low sun glowing through
-  const [top, horizon] = [sky.top, sky.horizon];
-  const [sx, sy, sr] = sky.sun;
-  const out = Buffer.from(data);
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      const i = y * W + x;
-      const a = soft[i] * (1 - Math.min(1, keep[i] * 1.4));
-      if (a <= 0.003) continue;
-      const t = Math.min(1, Math.max(0, y / sky.horizonY));
-      const ease = t * t * (3 - 2 * t);
-      const glow = Math.exp(-((x - sx) ** 2 + (y - sy) ** 2) / (2 * sr * sr));
-      for (let c = 0; c < 3; c++) {
-        const base = top[c] + (horizon[c] - top[c]) * ease;
-        const lit = base + (255 - base) * glow * 0.85 + [12, 6, -6][c] * glow;
-        out[i * 3 + c] = Math.round(Math.min(255, Math.max(0, a * lit + (1 - a) * data[i * 3 + c])));
-      }
-    }
-  // A fine grain over the repainted sky, so it matches the photograph
-  let seed = 4;
-  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < n; i++) {
-    const a = soft[i] * (1 - Math.min(1, keep[i] * 1.4));
-    if (a <= 0.05) continue;
-    const g = (rand() + rand() - 1) * 3 * a;
-    for (let c = 0; c < 3; c++) out[i * 3 + c] = Math.min(255, Math.max(0, out[i * 3 + c] + g));
-  }
-  await write('courtyard-clear', sharp(out, { raw: { width: W, height: H, channels: 3 } }), ['avif', 'webp'], { avif: 55, webp: 80 });
-}
-
-// 2. The board: the white background goes; the trunks are cut out in jointed pieces and painted
+// 1. The board: the white background goes; the trunks are cut out in jointed pieces and painted
 //    out of the board beneath
 {
   const { data: d, info } = await sharp(join(dir, 'source/board.webp')).removeAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -204,7 +144,7 @@ const boxBlur = (src: Float32Array, w: number, h: number, r: number) => {
   console.log(`  board ${W}×${H} → ${scene.width} px wide`);
 }
 
-// 3. The carrying pole: the gold rod, off its white background (flooded in from the edges, with a
+// 2. The carrying pole: the gold rod, off its white background (flooded in from the edges, with a
 //    soft one-pixel edge), trimmed and turned level
 {
   const { data: d, info } = await sharp(join(dir, 'source/rod.png')).removeAlpha().raw().toBuffer({ resolveWithObject: true });

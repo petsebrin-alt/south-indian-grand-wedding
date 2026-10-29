@@ -6,9 +6,10 @@
  * 2. Entering: the hanging bell is rung, the doors swing open on their hinges, birds cross the
  *    sky, we walk through into the courtyard, the R·D monogram descends and comes forward,
  *    giving way to the invitation card.
- * 3. Invitation: the client's velvet card photograph, with "Dear …" (the link's ?to= name) and
- *    the couple's names set in its gold, and its printed "Open the Invitation" as the button:
- *    the card's cover opens on its hinge and the book's first page turns.
+ * 3. Invitation: the client's velvet card photograph, with "Dear" in calligraphy and the guest's name
+ *    (the link's ?to= name) beneath it in serif capitals, the couple's names set in its gold under the
+ *    couple, and its printed "Open the Invitation" as the button, its ring blinking so a guest knows
+ *    to touch it: the card's cover opens on its hinge and the book's first page turns.
  * Without JavaScript only the invitation is shown. Motion: src/motion/pages/cover.ts
  */
 import { existsSync } from 'node:fs';
@@ -87,7 +88,7 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
     <div class="cv-inv__cover" data-cover>
       <div class="cv-inv__front">
         <ScenePhoto class="cv-inv__photo" avif={cardAvif} webp={cardWebp} lazy />
-        <p class="cv-inv__dear cv-inv__text" style={onCard(card.greeting)}><span class="cv-foil">Dear <span data-guest>Guest</span></span></p>
+        <p class="cv-inv__dear cv-inv__text" style={onCard(card.greeting)}><span class="cv-inv__dear-word cv-foil">Dear</span><span class="cv-inv__guest cv-foil" data-guest>Guest</span></p>
         <h1 class="cv-inv__names cv-inv__text" style={onCard(card.names)} tabindex="-1" data-page-heading><span class="cv-foil">{groom.name} <span class="amp">&amp;</span> {bride.name}</span></h1>
         <a class="cv-open" href="#welcome" data-open-book style={onCard(card.open)}><span class="sr-only">Open the Invitation</span></a>
         <span class="cv-inv__shade" data-cover-shade aria-hidden="true"></span>
@@ -585,19 +586,28 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
     filter: drop-shadow(0 0.18cqh 0 rgba(42, 0, 8, 0.75)) drop-shadow(0 -0.05cqh 0 rgba(255, 236, 190, 0.3));
   }
 
-  /* Sized to fit by src/motion/pages/cover.ts (fitGreeting); a very long name takes two lines */
+  /* "Dear" in calligraphy, the guest's name beneath it in clear serif capitals. The name is sized to
+     fit by src/motion/pages/cover.ts (fitGreeting); a very long name takes two lines */
   .cv-inv__dear {
-    font: 400 calc(9cqh * var(--dear-scale, 1)) / 1.02 var(--font-script);
+    align-content: center;
+    gap: 0.5cqh;
+  }
+
+  .cv-inv__dear-word {
+    font: 400 7.6cqh / 1 var(--font-script);
+  }
+
+  .cv-inv__guest {
+    font: 600 calc(4.3cqh * var(--guest-scale, 1)) / 1.2 var(--font-royal);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     text-wrap: balance;
   }
 
-  .cv-inv__dear.is-two-lines {
-    translate: 0 -1cqh;
-  }
-
+  /* The couple's names, under the couple */
   .cv-inv__names {
-    font: 600 5.1cqh / 1.1 var(--font-display);
-    letter-spacing: 0.01em;
+    font: 600 4.3cqh / 1.1 var(--font-display);
+    letter-spacing: 0.02em;
     white-space: nowrap;
   }
 
@@ -609,8 +619,8 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
     font-size: 0.86em;
   }
 
-  /* The printed "Open the Invitation" is the button: a stamped gold ring around it, light
-     passing across it now and then, and a slight press when tapped */
+  /* The printed "Open the Invitation" is the button: a stamped gold ring around it that blinks, so a
+     guest knows to touch it, light passing across it now and then, and a slight press when tapped */
   .cv-open {
     position: absolute;
     border: max(1px, 0.22cqh) solid rgba(234, 198, 120, 0.92);
@@ -620,6 +630,24 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
     box-shadow: inset 0 0 1.4cqh rgba(255, 214, 150, 0.16), 0 0.3cqh 0.8cqh rgba(30, 0, 4, 0.35);
     -webkit-tap-highlight-color: transparent;
     transition: transform 0.15s ease-out;
+    animation: cv-blink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes cv-blink {
+    0%,
+    100% {
+      background-color: rgba(255, 214, 130, 0);
+      border-color: rgba(234, 198, 120, 0.92);
+      outline-color: rgba(234, 198, 120, 0.5);
+      box-shadow: inset 0 0 1.4cqh rgba(255, 214, 150, 0.16), 0 0.3cqh 0.8cqh rgba(30, 0, 4, 0.35), 0 0 0 rgba(255, 220, 140, 0);
+    }
+
+    50% {
+      background-color: rgba(255, 222, 150, 0.24);
+      border-color: #fff3cf;
+      outline-color: rgba(255, 243, 207, 0.95);
+      box-shadow: inset 0 0 2.4cqh rgba(255, 226, 160, 0.5), 0 0 2.4cqh 0.4cqh rgba(255, 220, 140, 0.8);
+    }
   }
 
   /* At least 44 px to tap, though the ring is drawn smaller */
@@ -667,5 +695,11 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
   .reduce-motion .cv-open::after {
     animation: none;
     opacity: 0;
+  }
+
+  /* Without motion the ring stays lit instead of blinking */
+  .reduce-motion .cv-open {
+    animation: none;
+    box-shadow: inset 0 0 2cqh rgba(255, 226, 160, 0.4), 0 0 1.6cqh rgba(255, 220, 140, 0.6);
   }
 </style>

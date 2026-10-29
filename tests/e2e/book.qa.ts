@@ -342,9 +342,9 @@ async function main() {
       await page.waitForTimeout(300);
       return page.evaluate(() => {
         const el = document.querySelector('[data-guest]')!;
-        const text = document.querySelector('#cover .cv-inv__dear .cv-foil')!.getBoundingClientRect();
+        const text = el.getBoundingClientRect();
         const card = document.querySelector('#cover [data-book]')!.getBoundingClientRect();
-        const lines = Math.round(text.height / (parseFloat(getComputedStyle(document.querySelector('#cover .cv-inv__dear')!).fontSize) * 1.02));
+        const lines = Math.round(text.height / (parseFloat(getComputedStyle(el).fontSize) * 1.2));
         return { text: el.textContent, elements: el.children.length, lines, inside: text.left >= card.left + card.width * 0.15 && text.right <= card.right - card.width * 0.15 };
       });
     };

@@ -108,9 +108,12 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     display: none;
   }
 
+  /* The temple is shown at about a third of its strength over ivory, so the frames and lettering stand
+     out clearly against it */
   .fm__scene {
     inset: 0;
     overflow: hidden;
+    background: #f8eedb;
   }
 
   .fm__bg {
@@ -119,6 +122,7 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     width: 100%;
     height: 100%;
     object-fit: cover;
+    opacity: 0.36;
   }
 
   .fm .page__content {
@@ -126,7 +130,7 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     display: block;
   }
 
-  /* The lettering sits on a soft ivory plaque, so it reads over the temple and the temple still shows */
+  /* The lettering sits on a soft ivory plaque */
   .fm__head {
     position: absolute;
     left: 6cqw;
@@ -135,7 +139,7 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     padding: 1.6cqh 4cqw 1.8cqh;
     text-align: center;
     border-radius: 18px;
-    background: linear-gradient(180deg, rgba(255, 250, 240, 0.74), rgba(255, 243, 224, 0.64));
+    background: linear-gradient(180deg, rgba(255, 251, 243, 0.9), rgba(255, 245, 228, 0.84));
     box-shadow: 0 0 0 1px rgba(184, 134, 58, 0.4), 0 8px 22px rgba(60, 30, 5, 0.14);
     text-shadow: 0 0 2px rgba(255, 249, 238, 0.9);
   }
@@ -198,7 +202,7 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     padding: 2cqh 3.2cqw 2.2cqh;
     text-align: left;
     border-radius: 14px;
-    background: linear-gradient(180deg, rgba(255, 250, 240, 0.76), rgba(255, 243, 224, 0.66));
+    background: linear-gradient(180deg, rgba(255, 251, 243, 0.9), rgba(255, 245, 228, 0.84));
     box-shadow: 0 0 0 1px rgba(184, 134, 58, 0.4), 0 6px 18px rgba(60, 30, 5, 0.14);
     text-shadow: 0 0 2px rgba(255, 249, 238, 0.9);
   }

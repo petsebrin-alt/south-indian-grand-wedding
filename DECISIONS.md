@@ -645,3 +645,23 @@ The client said the Parents page had the same problem as the Events page: the te
 
 - `npm run qa:book`: 69/69 checks pass. Unit tests: 58 pass.
 - `npm run perf`: mobile performance 89 (91 in one run), accessibility 100, best practices 100. (A run while the computer was busy with other work scored 58–81 from slow main-thread time; the same build scored 89 once it was quiet.)
+
+## 29 October 2026 — Invitation card text, calmer backgrounds, Events zoomed out
+
+The client reviewed four screens and asked for changes to each.
+
+### Decisions
+
+1. **The invitation card:**
+   - "Dear" is in calligraphy; the guest's name beneath it is in clear serif capitals (Cinzel), in the card's gold. With no `?to=` the name is "Guest". A long name is set smaller, and on two lines at most.
+   - Under the greeting is the card's own ornament divider, put back where it was printed, then the printed "Open the Invitation". The couple's names, "Rahul & Divya", moved to under the golden couple, between their feet and the card's bottom border.
+   - The button's gold ring now blinks (1.5 seconds, brighter ring and a soft glow), so a guest knows to touch it. Under reduced motion it stays lit instead of blinking.
+2. **Countdown background:** the old courtyard behind it had a large smeared area where the elephant board had been taken out. It is replaced by the client's temple-courtyard picture (the one behind the Parents page, turned the other way), sharp, shown at about a third of its strength (opacity 0.36) over ivory, with no blur. The now-unused repainted courtyard and its step in `npm run countdown:assets` are removed. The "Minutes" and "Seconds" labels are a little smaller so they sit inside their boards.
+3. **Parents page:** the temple behind it is faded to the same strength (opacity 0.36 over ivory, a 64% reduction), and the ivory plaques are firmer (about 87% instead of 70%), so the frames, lettering and boxes stand out.
+4. **Wedding Events pages:** the picture is shown 20% smaller (80% of the page height, hung from the top), so each medallion and its flowers and props are in view. The strip left below is the picture's floor carried on as a faint reflection that fades into the floor colour, with the page number and arrows over it.
+5. **Not changed:** the horizontal lines across the Parents screenshot did not appear in our own captures (phone and desktop frame), so they look like a screen-recording artefact.
+
+### Results
+
+- `npm run qa:book`: 69/69 checks pass (AC-01d now measures the guest's name on its own). Unit tests: 58 pass. `npx astro check`: 0 errors.
+- `npm run perf`: mobile performance 89, accessibility 100, best practices 100.
