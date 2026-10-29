@@ -746,3 +746,22 @@ The client sent a picture of a real golden mandapam (pillars, mango toran, jasmi
 - `npm run qa:book`: 74/74 checks pass (new AC-37: the pieces arrive and end shown, the board's details, the blinking button and tapping hand, the crackers on the floor, accepting starts petals and sparks and is remembered, the show ends by itself; AC-37b: reduced motion). `npx vitest run`: 58 pass. `npx astro check`: 0 errors.
 - `npm run perf`: mobile performance 87, accessibility 100, best practices 100. The pictures are requested after the door photograph (about 0.7 MB), like the other pages'.
 
+## 29 October 2026 — Taller invitation card; the Love Story ring larger; the couple pages on the Events temple with stone steps
+
+The client reviewed three pages again.
+
+### Decisions
+
+1. **Invitation card made taller** (`npm run opening:assets`): the card is 260 rows (about 21%) taller, so a long guest name has room. Velvet is added under the greeting, and the border's own repeat is carried on down both sides (a whole number of its beads, below where the vines end) so nothing printed is cut or stretched: the arch, "Dear" area, the divider, "Open the Invitation", the mandapam and the couple are as printed, just lower. The card fills up to 80% of the page's height and 88% of its width (before: 66% and 84%).
+2. **Guest name:** "Dear" is larger, with the name set under it from the top of the roomy space, in larger capitals. A name that fits on one line is set on one line; a longer one wraps over as many lines as fit at a readable size (up to about five for "Mr. and Mrs. Venkata Subramanian Iyer with Our Lovely Family"). Names may now be up to 80 characters (before 48). The couple's names under the couple are larger too.
+3. **Love Story page:** the peacock frame is wider (about 138% of the page; only the outer tail feathers run off the edges) and set right under the title, so the ring and the photographs in it are about a third larger; the photographs are larger within the ring. The frame, board and photographs sit at the top, and the dots and arrows are at the very foot of the page, just above the page number.
+4. **Couple pages (Rahul and Divya):** the rebuilt-leaf background is gone. The pages are now on the Events picture's temple (golden pillar with hanging jasmine and red-flower garlands, bells, banana leaves, brass lamps, the gopuram and palms, soft-focus), with the Events signboard, medallions and rods taken out (`npm run scenery:assets`; the signboard's place is a smooth gradient, which reads as a soft haze behind the title). The groom's page uses the first Events page's temple, the bride's the second page's.
+5. **Zoomed out, on stone steps:** the temple is made taller above (its soft middle stretched) so the couple appear about a third smaller; the people are cut out of the client's picture (GrabCut from the rough outlines) and set on stone steps that continue below where the client's picture ended, so the staircase shows (treads and risers with grain, blocks, a soft shadow, red and cream petals strewn on them). The client's own steps, flowers and the polaroids' places are not used.
+6. **Feet:** the client's picture ends at the hem of the dhoti and the saree, so the feet are not in it. The foot of each figure melts softly into the steps (as if the hem rests on a lower step); no feet were drawn. A photo of the couple sitting with their feet showing would be needed.
+7. **Honest note:** the steps are drawn by the script, not photographed, and the temple behind is a soft background taken from the Events picture. They read as stone and temple at phone size, not as a photograph.
+
+### Results
+
+- `npm run qa:book`: 74/74 checks pass (AC-01d now checks a very long name wraps inside the card, clear of the divider, at a readable size). `npx vitest run`: 58 pass. `npx astro check`: 0 errors.
+- `npm run perf`: mobile performance 88, accessibility 100, best practices 100.
+

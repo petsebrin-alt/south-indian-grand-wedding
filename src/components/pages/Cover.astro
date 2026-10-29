@@ -61,7 +61,10 @@ const leafClip = (side: 'l' | 'r') => {
 };
 // Places on the card photograph (scene.json `card`, source pixels) as % of the card
 const { card } = scene;
-const [kx0, ky0, kx1, ky1] = card.box;
+const [kx0, ky0, kx1] = card.box;
+// The card is taller than the photograph by `extend.rows` (velvet added under the greeting, for long guest
+// names; scripts/opening/card.ts), and the places below are measured on the taller card
+const ky1 = card.box[3] + (card.extend?.rows ?? 0);
 const onCard = ([x0, y0, x1, y1]: number[]) =>
   `left:${pct(((x0 - kx0) / (kx1 - kx0)) * 100)};top:${pct(((y0 - ky0) / (ky1 - ky0)) * 100)};width:${pct(((x1 - x0) / (kx1 - kx0)) * 100)};height:${pct(((y1 - y0) / (ky1 - ky0)) * 100)}`;
 // The photographed card is a touch wider at the bottom than the top
@@ -477,8 +480,8 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
   .cv-card {
     position: relative;
     flex: none;
-    width: min(84cqw, calc(66cqh * var(--card-ratio)));
-    height: min(calc(84cqw / var(--card-ratio)), 66cqh);
+    width: min(88cqw, calc(80cqh * var(--card-ratio)));
+    height: min(calc(88cqw / var(--card-ratio)), 80cqh);
     perspective: 2400px;
     container-type: size;
   }
@@ -586,19 +589,20 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
     filter: drop-shadow(0 0.18cqh 0 rgba(42, 0, 8, 0.75)) drop-shadow(0 -0.05cqh 0 rgba(255, 236, 190, 0.3));
   }
 
-  /* "Dear" in calligraphy, the guest's name beneath it in clear serif capitals. The name is sized to
-     fit by src/motion/pages/cover.ts (fitGreeting); a very long name takes two lines */
+  /* "Dear" in calligraphy, the guest's name beneath it in clear serif capitals, set from the top of a roomy
+     space under the card's arch (the card is made taller for this). The name is sized to fit by
+     src/motion/pages/cover.ts (fitGreeting): one line if it fits, otherwise wrapped over up to three. */
   .cv-inv__dear {
-    align-content: center;
-    gap: 0.5cqh;
+    align-content: start;
+    gap: 1.2cqw;
   }
 
   .cv-inv__dear-word {
-    font: 400 7.6cqh / 1 var(--font-script);
+    font: 400 11.4cqw / 1 var(--font-script);
   }
 
   .cv-inv__guest {
-    font: 600 calc(4.3cqh * var(--guest-scale, 1)) / 1.2 var(--font-royal);
+    font: 600 calc(6.4cqw * var(--guest-scale, 1)) / 1.22 var(--font-royal);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     text-wrap: balance;
@@ -606,7 +610,7 @@ const bellWidth = (bellHeight * ratio) / (bell.height / bell.width);
 
   /* The couple's names, under the couple */
   .cv-inv__names {
-    font: 600 4.3cqh / 1.1 var(--font-display);
+    font: 600 6.5cqw / 1.1 var(--font-display);
     letter-spacing: 0.02em;
     white-space: nowrap;
   }

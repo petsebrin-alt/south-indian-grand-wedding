@@ -1,12 +1,12 @@
 /**
  * npm run couple:assets → the Rahul and Divya pages' layers (src/assets/couple/), from the client's
- * picture source/groom-bride.webp (the groom's page on the left half, the bride's on the right) and
- * the measurements in scene.json:
- *   groom, bride      each half, with its interest polaroids and its printed title taken out, so the
- *                     title can be set in live lettering and the polaroids can pop in one by one
- *                     (AVIF + WebP). The sky and palms behind a title are borrowed from the picture
- *                     (inpaint.ts); the garden behind the polaroids is rebuilt as leaves and flowers
- *                      (backdrop.ts)
+ * picture source/groom-bride.webp (the groom's page on the left half, the bride's on the right), the
+ * Events picture's temple background (npm run scenery:assets) and the measurements in scene.json:
+ *   groom, bride      each page's photograph (AVIF + WebP): the Events picture's soft temple background
+ *                     (garlands, bells, banana leaves, lamps, the tower and palms), made taller above (so
+ *                     the couple can be shown smaller) by stretching its soft middle, with the person
+ *                     cut out of the client's picture (source/mask-*.png, python3 scripts/couple/matte.py)
+ *                     sitting on stone steps that run on below where the client's picture ends
  *   card-<id>         each polaroid (and the groom's gaming cluster), lifted out along its outline:
  *                     the rough corners in scene.json are snapped to the edges of the white frame
  *   cards.json        each card's size and the order it appears in
@@ -15,8 +15,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp, { type Sharp } from 'sharp';
-import { inpaint } from '../welcome/inpaint';
-import { rebuildBackdrop } from './backdrop';
 
 const dir = join(process.cwd(), 'src/assets/couple');
 const scene = JSON.parse(readFileSync(join(dir, 'scene.json'), 'utf8'));
@@ -86,7 +84,6 @@ function snap(quad: number[][]) {
 
 const cardsOut: Record<string, unknown[]> = {};
 const holes: Uint8Array[] = [];
-const titleHoles: Uint8Array[] = [];
 for (const side of ['groom', 'bride'] as const) {
   const half = scene[side];
   const [hx0, hx1] = half.span;
@@ -117,180 +114,189 @@ for (const side of ['groom', 'bride'] as const) {
   }
   cardsOut[side] = out;
 
-  // The printed title
-  const titleHole = new Uint8Array(W * H);
-  for (let y = half.title[1]; y < half.title[3]; y++) for (let x = half.title[0]; x < half.title[2]; x++) {
-    // Only the lettering and its soft edge, not the sky around it (dark red, well away from the sky)
-    const r = px(x, y, 0), g = px(x, y, 1), b = px(x, y, 2);
-    if (r - g > 40 && r < 200 && g < 120) titleHole[y * W + x] = 1;
-  }
-  titleHoles.push(titleHole);
-
   holes.push(hole);
 }
 
-// Rebuild the background behind the printed titles (sky and soft palms: borrowed from the picture's
-// own sky and palms) and behind the polaroids (a garden of leaves and flowers, built below)
-const grow = scene.grow;
-const dilate = (src: Uint8Array, r: number) => {
-  const out = new Uint8Array(W * H);
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      if (!src[y * W + x]) continue;
-      for (let yy = Math.max(0, y - r); yy <= Math.min(H - 1, y + r); yy++) for (let xx = Math.max(0, x - r); xx <= Math.min(W - 1, x + r); xx++) out[yy * W + xx] = 1;
-    }
-  return out;
-};
-let peopleMask = new Uint8Array(W * H);
-for (const side of ['groom', 'bride'] as const) for (let y = 0; y < H; y++) for (let x = scene[side].span[0]; x < scene[side].span[1]; x++) if (inside(scene[side].person, x + 0.5, y + 0.5)) peopleMask[y * W + x] = 1;
-const boxMask = (boxes: number[][]) => {
-  const m = new Uint8Array(W * H);
-  for (const [x0, y0, x1, y1] of boxes) for (let y = Math.max(0, y0); y < Math.min(H, y1); y++) for (let x = Math.max(0, x0); x < Math.min(W, x1); x++) m[y * W + x] = 1;
-  return m;
-};
-let pillars = boxMask(scene.pillars);
-const cardHole = new Uint8Array(W * H), titleHole = new Uint8Array(W * H);
-for (const h of holes) for (let i = 0; i < W * H; i++) if (h[i]) cardHole[i] = 1;
-for (const h of titleHoles) for (let i = 0; i < W * H; i++) if (h[i]) titleHole[i] = 1;
-const erode = (src: Uint8Array, r: number) => {
-  const inv = Uint8Array.from(src, (v) => 1 - v);
-  const grown = dilate(inv, r);
-  return Uint8Array.from(grown, (v) => 1 - v);
-};
-// The polaroids' area, grown past their drop shadows, with the thin strips between neighbouring
-// polaroids closed
-const cardsClosed = erode(dilate(cardHole, scene.cardGrow + scene.close), scene.close);
-const titleGrown = dilate(titleHole, grow);
-// The dark strips the polaroids' shadows left beside them join the area (a dark edge would outline it)
-let cardsGrown = Uint8Array.from(cardsClosed);
-{
-  let frontier: number[] = [];
-  for (let i = 0; i < W * H; i++) if (cardsClosed[i]) frontier.push(i);
-  for (let step = 0; step < scene.shadowReach && frontier.length; step++) {
-    const next: number[] = [];
-    for (const i of frontier) {
-      const x = i % W, y = (i / W) | 0;
-      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, y > 0 ? i - W : -1, y < H - 1 ? i + W : -1]) {
-        if (j < 0 || cardsGrown[j] || peopleMask[j] || pillars[j]) continue;
-        const l = 0.3 * d[j * 3] + 0.59 * d[j * 3 + 1] + 0.11 * d[j * 3 + 2];
-        if (l < scene.shadowDark) (cardsGrown[j] = 1), next.push(j);
-      }
-    }
-    frontier = next;
-  }
-}
 
-// The picture's own greenery beside the polaroids (leaves, shrubs and grass touching their area) goes
-// with them: the area grows through connected leaf-green pixels, up to `leafReach` px, so the temple
-// shows there instead. Red and white flowers, the people and the pillars stay.
-{
-  const isLeafPx = (j: number) => {
-    const r = d[j * 3], g = d[j * 3 + 1], b = d[j * 3 + 2];
-    return (g - b > 40 && g >= r * 0.84) || (g > r + 3 && g > b + 20 && 0.3 * r + 0.59 * g + 0.11 * b > 40);
-  };
-  let frontier: number[] = [];
-  for (let i = 0; i < W * H; i++) if (cardsGrown[i]) frontier.push(i);
-  for (let step = 0; step < scene.leafReach && frontier.length; step++) {
-    const next: number[] = [];
-    for (const i of frontier) {
-      const x = i % W, y = (i / W) | 0;
-      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, y > 0 ? i - W : -1, y < H - 1 ? i + W : -1]) {
-        if (j < 0 || cardsGrown[j] || peopleMask[j] || pillars[j]) continue;
-        if (isLeafPx(j)) (cardsGrown[j] = 1), next.push(j);
-      }
-    }
-    frontier = next;
-  }
-  // Close the little gaps this leaves between leaves
-  const closed = erode(dilate(cardsGrown, 6), 6);
-  for (let i = 0; i < W * H; i++) if (closed[i] && !peopleMask[i] && !pillars[i]) cardsGrown[i] = 1;
-}
-
-// Titles: the sky and palms around them
-const t0 = Date.now();
-const titleAvoid = new Uint8Array(W * H);
-for (let i = 0; i < W * H; i++) if (peopleMask[i] || pillars[i]) titleAvoid[i] = 1;
-let withTitles = inpaint({ w: W, h: H, d: Float32Array.from(d) }, titleGrown, titleAvoid, () => {}, { grain: scene.grain });
-
-// The zoom-out: the couple are shown smaller, which needs more picture above them than the picture has.
-// So the band of sky between the garlands and the heads is stretched taller (soft sky, palms and the tower
-// grow taller; the bells, the garlands' tops, the people and the steps keep their size). Everything below
-// (the garden behind the polaroids) is then built on the taller picture, so nothing in it is stretched.
+// ---------------------------------------------------------------------------------------------------
+// The pages: temple backdrop, stone steps, the person
+const C = scene.compose;
+const PW = 768;
+const TOP = C.top, FOOT = C.steps;
+const PH = H + TOP + FOOT; // the page's picture, in the picture's own pixels
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 };
-const bands = (['groom', 'bride'] as const).map((side) => {
-  const [a, b] = scene.extend[side] as number[];
-  const f = scene.extend.feather;
-  // more of the stretch falls on the band's top rows (plain sky) than on its lower ones (palms, tower)
-  const weight = (y: number) => smoothstep(a - f, a + f, y) * (1 - smoothstep(b - f, b + f, y)) * (1 + scene.extend.bias * Math.pow(Math.max(0, 1 - (y - a) / (b - a)), 2));
+const blurBox = (src: Float32Array, w: number, h: number, r: number) => {
+  const tmp = new Float32Array(w * h), out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    let acc = 0;
+    for (let x = -r; x <= r; x++) acc += src[y * w + Math.min(w - 1, Math.max(0, x))];
+    for (let x = 0; x < w; x++) {
+      tmp[y * w + x] = acc / (2 * r + 1);
+      acc += src[y * w + Math.min(w - 1, x + r + 1)] - src[y * w + Math.max(0, x - r)];
+    }
+  }
+  for (let x = 0; x < w; x++) {
+    let acc = 0;
+    for (let y = -r; y <= r; y++) acc += tmp[Math.min(h - 1, Math.max(0, y)) * w + x];
+    for (let y = 0; y < h; y++) {
+      out[y * w + x] = acc / (2 * r + 1);
+      acc += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x];
+    }
+  }
+  return out;
+};
+let seed = 31;
+const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+/** Smooth noise, mean 0, spread about 1 */
+const noise = (w: number, h: number, r: number) => {
+  const n = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) n[i] = rand() * 2 - 1;
+  const b = blurBox(blurBox(blurBox(n, w, h, r), w, h, r), w, h, r);
+  let sq = 0;
+  for (let i = 0; i < w * h; i++) sq += b[i] * b[i];
+  const sd = Math.sqrt(sq / (w * h)) || 1;
+  for (let i = 0; i < w * h; i++) b[i] /= sd;
+  return b;
+};
+
+/** The temple, taller: the rows of `band` are stretched (the rest keep their size), the stretch easing in and out */
+function taller(pic: Float32Array, band: number[], extra: number, feather: number) {
+  const [a, b] = band;
+  const weight = (y: number) => smoothstep(a - feather, a + feather, y) * (1 - smoothstep(b - feather, b + feather, y));
   let total = 0;
   for (let y = 0; y < H; y++) total += weight(y);
-  const k = scene.extend.rows / total;
-  const edge = new Float64Array(H + 1); // where each source row begins in the taller picture
+  const k = extra / total;
+  const edge = new Float64Array(H + 1);
   let acc = 0;
   for (let y = 0; y <= H; y++) {
     edge[y] = y + acc;
     acc += k * weight(y);
   }
-  return { side, edge, x0: scene[side].span[0], x1: scene[side].span[1] };
-});
-const H0 = H, H2 = Math.round(bands[0].edge[H0]);
-/** Source row (fractional) behind each row of the taller picture, for each half */
-const sourceRows = bands.map(({ edge }) => {
-  const rows = new Float64Array(H2);
+  const rows = Math.round(edge[H]);
+  const out = new Float32Array(PW * rows * 3);
   let y = 0;
-  for (let y2 = 0; y2 < H2; y2++) {
-    while (y < H0 - 1 && edge[y + 1] <= y2 + 0.5) y++;
-    rows[y2] = y + (y2 + 0.5 - edge[y]) / (edge[y + 1] - edge[y]) - 0.5;
+  for (let y2 = 0; y2 < rows; y2++) {
+    while (y < H - 1 && edge[y + 1] <= y2 + 0.5) y++;
+    const sy = y + (y2 + 0.5 - edge[y]) / (edge[y + 1] - edge[y]) - 0.5;
+    const y0 = Math.max(0, Math.floor(sy)), y1 = Math.min(H - 1, y0 + 1), fy = Math.min(1, Math.max(0, sy - y0));
+    for (let i = 0; i < PW * 3; i++) out[y2 * PW * 3 + i] = pic[y0 * PW * 3 + i] * (1 - fy) + pic[y1 * PW * 3 + i] * fy;
   }
-  return rows;
-});
-const taller = (src: ArrayLike<number>, stride: number, smoothly: boolean) => {
-  const out = new Float32Array(W * H2 * stride);
-  for (const [bi, { x0, x1 }] of bands.entries())
-    for (let y2 = 0; y2 < H2; y2++) {
-      const sy = sourceRows[bi][y2];
-      const y0 = Math.max(0, Math.min(H0 - 1, Math.floor(sy))), y1 = Math.min(H0 - 1, y0 + 1), fy = Math.min(1, Math.max(0, sy - y0));
-      for (let x = x0; x < x1; x++)
-        for (let c = 0; c < stride; c++) {
-          const a = src[(y0 * W + x) * stride + c], b = src[(y1 * W + x) * stride + c];
-          out[(y2 * W + x) * stride + c] = smoothly ? a * (1 - fy) + b * fy : fy < 0.5 ? a : b;
-        }
-    }
-  return out;
-};
-const tallerMask = (m: Uint8Array) => Uint8Array.from(taller(m, 1, false), (v) => (v > 0.5 ? 1 : 0));
-withTitles = { w: W, h: H2, d: taller(withTitles.d, 3, true) };
-cardsGrown = tallerMask(cardsGrown);
-peopleMask = tallerMask(peopleMask);
-pillars = tallerMask(pillars);
-H = H2;
+  return { pic: out, rows };
+}
 
-// Cards: the temple behind them (backdrop.ts): the colours around each area, with the structure of the
-// client's temple picture (carved stone and pillars) on top
-const keep = new Uint8Array(W * H);
-for (let i = 0; i < W * H; i++) if ((peopleMask[i] || pillars[i]) && !cardsGrown[i]) keep[i] = 1;
-const rebuilt = { w: W, h: H, d: Float32Array.from(withTitles.d) };
-const temple = await sharp(join(process.cwd(), 'src/assets/family/source/temple.webp')).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-rebuildBackdrop(
-  rebuilt,
-  {
-    hole: cardsGrown,
-    keep,
-    halves: [scene.groom.span, scene.bride.span],
-    ...scene.backdrop,
-    texture: { pix: Float32Array.from(temple.data), w: temple.info.width, h: temple.info.height, ...scene.backdrop.texture },
-  },
-  (l) => console.log(l),
-);
-console.log(`  backgrounds rebuilt in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
-for (const side of ['groom', 'bride'] as const) {
-  const [hx0, hx1] = scene[side].span;
-  const hw = hx1 - hx0;
-  const out = new Float32Array(hw * H * 3);
-  for (let y = 0; y < H; y++) for (let x = 0; x < hw; x++) for (let c = 0; c < 3; c++) out[(y * hw + x) * 3 + c] = rebuilt.d[(y * W + hx0 + x) * 3 + c];
-  await write(side, sharp(Buffer.from(Uint8ClampedArray.from(out)), { raw: { width: hw, height: H, channels: 3 } }), ['avif', 'webp'], { avif: 60, webp: 82 });
+/** A repeatable pseudo-random number from an integer */
+const hash = (n: number) => {
+  const t = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return t - Math.floor(t);
+};
+
+/** Stone steps: treads and risers in the picture's own stone colours, with grain, seams and a soft shadow at each foot */
+function steps(rows: number, top: number) {
+  const out = new Float32Array(PW * rows * 4); // RGBA, alpha 0 above `top`
+  const P = C.stone.period, tread = Math.round(P * C.stone.tread);
+  const big = noise(PW, rows, 14), mid = noise(PW, rows, 4), fine = noise(PW, rows, 1);
+  const lerp = (a: number[], b: number[], t: number) => a.map((v, i) => v + (b[i] - v) * t);
+  for (let y = top; y < rows; y++) {
+    const depth = Math.min(1, (y - top) / (rows - top));
+    const base = lerp(C.stone.light, C.stone.dark, depth);
+    const n = (y - top) % P;
+    const onTread = n < tread;
+    const riserT = onTread ? 0 : (n - tread) / (P - tread); // 0 at the front edge of the tread above, 1 at the foot of the riser
+    // The front edge of each tread is lit, the riser darkens towards its foot (the next tread's shadow)
+    const lit = onTread ? 1.05 - 0.09 * (n / tread) + (n < 3 ? 0.1 : 0) : 0.78 - 0.14 * riserT + (riserT > 0.9 ? -0.12 : 0);
+    const seamRow = Math.floor((y - top) / P);
+    for (let x = 0; x < PW; x++) {
+      // vertical seams between the stone blocks, staggered from step to step
+      const blockIdx = Math.floor((x + seamRow * 67) / C.stone.block);
+      const blockTone = 1 + (hash(blockIdx * 31 + seamRow * 7) - 0.5) * C.stone.blockTone;
+      const sx = (x + seamRow * 67) % C.stone.block;
+      const seam = (sx < 2 || sx > C.stone.block - 2) ? (onTread ? 0.93 : 0.84) : 1;
+      const grain = (rand() + rand() + rand() - 1.5) * C.stone.grain;
+      const pit = fine[y * PW + x] > 1.55 ? -C.stone.pit : 0; // small pits in the stone
+      const v = big[y * PW + x] * C.stone.blotch + mid[y * PW + x] * C.stone.speckle + fine[y * PW + x] * 2.2 + pit;
+      const o = (y * PW + x) * 4;
+      for (let c = 0; c < 3; c++) out[o + c] = Math.max(0, Math.min(255, (base[c] + v) * lit * seam * blockTone + grain));
+      out[o + 3] = smoothstep(top, top + C.stone.fade, y);
+    }
+  }
+  return out;
+}
+
+/** Petals strewn on the steps: soft ellipses in the picture's reds, pinks and creams, each with a lit side */
+function strewPetals(pic: Float32Array, top: number, count: number) {
+  const palette = [[196, 24, 52], [214, 52, 76], [232, 96, 112], [186, 18, 44], [204, 36, 60], [222, 74, 92], [242, 214, 190]];
+  for (let n = 0; n < count; n++) {
+    const cx = rand() * PW, cy = top + 14 + rand() * (PH - top - 20);
+    const len = 5 + rand() * 8, wid = len * (0.45 + rand() * 0.2), rot = rand() * Math.PI;
+    const col = palette[Math.floor(rand() * palette.length)];
+    const cr = Math.cos(rot), sr = Math.sin(rot);
+    for (let y = Math.floor(cy - len); y <= Math.ceil(cy + len); y++)
+      for (let x = Math.floor(cx - len); x <= Math.ceil(cx + len); x++) {
+        if (x < 0 || y < 0 || x >= PW || y >= PH) continue;
+        const u = (x - cx) * cr + (y - cy) * sr, v = -(x - cx) * sr + (y - cy) * cr;
+        const d = (u / len) ** 2 + (v / wid) ** 2;
+        if (d > 1) continue;
+        const a = smoothstep(1, 0.55, d) * 0.96;
+        const lit = 0.82 + 0.3 * (v / wid) * -0.5 + 0.12 * (1 - d); // the upper edge catches the light
+        const i = (y * PW + x) * 3;
+        for (let c = 0; c < 3; c++) pic[i + c] = pic[i + c] * (1 - a) + Math.min(255, col[c] * lit) * a;
+        // a little shadow below it
+        if (d > 0.75 && v > 0) for (let c = 0; c < 3; c++) pic[i + c] *= 0.93;
+      }
+  }
+}
+
+const personAlpha: Float32Array[] = [];
+for (const [si, side] of (['groom', 'bride'] as const).entries()) {
+  const [hx0] = scene[side].span;
+  // The temple: this page's backdrop from the Events picture, taller by stretching its soft middle
+  const bg = await sharp(join(process.cwd(), 'src/assets/events/source', `scenery-${C[side].scenery}.webp`)).removeAlpha().raw().toBuffer();
+  const stretched = taller(Float32Array.from(bg), C.band, TOP, C.feather);
+  const pic = new Float32Array(PW * PH * 3);
+  pic.set(stretched.pic.subarray(0, Math.min(stretched.pic.length, PW * PH * 3)));
+  // Below it, where the client's picture had ended, the temple floor carries on as its own reflection
+  const reflect = stretched.rows;
+  for (let y2 = reflect; y2 < PH; y2++) {
+    const sy = reflect - 1 - (y2 - reflect);
+    for (let x = 0; x < PW; x++) for (let c = 0; c < 3; c++) pic[(y2 * PW + x) * 3 + c] = stretched.pic[(Math.max(0, sy) * PW + x) * 3 + c] * 0.9;
+  }
+  // The steps, from the row where the person sits to the foot
+  const stoneTop = C[side].stepsFrom + TOP;
+  const st = steps(PH, stoneTop);
+  for (let i = 0; i < PW * PH; i++) {
+    const a = st[i * 4 + 3];
+    if (a <= 0) continue;
+    for (let c = 0; c < 3; c++) pic[i * 3 + c] = pic[i * 3 + c] * (1 - a) + st[i * 4 + c] * a;
+  }
+  // The person: the client's picture cut out along its mask (without the polaroids' edges), set down on the steps
+  const half = await sharp(join(dir, 'source/groom-bride.webp')).extract({ left: hx0, top: 0, width: PW, height: H }).removeAlpha().raw().toBuffer();
+  const mask = await sharp(join(dir, `source/mask-${side}.png`)).greyscale().raw().toBuffer();
+  const cardEdge = new Float32Array(PW * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < PW; x++) cardEdge[y * PW + x] = holes[si][y * W + hx0 + x];
+  const away = blurBox(blurBox(cardEdge, PW, H, 3), PW, H, 3);
+  const alpha = new Float32Array(PW * PH);
+  // (the picture's foot, where the person is cut off, melts into the steps over a few rows)
+  for (let y = 0; y < H; y++) for (let x = 0; x < PW; x++) alpha[(y + TOP) * PW + x] = (mask[y * PW + x] / 255) * (1 - Math.min(1, away[y * PW + x] * 6)) * smoothstep(H - 1, H - 1 - C.footFade, y);
+  strewPetals(pic, stoneTop + 8, C.petals);
+  // A shadow on the steps below and behind the person
+  const shadowSrc = new Float32Array(PW * PH);
+  for (let y = H + TOP - 90; y < H + TOP - C.footFade; y++) for (let x = 0; x < PW; x++) shadowSrc[(y + 14) * PW + x] = alpha[y * PW + x];
+  const shadow = blurBox(blurBox(shadowSrc, PW, PH, 10), PW, PH, 10);
+  for (let i = 0; i < PW * PH; i++) {
+    const sh = Math.min(0.34, shadow[i] * 0.9) * (st[i * 4 + 3] > 0 ? 1 : 0);
+    if (sh > 0) for (let c = 0; c < 3; c++) pic[i * 3 + c] *= 1 - sh;
+  }
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < PW; x++) {
+      const a = alpha[(y + TOP) * PW + x];
+      if (a <= 0.003) continue;
+      const i = (y + TOP) * PW + x;
+      for (let c = 0; c < 3; c++) pic[i * 3 + c] = pic[i * 3 + c] * (1 - a) + half[(y * PW + x) * 3 + c] * a;
+    }
+  personAlpha.push(alpha);
+  await write(side, sharp(Buffer.from(Uint8ClampedArray.from(pic)), { raw: { width: PW, height: PH, channels: 3 } }), ['avif', 'webp'], { avif: 60, webp: 82 });
 }
 writeFileSync(join(dir, 'cards.json'), JSON.stringify(cardsOut, null, 2) + '\n');

@@ -380,7 +380,7 @@
     "_note": "origin: the point we walk towards; behind/near: the courtyard's scale as the doors open and once inside; shrine: the lit shrine door at the foot of the tower, where the logo comes from (% of courtyard.webp)."
   },
   "card": {
-    "_note": "Source pixels of source/card.webp (x0, y0, x1, y1): the card's edges, the printed greeting and divider to clear, a plain velvet patch, where the divider is set (603 is where it was printed), and the live-text areas. top: where the card's top edge starts and ends, in % of its width.",
+    "_note": "Source pixels of source/card.webp (x0, y0, x1, y1): the card's edges, the printed greeting and divider to clear, a plain velvet patch, where the divider is set (603 is where it was printed), and the live-text areas. top: where the card's top edge starts and ends, in % of its width. extend: the card is made taller by `rows` (a whole number of the border's beads, `period` rows each): velvet is added in the middle at row c, and the border's own repeat is carried on down the sides (x < xl and x >= xr) at row s, below where the vines end, so nothing printed is cut. greeting, names and open are in the taller card's pixels.",
     "box": [
       73,
       137,
@@ -412,23 +412,31 @@
       250,
       418,
       792,
-      598
+      844
     ],
     "names": [
       290,
-      1252,
+      1512,
       734,
-      1322
+      1582
     ],
     "open": [
       268,
-      662,
+      922,
       762,
-      738
+      998
     ],
     "top": [
       1.25,
       98.98
-    ]
+    ],
+    "extend": {
+      "c": 598,
+      "s": 650,
+      "xl": 245,
+      "xr": 790,
+      "rows": 260,
+      "period": 17.333333333333332
+    }
   }
 }

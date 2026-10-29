@@ -345,17 +345,20 @@ async function main() {
         const text = el.getBoundingClientRect();
         const card = document.querySelector('#cover [data-book]')!.getBoundingClientRect();
         const lines = Math.round(text.height / (parseFloat(getComputedStyle(el).fontSize) * 1.2));
-        return { text: el.textContent, elements: el.children.length, lines, inside: text.left >= card.left + card.width * 0.15 && text.right <= card.right - card.width * 0.15 };
+        const rule = document.querySelector('#cover .cv-open')!.getBoundingClientRect();
+        const size = parseFloat(getComputedStyle(el).fontSize);
+        return { text: el.textContent, elements: el.children.length, lines, size: Math.round(size), room: text.bottom < rule.top - 4 && size >= 11, inside: text.left >= card.left + card.width * 0.15 && text.right <= card.right - card.width * 0.15 };
       });
     };
     const markup = await greet('Meena & Ravi <img src=x>');
     const short = await greet('Meena & Ravi');
     const long = await greet('Dr. Lakshmi Narayanan & Family (Chennai)');
+    const longer = await greet('Mr. and Mrs. Venkata Subramanian Iyer with Our Lovely Family');
     check(
       'AC-01d',
-      'A personal link (?to=Name) greets the guest by name on the card, as plain text; long names shrink to fit (two lines at most)',
-      markup.text === 'Meena & Ravi img srcx' && markup.elements === 0 && short.lines === 1 && short.inside && long.lines <= 2 && long.inside,
-      JSON.stringify({ markup, short, long }),
+      'A personal link (?to=Name) greets the guest by name on the card, as plain text; long names wrap over several lines at a readable size, inside the card and clear of the divider',
+      markup.text === 'Meena & Ravi img srcx' && markup.elements === 0 && short.lines === 1 && short.inside && long.lines <= 4 && long.inside && long.room && longer.lines <= 5 && longer.inside && longer.room,
+      JSON.stringify({ markup, short, long, longer }),
     );
     await ctx.close();
   }

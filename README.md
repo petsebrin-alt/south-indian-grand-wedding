@@ -36,7 +36,7 @@ npm run content:check    # lists everything still missing
 
 ## Personal invitation links
 
-Add `?to=` and the guest's name to the site address and the invitation card greets them by name, for example `https://your-site/?to=Meena%20%26%20Ravi` shows "Dear" in calligraphy and MEENA & RAVI beneath it in serif capitals, in the card's gold. Without a name the card says "Dear Guest". Longer names are set smaller to fit, and very long ones take two lines. In the link, write spaces as `%20` and `&` as `%26`.
+Add `?to=` and the guest's name to the site address and the invitation card greets them by name, for example `https://your-site/?to=Meena%20%26%20Ravi` shows "Dear" in calligraphy and MEENA & RAVI beneath it in serif capitals, in the card's gold. Without a name the card says "Dear Guest". A name can be up to 80 characters: a long one is wrapped over up to three or four lines, at a readable size, in the room the card leaves under "Dear". In the link, write spaces as `%20` and `&` as `%26`.
 
 ## Add the realistic artwork
 
@@ -99,7 +99,7 @@ npm run perf               # Lighthouse mobile on the cover of the built site (r
 | `src/assets/welcome/` | The Welcome page's courtyard and couple (`source/`), their measurements (`scene.json`) and the layers made from them (`npm run welcome:assets`, `scripts/welcome/`) |
 | `src/assets/save-the-date/` | The Save the Date page's couple-with-board picture and curtain (`source/`) and the layers made from them (`npm run save-the-date:assets`, `scripts/save-the-date/`) |
 | `src/assets/countdown/` | The Countdown page's elephant board and gold rod (`source/`), and its moving trunk pieces (`npm run countdown:assets`, `scripts/countdown/`) |
-| `src/assets/couple/` | The Rahul and Divya pages: the groom-and-bride picture (`source/`), the two cleaned photographs and the cut-out interest cards (`npm run couple:assets`, `scripts/couple/`) |
+| `src/assets/couple/` | The Rahul and Divya pages: the groom-and-bride picture (`source/`), the two cleaned photographs and the cut-out interest cards (`npm run couple:assets`, `scripts/couple/`; the temple behind them comes from the Events picture via `npm run scenery:assets`) |
 | `src/assets/events/`, `src/assets/family/` | The Wedding Events pages' medallions and backgrounds, and the Parents page's background, cut from the client's events picture (`npm run events:assets`, `scripts/events/`) |
 | `src/assets/decor/`, `src/assets/placeholders/` | Real decoration assets, and their vector stand-ins |
 | `src/lib/calendar.ts` | Add to Calendar links and `.ics` files |

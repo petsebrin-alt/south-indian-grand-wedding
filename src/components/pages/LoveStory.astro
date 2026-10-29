@@ -208,9 +208,8 @@ const pagePieces = (stage.pieces as { id: string; side: string; file: string; bo
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding-top: var(--safe-top);
-    padding-bottom: 9cqh;
+    justify-content: flex-start;
+    padding-top: calc(var(--safe-top) + 2.6cqh);
   }
 
   .ls__title {
@@ -220,13 +219,14 @@ const pagePieces = (stage.pieces as { id: string; side: string; file: string; bo
     text-shadow: 0 0 3px rgba(255, 249, 238, 1), 0 0 8px rgba(255, 249, 238, 1), 0 0 18px rgba(255, 249, 238, 0.95), 0 0 30px rgba(255, 249, 238, 0.8);
   }
 
-  /* The peacock frame, a little wider than the page so the peacocks and the ring are large */
+  /* The peacock frame, wider than the page (only the outer tail feathers run off its edges) so the ring and
+     the photographs in it are large, set right under the title */
   .ls__frame {
     position: relative;
     flex: none;
-    width: 116cqw;
+    width: 138cqw;
     aspect-ratio: var(--frame-ratio);
-    margin-top: 1.4cqh;
+    margin-top: 2.2cqh;
     filter: drop-shadow(0 10px 14px rgba(70, 35, 10, 0.3));
   }
 
@@ -261,7 +261,7 @@ const pagePieces = (stage.pieces as { id: string; side: string; file: string; bo
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 47%;
+    width: 57%;
     aspect-ratio: 2 / 3;
     margin: 0;
     padding: max(2px, 0.9cqw);
@@ -321,11 +321,16 @@ const pagePieces = (stage.pieces as { id: string; side: string; file: string; bo
     text-wrap: balance;
   }
 
+  /* The dots and arrows sit at the very foot of the page, just above its page number */
   .ls__controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--safe-bottom) + 6.6cqh);
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 3cqw;
-    margin-top: 1.6cqh;
   }
 
   .ls__arrow {

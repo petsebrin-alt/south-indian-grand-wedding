@@ -152,30 +152,33 @@ export function greetGuest(page: HTMLElement) {
     .replace(/[^\p{L}\p{M}\p{N} .,'&()-]/gu, '')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 48);
+    .slice(0, 80);
   if (name) q(page, '[data-guest]').textContent = name;
 }
 
 /**
- * Fit the guest's name to its place under "Dear": one line, smaller for a longer name; a very long
- * name wraps onto two. Measured once the card is laid out and its capitals face has loaded.
+ * Fit the guest's name to its place under "Dear": the largest size at which it fits on one line (never
+ * smaller than about 70%); a longer name is wrapped instead, over as many lines as the room under "Dear"
+ * allows (up to three at a readable size). Measured once the card is laid out and its capitals face has loaded.
  */
 function fitGreeting(page: HTMLElement) {
   const box = q(page, '.cv-inv__dear');
+  const word = q(page, '.cv-inv__dear-word');
   const name = q(page, '[data-guest]');
   void document.fonts.load(`600 40px ${getComputedStyle(name).fontFamily}`).then(() => {
     if (!box.clientWidth) return;
-    box.style.setProperty('--guest-scale', '1');
+    const room = box.clientHeight - word.offsetHeight - (parseFloat(getComputedStyle(box).rowGap) || 0);
+    const setScale = (v: number) => box.style.setProperty('--guest-scale', String(v));
+    // One line
     name.style.whiteSpace = 'nowrap';
-    const room = box.clientWidth / name.scrollWidth;
+    setScale(1);
+    const one = Math.min(1, (box.clientWidth / name.scrollWidth) * 0.98);
     name.style.whiteSpace = '';
-    let scale = Math.min(1, room * 0.98);
-    box.style.setProperty('--guest-scale', String(scale));
-    if (scale >= 0.62) return;
-    // Too long for one line: the largest size at which it breaks onto two
-    for (scale = 0.7; scale > 0.4; scale -= 0.02) {
-      box.style.setProperty('--guest-scale', String(scale));
-      if (name.offsetHeight <= parseFloat(getComputedStyle(name).fontSize) * 1.2 * 2.1) break;
+    if (one >= 0.7) return setScale(one);
+    // Wrapped: the largest size at which it fits the width and the room
+    for (let v = 1; v > 0.4; v -= 0.03) {
+      setScale(v);
+      if (name.scrollWidth <= box.clientWidth + 1 && name.offsetHeight <= room) return;
     }
   });
 }

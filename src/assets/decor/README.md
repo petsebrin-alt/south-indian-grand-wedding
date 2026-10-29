@@ -78,10 +78,10 @@ The page's background is the client's temple-courtyard picture (the same one as 
 
 `src/assets/couple/source/groom-bride.webp` is the client's picture of both pages side by side: the groom with his interest polaroids on the left half, the bride with hers on the right. `npm run couple:assets` turns it into:
 
-- the two photographs with their polaroids and printed titles taken out (the titles become live lettering), made taller so the couple can be shown smaller on their steps (the band of sky above them is stretched, mostly its plain top rows; `extend` in `scene.json`). The picture has no view of what was behind the polaroids, so that area (and the picture's own greenery touching it) is rebuilt as the temple: the colours around it, with the carved stone and pillars of the temple picture (`src/assets/family/source/temple.webp`) laid on top as soft structure, so the sides show a pale temple behind the cards and no leaves (`scripts/couple/backdrop.ts`, settings under `backdrop` in `scene.json`);
+- the two page photographs: the Events picture's soft temple background (its signboard, medallions and rods taken out by `npm run scenery:assets`, which leaves `src/assets/events/source/scenery-1.webp` and `-2.webp`), made taller above so the couple can be shown smaller (its soft middle is stretched; `compose` in `scene.json`), with the person cut out of the client's picture (`python3 scripts/couple/matte.py` makes `source/mask-groom.png` and `mask-bride.png` with GrabCut from the rough outlines in `scene.json`; the masks are committed) sitting on stone steps that run on below where the client's picture ends (drawn in code: treads, risers, blocks, grain, petals strewn on them);
 - each polaroid, and the groom's gaming cluster, cut out on its own to pop in one by one.
 
-`src/assets/couple/scene.json` holds each polaroid's corners (snapped to its white frame automatically), the title boxes, the people's outlines, and how each side is rebuilt. A replacement picture needs these measured again.
+`src/assets/couple/scene.json` holds each polaroid's corners (snapped to its white frame automatically), the people's rough outlines, and how each page is composed. A replacement picture needs these measured again.
 
 ## Wedding Events and Parents pages: the client's events picture
 

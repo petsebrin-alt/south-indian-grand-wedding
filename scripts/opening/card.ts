@@ -4,6 +4,8 @@
  *   - the printed "Dear Guest" is painted out, so the guest's own name can be set there in live text
  *     (the velvet is rebuilt from its surrounding light plus grain taken from a plain patch);
  *   - the printed divider moves down a little, making room for the couple's names beneath the greeting;
+ *   - the card is made taller: velvet is added under the greeting and the border's own repeat is carried on
+ *     down the sides, so a long guest name has room (nothing printed is stretched or cut);
  *   - everything else (borders, paisleys, mandap, "Open the Invitation") is left exactly as printed.
  * Writes card.avif and card.webp, cropped to the card.
  */
@@ -18,6 +20,10 @@ export interface CardScene {
   clear: Rect;
   donor: Rect;
   divider: { from: Rect; y: number };
+  /** Makes the card taller (room for long guest names): rows are added at `c` in the middle and at `s` in
+   *  the side strips (x < xl and x >= xr), where only the border runs, so no ornament is cut. `rows` is a
+   *  whole number of the border's beads (`period` rows each). */
+  extend?: { c: number; s: number; xl: number; xr: number; rows: number; period: number };
 }
 
 export async function makeCard(dir: string, card: CardScene) {
@@ -130,9 +136,91 @@ export async function makeCard(dir: string, card: CardScene) {
       for (let c = 0; c < 3; c++) out[t + c] = a * src[s + c] + (1 - a) * out[t + c];
     }
 
+  // 5b. A taller card
+  let pixels = out;
+  let height = info.height;
+  let [bx0, by0, bx1, by1] = card.box;
+  if (card.extend) {
+    const { c, s, xl, xr, rows: E, period } = card.extend;
+    const H2 = info.height + E;
+    const big = new Float32Array(W * H2 * 4);
+    const get = (arr: Float32Array, x: number, y: number, ch: number) => arr[(y * W + x) * 4 + ch];
+    // Mean colour of a row of plain velvet (the middle part, away from foil)
+    const memo = new Map<number, number[]>();
+    const rowMean = (y: number) => {
+      const hit = memo.get(y);
+      if (hit) return hit;
+      const m = [0, 0, 0];
+      let n = 0;
+      for (let x = xl + 30; x < xr - 30; x++) {
+        if (get(out, x, y, 1) > 34) continue;
+        for (let ch = 0; ch < 3; ch++) m[ch] += get(out, x, y, ch);
+        n++;
+      }
+      const mean = m.map((v) => v / Math.max(n, 1));
+      memo.set(y, mean);
+      return mean;
+    };
+    const above = rowMean(c - 1), below = rowMean(c);
+    // The velvet that fills the middle of the added rows: the plain rows under the lotus, read upwards from the cut and back
+    // again, each row's overall colour matched to a blend between the rows either side of the cut
+    const clean: number[] = [];
+    {
+      const foilRow = (y: number) => {
+        for (let x = xl; x < xr; x++) if (get(out, x, y, 1) > 30) return true;
+        return false;
+      };
+      const flagged = new Set<number>();
+      for (let y = c - 260; y < c; y++) if (foilRow(y)) for (let d = -5; d <= 5; d++) flagged.add(y + d);
+      for (let y = c - 1; y >= c - 260; y--) if (!flagged.has(y)) clean.push(y); // nearest the cut first
+    }
+    const span = clean.length;
+    console.log(`  taller card: ${span} plain velvet rows to draw the added ${E} from`);
+    for (let y = 0; y < H2; y++) {
+      for (let x = 0; x < W; x++) {
+        const o = (y * W + x) * 4;
+        const side = x < xl || x >= xr;
+        let srcRow: number, mode: 'copy' | 'strip' | 'velvet';
+        if (side) {
+          if (y < s) (srcRow = y), (mode = 'copy');
+          else if (y < s + E) {
+            // the border's own repeat, carried on: the same rows over and over (the pattern repeats every `period` rows, and
+            // the added rows are a whole number of repeats, so the row after them is the row they began from)
+            srcRow = s + ((y - s) % period);
+            mode = 'strip';
+          } else (srcRow = y - E), (mode = 'copy');
+        } else {
+          if (y < c) (srcRow = y), (mode = 'copy');
+          else if (y < c + E) (srcRow = y), (mode = 'velvet');
+          else (srcRow = y - E), (mode = 'copy');
+        }
+        if (mode === 'copy') for (let ch = 0; ch < 4; ch++) big[o + ch] = get(out, x, srcRow, ch);
+        else if (mode === 'strip') {
+          // a fractional source row (the period is not a whole number of rows)
+          const r0 = Math.floor(srcRow), fr = srcRow - r0;
+          for (let ch = 0; ch < 4; ch++) big[o + ch] = get(out, x, r0, ch) * (1 - fr) + get(out, x, r0 + 1, ch) * fr;
+        } else {
+          const k = y - c;
+          const idx0 = k % (2 * (span - 1));
+          const idx = idx0 < span ? idx0 : 2 * (span - 1) - idx0;
+          const r = clean[idx];
+          const t = (k + 0.5) / E;
+          const m = rowMean(r);
+          for (let ch = 0; ch < 3; ch++) {
+            const target = above[ch] * (1 - t) + below[ch] * t;
+            big[o + ch] = Math.max(0, Math.min(255, get(out, x, r, ch) * (target / Math.max(m[ch], 1))));
+          }
+          big[o + 3] = 255;
+        }
+      }
+    }
+    pixels = big;
+    height = H2;
+    by1 += E;
+  }
+
   // 6. Crop to the card and encode
-  const [bx0, by0, bx1, by1] = card.box;
-  const img = sharp(Buffer.from(Uint8ClampedArray.from(out)), { raw: { width: W, height: info.height, channels: 4 } })
+  const img = sharp(Buffer.from(Uint8ClampedArray.from(pixels)), { raw: { width: W, height, channels: 4 } })
     .extract({ left: bx0, top: by0, width: bx1 - bx0, height: by1 - by0 });
   const png = await img.png().toBuffer();
   for (const [ext, enc] of [
