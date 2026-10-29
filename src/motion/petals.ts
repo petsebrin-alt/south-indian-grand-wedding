@@ -22,14 +22,16 @@ export interface PetalOptions {
   /** Horizontal spawn band as fractions of the container width. */
   from?: [number, number];
   delay?: number;
+  /** Most petals on screen at once (a celebration allows more than the usual restrained drift). */
+  max?: number;
 }
 
-export function dropPetals(container: HTMLElement, { count = 10, kinds = ['jasmine'], from = [0.2, 0.8], delay = 0 }: PetalOptions = {}) {
+export function dropPetals(container: HTMLElement, { count = 10, kinds = ['jasmine'], from = [0.2, 0.8], delay = 0, max = MAX_PETALS }: PetalOptions = {}) {
   if (isReducedMotion()) return;
   const width = container.clientWidth;
   const height = container.clientHeight;
   const urls = kinds.flatMap(sources);
-  const n = Math.min(count, MAX_PETALS - live);
+  const n = Math.min(count, max - live);
 
   for (let i = 0; i < n; i++) {
     const img = document.createElement('img');

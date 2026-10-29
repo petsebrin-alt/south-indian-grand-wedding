@@ -1436,9 +1436,98 @@ async function main() {
     await page.evaluate(() => (location.hash = 'ceremony'));
     await page.waitForTimeout(150);
     await settle(page);
-    await page.waitForTimeout(2600);
-    const plaque = await page.evaluate(() => getComputedStyle(document.querySelector('#ceremony .cm__plaque')!).opacity === '1');
-    check('PH3-scenes', 'Reception curtains part and the card appears; the mandapam plaque appears', curtains.every((s) => Math.abs(s - 0.34) < 0.02) && cardShown && plaque, JSON.stringify({ curtains, cardShown, plaque }));
+    await page.waitForTimeout(5200);
+    const plaque = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#ceremony .cm__line')].every((l) => Number(getComputedStyle(l).opacity) > 0.95));
+    check('PH3-scenes', 'Reception curtains part and the card appears; the mandapam board and its details appear', curtains.every((s) => Math.abs(s - 0.34) < 0.02) && cardShown && plaque, JSON.stringify({ curtains, cardShown, plaque }));
+    await ctx.close();
+  }
+
+  /* AC-37 the Wedding Ceremony page: the real mandapam's pieces arrive one by one, the board shows the details
+     and a blinking Accept button with a tapping hand; accepting starts the celebration (petals, sparks from the
+     two crackers) and is remembered */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.removeItem('rdv:accepted');
+    });
+    await page.goto(`${BASE}#countdown`);
+    await settle(page);
+    await page.evaluate(() => (location.hash = 'ceremony'));
+    await page.waitForTimeout(150);
+    const early = await page.evaluate(() => {
+      const op = (sel: string) => Number(getComputedStyle(document.querySelector(sel)!).opacity);
+      return { beam: op('#ceremony [data-piece="beam"]'), board: op('#ceremony [data-piece="board"]') };
+    });
+    await settle(page);
+    await page.waitForTimeout(4800);
+    const s = await page.evaluate(() => {
+      const pieces = [...document.querySelectorAll<HTMLImageElement>('#ceremony [data-piece]')];
+      const btn = document.querySelector<HTMLElement>('#ceremony [data-accept]')!;
+      const r = btn.getBoundingClientRect();
+      const board = document.querySelector<HTMLElement>('#ceremony .cm__board')!.getBoundingClientRect();
+      return {
+        pieces: pieces.length,
+        loaded: pieces.every((p) => p.complete && p.naturalWidth > 20),
+        shown: pieces.every((p) => Number(getComputedStyle(p).opacity) > 0.95),
+        names: /Rahul/.test(document.querySelector('#ceremony .cm__names')!.textContent ?? '') && /Wednesday, 7 April 2027/.test(document.querySelector('#ceremony .cm__date')!.textContent ?? '') && /10:30 AM IST/.test(document.querySelector('#ceremony .cm__muhurtham')!.textContent ?? ''),
+        blinking: getComputedStyle(btn).animationName === 'cm-blink',
+        hand: getComputedStyle(document.querySelector('#ceremony .cm__hand')!).animationName === 'cm-tap',
+        label: btn.textContent?.trim(),
+        tappable: r.width >= 100 && r.height >= 14 && r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight,
+        inBoard: r.left >= board.left && r.right <= board.right && r.top >= board.top && r.bottom <= board.bottom,
+        crackers: document.querySelectorAll('#ceremony [data-cracker]').length,
+        crackersOnFloor: [...document.querySelectorAll<HTMLElement>('#ceremony [data-cracker]')].every((c) => c.getBoundingClientRect().bottom > innerHeight * 0.8),
+      };
+    });
+    await page.locator('#ceremony [data-accept]').tap();
+    await page.waitForTimeout(1500);
+    const a = await page.evaluate(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>('#ceremony [data-sparks]')!;
+      const px = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+      let lit = 0;
+      for (let i = 3; i < px.length; i += 4 * 7) if (px[i] > 30) lit++;
+      return {
+        accepted: document.getElementById('ceremony')!.classList.contains('is-accepted'),
+        label: document.querySelector('#ceremony [data-accept-text]')!.textContent,
+        thanks: !(document.querySelector('#ceremony [data-accept-thanks]') as HTMLElement).hidden,
+        hand: getComputedStyle(document.querySelector('#ceremony [data-accept-hand]')!).display === 'none',
+        petals: document.querySelectorAll('#ceremony .petal').length,
+        sparks: lit,
+        glow: getComputedStyle(document.querySelector('#ceremony .cm__cracker-glow')!).animationName === 'cm-glow',
+        stored: localStorage.getItem('rdv:accepted') === '1',
+      };
+    });
+    await page.waitForTimeout(9000);
+    const done = await page.evaluate(() => ({ burning: document.getElementById('ceremony')!.classList.contains('is-burning'), petals: document.querySelectorAll('#ceremony .petal').length }));
+    check(
+      'AC-37',
+      'Ceremony: the mandapam pieces arrive one by one, the board shows the details and a blinking Accept button with a tapping hand; accepting starts petals and sparks from the two crackers, is remembered, and the show ends by itself',
+      early.beam < 0.9 && early.board < 0.9 && s.pieces === 19 && s.loaded && s.shown && s.names && s.blinking && s.hand && /Accept/.test(s.label ?? '') && s.tappable && s.inBoard && s.crackers === 2 && s.crackersOnFloor && a.accepted && a.label === 'Accepted' && a.thanks && a.hand && a.petals > 4 && a.sparks > 25 && a.glow && a.stored && !done.burning,
+      JSON.stringify({ early, s, a, done }),
+    );
+    await ctx.close();
+  }
+
+  /* The celebration is silent and still under reduced motion: no petals, no sparks, but the button still accepts */
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
+    await ctx.addInitScript({ content: 'globalThis.__name = (f) => f;' });
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.removeItem('rdv:accepted');
+    });
+    await page.goto(`${BASE}#ceremony`);
+    await settle(page);
+    await page.waitForTimeout(800);
+    await page.locator('#ceremony [data-accept]').tap();
+    await page.waitForTimeout(900);
+    const r = await page.evaluate(() => ({ accepted: document.getElementById('ceremony')!.classList.contains('is-accepted'), petals: document.querySelectorAll('#ceremony .petal').length, burning: document.getElementById('ceremony')!.classList.contains('is-burning') }));
+    check('AC-37b', 'Under reduced motion accepting still works, with no petals or sparks', r.accepted && r.petals === 0 && !r.burning, JSON.stringify(r));
     await ctx.close();
   }
 

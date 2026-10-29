@@ -109,6 +109,18 @@ The desktop pictures and canvases are only requested or created on screens that 
 
 `src/assets/story/source/frame.webp` is the client's red-and-gold peacock frame (two peacocks holding a big ring, with a cream board below), which came with a grey-and-white chequered "transparent" background baked in. `npm run story:assets` (`scripts/story/derive.ts`) cuts it out by colour into a real transparent `frame.webp`, makes `opening.webp` (the ring's see-through inside, as a mask: the photographs show only there and the frame's art lies over them) and `frame.json` (the ring and the board's places), and prepares the couple's photographs (`source/story-N.webp`, in the order of the story) into `public/photos/story/`. The photographs are named in `loveStory` in `src/data/wedding.ts`; the milestone titles there are proposed and the story text (`text`) is for the family to write. Until then the board shows a short line under each title that claims no place or date (in `src/components/pages/LoveStory.astro`).
 
+## Wedding Ceremony page: the real mandapam
+
+`src/assets/ceremony/source/mandapam.webp` is the client's picture of a golden mandapam: carved pillars and beam, a mango-leaf toran, hanging jasmine garlands with red flowers, banana plants, brass lamps and kalasams, a bowl of petals, a rangoli on marble, and a cream board in the middle. `npm run ceremony:assets` (`scripts/ceremony/derive.ts`, measurements in `scene.json`) turns it into:
+
+- `clean`: the whole picture with the wording printed on the board painted out (the cream paper filled in smoothly with a little grain), so the board carries live text (names, date, Muhurtham, place, venue);
+- `base`: a soft warm glow of the hall, shown first. It is a CSS background, since a deliberately blurred picture counts as "low resolution" to Lighthouse;
+- `piece-<id>`: what arrives one by one, each cut out with a soft edge: `beam`, `pillar-l`, `pillar-r`, `toran` (cut by colour, only the green leaves), seven `strand-N` jasmine garlands, `hang-l`/`hang-r` (the little hanging lamps), `banana-l`/`banana-r`, `lamp-l`/`lamp-r`, `floor` and `board`;
+- `ceiling`: the roof carried on above the picture (a gradient from the picture's own top colour up into deep gold);
+- `ceremony.json`: the picture's size, each piece's place in % of the picture, the board, and where the two crackers stand.
+
+The picture keeps its proportions, as wide as the page or a little wider on tall phones (about 78% of the page's height, its plain sides cropped slightly). The two cone crackers are drawn in SVG (deep red, with gold bands) and stand on the floor at the marked places; their sparks are drawn on a canvas only while the celebration runs.
+
 ## All decoration slots
 
 | File name (`.webp`, `.avif` or `.png`) | Asset ID | Used on |

@@ -1,0 +1,309 @@
+{
+  "_note": "Measurements of source/mandapam.webp (1006 \u00d7 1563 px) for scripts/ceremony/derive.ts. board.rect: the cream board's outer edge; board.inner: where its printed wording is (inside the gold rules and clear of the corner ornaments), found as darker than the smooth paper by `darker` (the paper estimated over `radius` px) and painted out (grown by `grow` px). pieces: what arrives one by one \u2014 a rectangle [x0, y0, x1, y1] in the picture's pixels with a soft edge (feather: one number, or left, top, right, bottom); `colour: green` cuts only the green mango leaves out of its rectangle. floorY: where the floor's marble begins. crackers: where the two cone crackers stand on the floor [x, y of the base's middle].",
+  "board": {
+    "rect": [
+      188,
+      432,
+      820,
+      1062
+    ],
+    "inner": [
+      250,
+      462,
+      752,
+      1030
+    ],
+    "darker": 18,
+    "radius": 16,
+    "grow": 3
+  },
+  "floorY": 1380,
+  "crackers": [
+    [
+      196,
+      1496
+    ],
+    [
+      812,
+      1496
+    ]
+  ],
+  "pieces": [
+    {
+      "id": "beam",
+      "rect": [
+        0,
+        0,
+        1006,
+        178
+      ],
+      "feather": [
+        0,
+        0,
+        0,
+        14
+      ]
+    },
+    {
+      "id": "pillar-l",
+      "rect": [
+        0,
+        150,
+        134,
+        1432
+      ],
+      "feather": [
+        0,
+        14,
+        8,
+        16
+      ]
+    },
+    {
+      "id": "pillar-r",
+      "rect": [
+        872,
+        150,
+        1006,
+        1432
+      ],
+      "feather": [
+        8,
+        14,
+        0,
+        16
+      ]
+    },
+    {
+      "id": "toran",
+      "rect": [
+        46,
+        158,
+        960,
+        342
+      ],
+      "feather": 0,
+      "colour": "green"
+    },
+    {
+      "id": "strand-1",
+      "rect": [
+        108,
+        140,
+        172,
+        438
+      ],
+      "feather": [
+        7,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "id": "strand-2",
+      "rect": [
+        229,
+        140,
+        293,
+        438
+      ],
+      "feather": [
+        7,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "id": "strand-3",
+      "rect": [
+        355,
+        140,
+        419,
+        438
+      ],
+      "feather": [
+        7,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "id": "strand-4",
+      "rect": [
+        482,
+        140,
+        546,
+        438
+      ],
+      "feather": [
+        7,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "id": "strand-5",
+      "rect": [
+        609,
+        140,
+        673,
+        438
+      ],
+      "feather": [
+        7,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "id": "strand-6",
+      "rect": [
+        728,
+        140,
+        792,
+        438
+      ],
+      "feather": [
+        7,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "id": "strand-7",
+      "rect": [
+        834,
+        140,
+        898,
+        438
+      ],
+      "feather": [
+        7,
+        6,
+        7,
+        10
+      ]
+    },
+    {
+      "id": "hang-l",
+      "rect": [
+        112,
+        395,
+        192,
+        705
+      ],
+      "feather": [
+        8,
+        8,
+        8,
+        10
+      ]
+    },
+    {
+      "id": "hang-r",
+      "rect": [
+        814,
+        395,
+        894,
+        705
+      ],
+      "feather": [
+        8,
+        8,
+        8,
+        10
+      ]
+    },
+    {
+      "id": "banana-l",
+      "rect": [
+        0,
+        738,
+        264,
+        1102
+      ],
+      "feather": [
+        0,
+        14,
+        14,
+        14
+      ]
+    },
+    {
+      "id": "banana-r",
+      "rect": [
+        764,
+        752,
+        1006,
+        1104
+      ],
+      "feather": [
+        14,
+        14,
+        0,
+        14
+      ]
+    },
+    {
+      "id": "lamp-l",
+      "rect": [
+        54,
+        1046,
+        216,
+        1428
+      ],
+      "feather": [
+        10,
+        10,
+        10,
+        12
+      ]
+    },
+    {
+      "id": "lamp-r",
+      "rect": [
+        798,
+        1050,
+        954,
+        1428
+      ],
+      "feather": [
+        10,
+        10,
+        10,
+        12
+      ]
+    },
+    {
+      "id": "floor",
+      "rect": [
+        0,
+        1122,
+        1006,
+        1563
+      ],
+      "feather": [
+        0,
+        22,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "board",
+      "rect": [
+        184,
+        428,
+        824,
+        1066
+      ],
+      "feather": 3
+    }
+  ]
+}

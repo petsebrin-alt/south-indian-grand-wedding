@@ -95,6 +95,7 @@ npm run perf               # Lighthouse mobile on the cover of the built site (r
 | `src/assets/opening/` | The opening's photographs (`source/`), their measurements (`scene.json`) and the layers made from them |
 | `src/assets/stage/` | The desktop background and the Love Story page's background: the client's cream temple picture (`source/`), its two sides, plain middle and swaying garlands, lamps and bells (`npm run stage:assets`, `scripts/stage/`) |
 | `src/assets/story/` | The Love Story page's red-and-gold peacock frame and the couple's photographs (`source/`) (`npm run story:assets`, `scripts/story/`) |
+| `src/assets/ceremony/` | The Wedding Ceremony page: the client's real golden mandapam picture (`source/`), cut into the pieces that arrive one by one (`npm run ceremony:assets`, `scripts/ceremony/`); the celebration is `src/motion/celebrate.ts` and its music `src/lib/fanfare.ts` |
 | `src/assets/welcome/` | The Welcome page's courtyard and couple (`source/`), their measurements (`scene.json`) and the layers made from them (`npm run welcome:assets`, `scripts/welcome/`) |
 | `src/assets/save-the-date/` | The Save the Date page's couple-with-board picture and curtain (`source/`) and the layers made from them (`npm run save-the-date:assets`, `scripts/save-the-date/`) |
 | `src/assets/countdown/` | The Countdown page's elephant board and gold rod (`source/`), and its moving trunk pieces (`npm run countdown:assets`, `scripts/countdown/`) |
