@@ -78,10 +78,10 @@ The page's background is the client's temple-courtyard picture (the same one as 
 
 `src/assets/couple/source/groom-bride.webp` is the client's picture of both pages side by side: the groom with his interest polaroids on the left half, the bride with hers on the right. `npm run couple:assets` turns it into:
 
-- the two page photographs: the Events picture's soft temple background (its signboard, medallions and rods taken out by `npm run scenery:assets`, which leaves `src/assets/events/source/scenery-1.webp` and `-2.webp`), made taller above so the couple can be shown smaller (its soft middle is stretched; `compose` in `scene.json`), with the person cut out of the client's picture (`python3 scripts/couple/matte.py` makes `source/mask-groom.png` and `mask-bride.png` with GrabCut from the rough outlines in `scene.json`; the masks are committed) sitting on stone steps that run on below where the client's picture ends (drawn in code: treads, risers, blocks, grain, petals strewn on them);
+- the two page photographs: panels 1 and 2 of the client's three-panel picture of the couple sitting casually in a temple courtyard (`src/assets/couple/source/scenes.webp`: carved sandstone pillars with jasmine garlands, banana leaves, brass lamps, the gopuram and palms, a marble floor with petals, the man's sandals and the woman's bare feet on it), cut out as they are and enlarged a little for sharper edges (`scenes` in `scene.json`). The third panel (both together) is not used;
 - each polaroid, and the groom's gaming cluster, cut out on its own to pop in one by one.
 
-`src/assets/couple/scene.json` holds each polaroid's corners (snapped to its white frame automatically), the people's rough outlines, and how each page is composed. A replacement picture needs these measured again.
+`src/assets/couple/scene.json` holds each polaroid's corners (snapped to its white frame automatically) and where the pages are in the three-panel picture. A replacement picture needs these measured again.
 
 ## Wedding Events and Parents pages: the client's events picture
 

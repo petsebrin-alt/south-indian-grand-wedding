@@ -1522,22 +1522,36 @@ async function main() {
         inviteGone: getComputedStyle(q('#ceremony .cm__invite')).display === 'none',
         couple: cameo.complete && cameo.naturalWidth > 100 && Number(getComputedStyle(q('#ceremony .cm__cameo')).opacity) > 0.95,
         words: /Thank you for accepting our invitation/.test(q('#ceremony .cm__thanks-script').textContent ?? '') && /“.+”/.test(q('#ceremony .cm__thanks-quote').textContent ?? ''),
-        rsvpLink: getComputedStyle(q('#ceremony [data-rsvp-link]')).display !== 'none' && Number(q('#ceremony [data-rsvp-link]').dataset.goto) > 10,
-        fits: ['.cm__cameo', '.cm__thanks-script', '.cm__thanks-quote', '.cm__thanks-sign', '[data-accept]', '[data-rsvp-link]'].every((sel) => inBoard(q(`#ceremony ${sel}`))),
+        returnBtn: getComputedStyle(q('#ceremony [data-return]')).display !== 'none' && /Return to RSVP/.test(q('#ceremony [data-return]').textContent ?? '') && !q('#ceremony [data-return]').hasAttribute('data-goto'),
+        fits: ['.cm__cameo', '.cm__thanks-script', '.cm__thanks-quote', '.cm__thanks-sign', '[data-accept]', '[data-return]'].every((sel) => inBoard(q(`#ceremony ${sel}`))),
         accepted: q('#ceremony [data-accept-text]').textContent,
       };
     });
-    await page.locator('#ceremony [data-rsvp-link]').tap();
-    await page.waitForTimeout(900);
-    await settle(page);
-    const wentTo = await current(page);
+    // Return to RSVP does not turn the page: it brings the invitation and its Accept button back
+    await page.locator('#ceremony [data-return]').tap();
+    await page.waitForTimeout(1800);
+    const back = await page.evaluate(() => {
+      const q = (sel: string) => document.querySelector<HTMLElement>(sel)!;
+      return {
+        page: document.querySelector<HTMLElement>('.page[data-state=current]')?.id,
+        inviteBack: getComputedStyle(q('#ceremony .cm__invite')).display !== 'none' && Number(getComputedStyle(q('#ceremony .cm__names')).opacity) > 0.95,
+        thanksGone: getComputedStyle(q('#ceremony .cm__thanks')).display === 'none',
+        label: q('#ceremony [data-accept-text]').textContent,
+        ready: !document.getElementById('ceremony')!.classList.contains('is-accepted') && getComputedStyle(q('#ceremony [data-accept-hand]')).display !== 'none' && getComputedStyle(q('#ceremony [data-accept]')).animationName === 'cm-blink',
+        forgotten: localStorage.getItem('rdv:accepted') === null,
+      };
+    });
+    // ...and it can be accepted again
+    await page.locator('#ceremony [data-accept]').tap();
+    await page.waitForTimeout(3600);
+    const again = await page.evaluate(() => document.getElementById('ceremony')!.classList.contains('is-thanks') && document.querySelector('#ceremony [data-accept-text]')!.textContent === 'Accepted');
     await page.waitForTimeout(6500);
     const done = await page.evaluate(() => ({ burning: document.getElementById('ceremony')!.classList.contains('is-burning'), petals: document.querySelectorAll('#ceremony .petal').length }));
     check(
       'AC-37',
-      'Ceremony: the mandapam fills the page and its pieces arrive one by one; the board shows only the ceremony name, Rahul & Divya and the date with a blinking Accept button and tapping hand; accepting starts petals and sparks from the two crackers while the lines float up and the couple and their thanks appear with a button on to the RSVP page; it is remembered',
-      early.beam < 0.9 && early.board < 0.9 && s.pieces === 19 && s.loaded && s.shown && s.names && s.lean && s.fills && s.blinking && s.hand && /Accept/.test(s.label ?? '') && s.tappable && s.inBoard && s.crackers === 2 && s.crackersOnFloor && a.accepted && a.label === 'Accepted' && a.goingUp && a.hand && a.petals > 4 && a.sparks > 25 && a.glow && a.stored && t.thanksShown && t.inviteGone && t.couple && t.words && t.rsvpLink && t.fits && t.accepted === 'Accepted' && wentTo === 'rsvp' && !done.burning,
-      JSON.stringify({ early, s, a, t, wentTo, done }),
+      'Ceremony: the mandapam fills the page and its pieces arrive one by one; the board shows only the ceremony name, Rahul & Divya and the date with a blinking Accept button and tapping hand; accepting starts petals and sparks from the two crackers while the lines float up and the couple and their thanks appear with a Return to RSVP button that brings the invitation and Accept back (it stays on the page) so it can be accepted again',
+      early.beam < 0.9 && early.board < 0.9 && s.pieces === 19 && s.loaded && s.shown && s.names && s.lean && s.fills && s.blinking && s.hand && /Accept/.test(s.label ?? '') && s.tappable && s.inBoard && s.crackers === 2 && s.crackersOnFloor && a.accepted && a.label === 'Accepted' && a.goingUp && a.hand && a.petals > 4 && a.sparks > 25 && a.glow && a.stored && t.thanksShown && t.inviteGone && t.couple && t.words && t.returnBtn && t.fits && t.accepted === 'Accepted' && back.page === 'ceremony' && back.inviteBack && back.thanksGone && back.label === 'Accept the Invitation' && back.ready && back.forgotten && again && !done.burning,
+      JSON.stringify({ early, s, a, t, back, again, done }),
     );
     await ctx.close();
   }

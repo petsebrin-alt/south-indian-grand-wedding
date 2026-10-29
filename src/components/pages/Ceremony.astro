@@ -9,13 +9,14 @@
  * Rahul & Divya and the date) and a blinking "Accept the Invitation" button with a tapping hand.
  * Accepting turns the button to "Accepted" and sets off a shower of petals, music and two cone
  * crackers on the floor throwing sparks; meanwhile the lines above float up and away and the couple
- * from the first page appear with a thank-you and a button on to the RSVP page.
+ * from the first page appear with a thank-you and a "Return to RSVP" button, which brings the board
+ * back to the invitation and its Accept button (it does not turn the page).
  * Motion: src/motion/pages/ceremony.ts, src/motion/celebrate.ts
  */
 import PageShell from '../PageShell.astro';
 import ScenePhoto from '../ScenePhoto.astro';
 import Icon from '../Icon.astro';
-import { pageIndexById, type BookPage } from '../../data/pages';
+import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
 import { formatDateLong } from '../../lib/format';
 import couple from '../../assets/welcome/couple.webp';
@@ -32,7 +33,6 @@ interface Props {
 const { page, index } = Astro.props;
 const { groom, bride } = wedding.couple;
 const { startISO } = wedding.ceremony;
-const rsvpPage = pageIndexById('rsvp');
 const pieceImages = import.meta.glob<{ default: ImageMetadata }>('../../assets/ceremony/piece-*.webp', { eager: true });
 const pieceSrc = (id: string) => pieceImages[`../../assets/ceremony/piece-${id}.webp`].default.src;
 const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:${b[3]}%`;
@@ -133,7 +133,7 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
               </svg>
             </span>
           </div>
-          <button class="cm__rsvp-link" type="button" data-goto={rsvpPage} data-rsvp-link>Go to RSVP</button>
+          <button class="cm__rsvp-link" type="button" data-return>Return to RSVP</button>
         </div>
       </div>
     </div>

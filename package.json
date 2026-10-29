@@ -33,8 +33,7 @@
     "family:assets": "tsx scripts/family/derive.ts",
     "stage:assets": "tsx scripts/stage/derive.ts",
     "story:assets": "tsx scripts/story/derive.ts",
-    "ceremony:assets": "tsx scripts/ceremony/derive.ts",
-    "scenery:assets": "tsx scripts/events/scenery.ts"
+    "ceremony:assets": "tsx scripts/ceremony/derive.ts"
   },
   "dependencies": {
     "@fontsource/cinzel": "^5.3.0",

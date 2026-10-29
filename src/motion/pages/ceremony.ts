@@ -9,8 +9,10 @@ import { startCelebration } from '../celebrate';
  * floor and the board's lines follow, ending on the blinking Accept button and its tapping hand.
  * Accepting turns the button to "Accepted" and sets off the celebration (src/motion/celebrate.ts); at the
  * same moment the board's lines float up and away, then the couple from the first page appear with
- * their thanks, and last a button on to the RSVP page. It is remembered on this device (a returning guest
- * sees the thanks at once). It does not store an RSVP: that is the RSVP page's form.
+ * their thanks, and last a "Return to RSVP" button. That button does not turn the page: it sends the thanks
+ * away and brings the invitation back, with its Accept button ready to be tapped again. Accepting is
+ * remembered on this device (a returning guest sees the thanks at once) until the guest returns. It does
+ * not store an RSVP: that is the RSVP page's form.
  */
 const KEY = 'rdv:accepted';
 const remembered = () => {
@@ -25,6 +27,14 @@ const remember = () => {
     localStorage.setItem(KEY, '1');
   } catch {
     /* private mode: it lasts for this visit */
+  }
+};
+
+const forget = () => {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* private mode */
   }
 };
 
@@ -54,7 +64,7 @@ defineChoreo('ceremony', (page) => {
   const label = page.querySelector<HTMLElement>('[data-accept-text]')!;
   const lines = q('.cm__invite .cm__line, .cm__invite .cm__lotus');
   const parts = q('[data-thanks-part]');
-  const link = page.querySelector<HTMLElement>('[data-rsvp-link]')!;
+  const link = page.querySelector<HTMLElement>('[data-return]')!;
   let thanksTimeline: gsap.core.Timeline | null = null;
 
   const showAccepted = () => {
@@ -84,6 +94,29 @@ defineChoreo('ceremony', (page) => {
       .from(parts.slice(1), { opacity: 0, y: 10, duration: 0.55, stagger: 0.28, ease: 'power2.out' }, 1.5)
       .from(link, { opacity: 0, y: 8, duration: 0.5 }, 2.9);
   };
+
+  /** Back to the invitation: the thanks go, the lines come back, and Accept is ready to be tapped again */
+  const playReturn = () => {
+    celebration?.stop();
+    celebration = null;
+    forget();
+    thanksTimeline?.kill();
+    const back = () => {
+      page.classList.remove('is-thanks', 'is-accepted');
+      label.textContent = 'Accept the Invitation';
+      button.removeAttribute('aria-label');
+      gsap.set([...parts, link], { clearProps: 'all' });
+    };
+    if (isReducedMotion()) return back();
+    thanksTimeline = gsap
+      .timeline()
+      .to([...parts, link], { y: 16, opacity: 0, duration: 0.45, ease: 'power2.in', stagger: 0.05 }, 0)
+      .add(() => {
+        back();
+        gsap.from(lines, { y: 14, opacity: 0, duration: 0.6, ease: 'power2.out', stagger: 0.08, clearProps: 'all' });
+      }, 0.6);
+  };
+  link.addEventListener('click', playReturn);
 
   button.addEventListener('click', () => {
     celebration?.stop();

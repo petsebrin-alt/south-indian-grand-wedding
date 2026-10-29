@@ -5,9 +5,11 @@
 .chrome-book-view {
   position: absolute;
   z-index: var(--z-chrome);
-  border: 1px solid var(--hairline);
-  background: rgba(255, 253, 248, 0.86);
-  color: var(--gold-text);
+  /* A maroon rim and lotus, so the buttons are easy to see on pale pages as well as dark ones */
+  border: 1.5px solid #8a1426;
+  background: rgba(255, 253, 248, 0.92);
+  color: #8a1426;
+  box-shadow: 0 1px 4px rgba(60, 20, 10, 0.28);
 }
 
 .chrome-btn {
