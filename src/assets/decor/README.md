@@ -78,10 +78,10 @@ The page's background is the client's temple-courtyard picture (the same one as 
 
 `src/assets/couple/source/groom-bride.webp` is the client's picture of both pages side by side: the groom with his interest polaroids on the left half, the bride with hers on the right. `npm run couple:assets` turns it into:
 
-- the two page photographs: panels 1 and 2 of the client's three-panel picture of the couple sitting casually in a temple courtyard (`src/assets/couple/source/scenes.webp`: carved sandstone pillars with jasmine garlands, banana leaves, brass lamps, the gopuram and palms, a marble floor with petals, the man's sandals and the woman's bare feet on it), cut out as they are and enlarged a little for sharper edges (`scenes` in `scene.json`). The third panel (both together) is not used;
+- the two page photographs: the client's temple courtyard (`src/assets/family/source/temple.webp`: sharp carved pillars, jasmine garlands, banana leaves, brass lamps, the gopuram, a polished marble floor; mirrored for the bride's page) with the real Rahul or Divya cut out of the groom-and-bride picture (`python3 scripts/couple/matte.py` makes `source/mask-groom.png` and `mask-bride.png` with GrabCut from the rough outlines `person` in `scene.json`; the masks are committed) sitting on its floor with a soft shadow (`pages` in `scene.json`). The cloth that lay under a polaroid (the groom's right knee) is filled in from the cloth around it. Their picture ends at the hem, so the page's lower edge is where it ends: **feet are not in the photographs**. `source/scenes.webp` is the client's three-panel picture of a different-looking couple sitting in a courtyard (feet visible), kept for reference and not used;
 - each polaroid, and the groom's gaming cluster, cut out on its own to pop in one by one.
 
-`src/assets/couple/scene.json` holds each polaroid's corners (snapped to its white frame automatically) and where the pages are in the three-panel picture. A replacement picture needs these measured again.
+`src/assets/couple/scene.json` holds each polaroid's corners (snapped to its white frame automatically), the people's rough outlines, and how each page is composed. A replacement picture needs these measured again.
 
 ## Wedding Events and Parents pages: the client's events picture
 

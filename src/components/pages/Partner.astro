@@ -1,7 +1,7 @@
 ---
 /**
- * Pages 4–5 — Meet the Couple (PRD §6.6), one page per partner, from the client's groom-and-bride
- * picture (src/assets/couple/, npm run couple:assets): the groom's or bride's photograph behind,
+ * Pages 4–5 — Meet the Couple (PRD §6.6), one page per partner (src/assets/couple/, npm run couple:assets):
+ * the real Rahul or Divya from the client's groom-and-bride picture, sitting on the temple courtyard's floor,
  * "The Groom Rahul" / "The Bride Divya" in script letters that jump into place one by one, and their
  * interest polaroids (cut from the same picture) popping in one by one down both edges, as in the
  * client's reference video. Motion: src/motion/pages/couple.ts
@@ -78,8 +78,8 @@ const lines = [
     display: none;
   }
 
-  /* The photograph (the couple sitting in the temple courtyard, their feet on the marble) covers the page,
-     from the foot up, so the floor and the feet always show (a short page crops only the sky) */
+  /* The photograph (the real Rahul or Divya sitting on the temple courtyard's marble floor) covers the page,
+     from the foot up (a short page crops only the sky) */
   .pc__scene {
     inset: 0;
     overflow: hidden;
@@ -110,7 +110,7 @@ const lines = [
     font-family: var(--font-script);
     font-weight: 400;
     color: #7a1f2b;
-    text-shadow: 0 0 2px rgba(255, 249, 238, 0.95), 0 0 12px rgba(255, 249, 238, 0.85);
+    text-shadow: 0 0 2px rgba(255, 249, 238, 1), 0 0 7px rgba(255, 249, 238, 1), 0 0 16px rgba(255, 249, 238, 0.95), 0 0 28px rgba(255, 249, 238, 0.8);
     -webkit-text-stroke: 0.35px currentColor;
     white-space: nowrap;
   }
