@@ -1,4 +1,4 @@
-import { defineChoreo, timelineChoreo } from '../choreo';
+import { defineChoreo, gsap, isReducedMotion, timelineChoreo } from '../choreo';
 import { startCelebration } from '../celebrate';
 
 /**
@@ -7,7 +7,10 @@ import { startCelebration } from '../celebrate';
  * jasmine garlands unroll one by one; the little lamps, banana plants, standing lamps and floor arrive;
  * the board lowers on its garlands, the hall comes into focus, the two cone crackers appear on the
  * floor and the board's lines follow, ending on the blinking Accept button and its tapping hand.
- * Accepting sets off the celebration (src/motion/celebrate.ts) and is remembered on this device.
+ * Accepting turns the button to "Accepted" and sets off the celebration (src/motion/celebrate.ts); at the
+ * same moment the board's lines float up and away, then the couple from the first page appear with
+ * their thanks, and last a button on to the RSVP page. It is remembered on this device (a returning guest
+ * sees the thanks at once). It does not store an RSVP: that is the RSVP page's form.
  */
 const KEY = 'rdv:accepted';
 const remembered = () => {
@@ -49,22 +52,50 @@ defineChoreo('ceremony', (page) => {
 
   const button = page.querySelector<HTMLButtonElement>('[data-accept]')!;
   const label = page.querySelector<HTMLElement>('[data-accept-text]')!;
-  const thanks = page.querySelector<HTMLElement>('[data-accept-thanks]')!;
-  const complete = page.querySelector<HTMLElement>('[data-accept-complete]')!;
+  const lines = q('.cm__invite .cm__line, .cm__invite .cm__lotus');
+  const parts = q('[data-thanks-part]');
+  const link = page.querySelector<HTMLElement>('[data-rsvp-link]')!;
+  let thanksTimeline: gsap.core.Timeline | null = null;
+
   const showAccepted = () => {
     page.classList.add('is-accepted');
     label.textContent = 'Accepted';
-    button.setAttribute('aria-label', 'Accepted: thank you. Tap to celebrate again.');
-    thanks.hidden = false;
-    complete.hidden = false;
+    button.setAttribute('aria-label', 'Accepted. Thank you. Tap to celebrate again.');
   };
+  /** The thanks in place of the invitation, with nothing moving */
+  const showThanks = () => {
+    thanksTimeline?.kill();
+    page.classList.add('is-thanks');
+    gsap.set([...lines, ...parts, link], { clearProps: 'all' });
+  };
+  /** The lines float up and away while the button is accepted, then the couple and their thanks arrive */
+  const playThanks = () => {
+    if (page.classList.contains('is-thanks')) return;
+    if (isReducedMotion()) return showThanks();
+    thanksTimeline?.kill();
+    thanksTimeline = gsap
+      .timeline()
+      .to(lines, { y: -26, opacity: 0, duration: 0.6, ease: 'power2.in', stagger: 0.07 }, 0)
+      .add(() => {
+        page.classList.add('is-thanks');
+        gsap.set([...lines], { clearProps: 'all' });
+      }, 0.95)
+      .from(parts[0], { scale: 0.55, opacity: 0, y: 18, duration: 0.8, ease: 'back.out(1.6)' }, 1)
+      .from(parts.slice(1), { opacity: 0, y: 10, duration: 0.55, stagger: 0.28, ease: 'power2.out' }, 1.5)
+      .from(link, { opacity: 0, y: 8, duration: 0.5 }, 2.9);
+  };
+
   button.addEventListener('click', () => {
     celebration?.stop();
     remember();
     showAccepted();
     celebration = startCelebration(page);
+    playThanks();
   });
-  if (remembered()) showAccepted();
+  if (remembered()) {
+    showAccepted();
+    showThanks();
+  }
 
   return {
     enter(animate) {
@@ -73,6 +104,7 @@ defineChoreo('ceremony', (page) => {
     leave() {
       celebration?.stop();
       celebration = null;
+      if (page.classList.contains('is-accepted')) showThanks();
     },
   };
 });

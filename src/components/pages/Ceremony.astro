@@ -5,22 +5,24 @@
  * toran, hanging jasmine garlands, banana plants, brass lamps and kalasams, a bowl of petals and a
  * rangoli on marble. When the page turns in, its pieces arrive one by one from above (the beam, the
  * pillars, the toran, the garlands unrolling, the lamps, the banana plants, the floor) over a soft
- * glow of the hall, and the board follows with the ceremony's details in live text and a blinking
- * "Accept the Invitation" button with a tapping hand. Accepting sets off a shower of petals, music
- * and two cone crackers on the floor throwing sparks. Motion: src/motion/pages/ceremony.ts,
- * src/motion/celebrate.ts
+ * glow of the hall, and the board follows with only the essentials in live text (the ceremony's name,
+ * Rahul & Divya and the date) and a blinking "Accept the Invitation" button with a tapping hand.
+ * Accepting turns the button to "Accepted" and sets off a shower of petals, music and two cone
+ * crackers on the floor throwing sparks; meanwhile the lines above float up and away and the couple
+ * from the first page appear with a thank-you and a button on to the RSVP page.
+ * Motion: src/motion/pages/ceremony.ts, src/motion/celebrate.ts
  */
 import PageShell from '../PageShell.astro';
-import Ph from '../Ph.astro';
+import ScenePhoto from '../ScenePhoto.astro';
 import Icon from '../Icon.astro';
-import type { BookPage } from '../../data/pages';
+import { pageIndexById, type BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
-import { formatDateLong, formatTime } from '../../lib/format';
-import { venueById, venueFallback } from '../../lib/venue';
+import { formatDateLong } from '../../lib/format';
+import couple from '../../assets/welcome/couple.webp';
+import coupleAvif from '../../assets/welcome/couple.avif';
 import meta from '../../assets/ceremony/ceremony.json';
 import base from '../../assets/ceremony/base.webp';
 import clean from '../../assets/ceremony/clean.webp';
-import ceiling from '../../assets/ceremony/ceiling.webp';
 
 interface Props {
   page: BookPage;
@@ -29,8 +31,8 @@ interface Props {
 
 const { page, index } = Astro.props;
 const { groom, bride } = wedding.couple;
-const { startISO, city, venueId } = wedding.ceremony;
-const venue = venueById(venueId);
+const { startISO } = wedding.ceremony;
+const rsvpPage = pageIndexById('rsvp');
 const pieceImages = import.meta.glob<{ default: ImageMetadata }>('../../assets/ceremony/piece-*.webp', { eager: true });
 const pieceSrc = (id: string) => pieceImages[`../../assets/ceremony/piece-${id}.webp`].default.src;
 const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:${b[3]}%`;
@@ -38,8 +40,7 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
 
 <PageShell page={page} index={index} watermark={false} class="cm">
   <Fragment slot="architecture">
-    <div class="layer layer--architecture cm__scene" aria-hidden="true">
-      <div class="cm__ceiling" style={`background-image:url("${ceiling.src}")`}></div>
+    <div class="layer layer--architecture cm__scene" aria-hidden="true" style={`--ratio:${meta.height / meta.width}`}>
       <div class="cm__box">
         <div class="cm__base" style={`background-image:url("${base.src}")`}></div>
         <img class="cm__rest" data-src={clean.src} alt="" decoding="async" />
@@ -83,20 +84,28 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
     </div>
   </Fragment>
 
-  <div class="cm__clip">
+  <div class="cm__clip" style={`--ratio:${meta.height / meta.width}`}>
    <div class="cm__frame">
     <div class="cm__board" style={box([meta.board.x, meta.board.y, meta.board.w, meta.board.h])}>
       <div class="cm__in">
-        <Icon name="lotus" class="cm__lotus" />
-        <h2 class="cm__title cm__line" tabindex="-1" data-page-heading>The Sacred Wedding Ceremony</h2>
-        <p class="cm__names cm__line">{groom.name} <span class="cm__amp">&amp;</span> {bride.name}</p>
-        <p class="cm__date cm__line">{formatDateLong(startISO)}</p>
-        <p class="cm__muhurtham cm__line">Muhurtham: {formatTime(startISO)} IST</p>
-        <p class="cm__place cm__line">{city}</p>
-        <p class="cm__venue cm__line" data-selectable><Ph value={venue.name} label="Ceremony venue name" fallback={venueFallback(venue)} /></p>
-        <span class="cm__rule cm__line" aria-hidden="true"></span>
-        <div class="cm__rsvp cm__line">
-          <p class="cm__ask">Will you grace our wedding?</p>
+        <div class="cm__top">
+          <div class="cm__invite">
+            <Icon name="lotus" class="cm__lotus" />
+            <h2 class="cm__title cm__line" tabindex="-1" data-page-heading>The Sacred Wedding Ceremony</h2>
+            <p class="cm__names cm__line">{groom.name} <span class="cm__amp">&amp;</span> {bride.name}</p>
+            <p class="cm__date cm__line">{formatDateLong(startISO)}</p>
+            <span class="cm__rule cm__line" aria-hidden="true"></span>
+            <p class="cm__ask cm__line">Will you grace our wedding?</p>
+          </div>
+          <!-- After accepting: the couple from the first page, and their thanks -->
+          <div class="cm__thanks" data-accept-thanks role="status">
+            <div class="cm__cameo" data-thanks-part><ScenePhoto class="cm__cameo-img" avif={coupleAvif} webp={couple} defer /></div>
+            <p class="cm__thanks-script" data-thanks-part>Thank you for accepting our invitation</p>
+            <p class="cm__thanks-quote" data-thanks-part>&ldquo;Your presence and blessings will make our celebration complete.&rdquo;</p>
+            <p class="cm__thanks-sign" data-thanks-part>&mdash; {groom.name} &amp; {bride.name}</p>
+          </div>
+        </div>
+        <div class="cm__foot">
           <div class="cm__accept-wrap">
             <button class="cm__accept" type="button" data-accept aria-live="polite">
               <span class="cm__accept-text" data-accept-text>Accept the Invitation</span>
@@ -124,8 +133,7 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
               </svg>
             </span>
           </div>
-          <p class="cm__thanks" data-accept-thanks hidden>With joy, we thank you.</p>
-          <button class="cm__complete" type="button" data-open-dialog="rsvp-form" data-rsvp-intent="accept" aria-haspopup="dialog" data-needs-api="RSVP" data-accept-complete hidden>Complete your RSVP</button>
+          <button class="cm__rsvp-link" type="button" data-goto={rsvpPage} data-rsvp-link>Go to RSVP</button>
         </div>
       </div>
     </div>
@@ -147,12 +155,12 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
     display: block;
   }
 
-  /* The picture keeps its own proportions (nothing is stretched). It is as wide as the page, or a little
-     wider on a tall phone so that it fills most of the height (the sides, which are only garlands and
-     pillars, are cropped a little), and sits on the page's foot; the roof carries on above it. */
-  .cm {
-    --ratio: 1.5537; /* the picture's height over its width (1563 / 1006) */
-    --w: max(100cqw, calc(78cqh / var(--ratio)));
+  /* The picture keeps its own proportions (nothing is stretched) and covers the whole page: as wide as the
+     page, or on a tall phone wider (its plain sides, with the pillars' outer garlands, are cropped a little),
+     sitting on the page's foot. The carved beam is stacked up to fill the height (npm run ceremony:assets). */
+  .cm__scene,
+  .cm__clip {
+    --w: max(100cqw, calc(100cqh / var(--ratio)));
     --scene-h: calc(var(--w) * var(--ratio));
   }
 
@@ -160,15 +168,6 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
     inset: 0;
     overflow: hidden;
     background: #6f5230;
-  }
-
-  .cm__ceiling {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: var(--scene-h);
-    background: center bottom / 100% 100% no-repeat;
   }
 
   .cm__box,
@@ -179,12 +178,6 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
     width: var(--w);
     height: var(--scene-h);
     translate: -50% 0;
-  }
-
-  /* The picture's top edge melts into the roof above it */
-  .cm__box {
-    mask-image: linear-gradient(to bottom, transparent, #000 5.5%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 5.5%);
   }
 
   /* The board layer is clipped to the page, so nothing of the wider picture lies outside it */
@@ -276,25 +269,42 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
 
   .cm__in {
     position: absolute;
-    inset: 4.4cqw 6cqw 4.4cqw;
-    display: grid;
-    align-content: center;
-    justify-items: center;
-    gap: 1.3cqw;
+    inset: 4.4cqw 6cqw 4.6cqw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
     color: #4a2418;
   }
 
+  /* The top of the board holds the invitation, then (after accepting) the thanks in the same place */
+  .cm__top {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+  }
+
+  .cm__invite,
+  .cm__thanks {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 2.2cqw;
+  }
+
   .cm__lotus {
-    width: 8.6cqw;
-    height: 8.6cqw;
+    width: 9cqw;
+    height: 9cqw;
     fill: none;
     stroke: #b8863a;
     stroke-width: 1.4;
   }
 
   .cm__title {
-    font: 700 3.7cqw / 1.25 var(--font-royal);
+    font: 700 3.8cqw / 1.25 var(--font-royal);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: #4a2418;
@@ -302,7 +312,7 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
   }
 
   .cm__names {
-    font: 600 12.6cqw / 1.05 var(--font-display);
+    font: 600 13.6cqw / 1.05 var(--font-display);
     color: #6a0f1f;
   }
 
@@ -312,49 +322,83 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
   }
 
   .cm__date {
-    font: 500 5.7cqw / 1.15 var(--font-display);
+    font: 500 6.4cqw / 1.15 var(--font-display);
     color: #4a2418;
-  }
-
-  .cm__muhurtham {
-    font: 700 4.5cqw / 1.2 var(--font-royal);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #7a1224;
-  }
-
-  .cm__place {
-    font: 500 4.6cqw / 1.2 var(--font-display);
-    color: #4a2418;
-  }
-
-  .cm__venue {
-    font: 500 4.2cqw / 1.2 var(--font-display);
-    color: #5a3a2c;
-  }
-
-  .cm__venue .ph__label,
-  .cm__venue .ph__fallback {
-    font-size: 3.4cqw;
   }
 
   .cm__rule {
     width: 44%;
     height: 1px;
-    margin-block: 0.8cqw;
+    margin-block: 1cqw;
     background: linear-gradient(90deg, transparent, #b8863a 20%, #b8863a 80%, transparent);
   }
 
-  .cm__rsvp {
-    display: grid;
-    justify-items: center;
-    gap: 1.4cqw;
-  }
-
   .cm__ask {
-    font: 400 7.6cqw / 1.05 var(--font-script);
+    font: 400 8.4cqw / 1.05 var(--font-script);
     color: #8a1426;
     -webkit-text-stroke: 0.2px currentColor;
+  }
+
+  /* After accepting, the lines of the invitation are gone and the thanks stand in their place */
+  .cm__thanks {
+    display: none;
+    gap: 1.8cqw;
+  }
+
+  .cm.is-thanks .cm__invite {
+    display: none;
+  }
+
+  .cm.is-thanks .cm__thanks {
+    display: grid;
+  }
+
+  /* The couple from the first page, in an oval with a gold edge */
+  .cm__cameo {
+    width: 30cqw;
+    aspect-ratio: 4 / 4.6;
+    overflow: hidden;
+    border-radius: 50%;
+    border: max(1.5px, 0.7cqw) solid #b8863a;
+    background: radial-gradient(circle at 50% 38%, #fff6dc, #f1d89f);
+    box-shadow: 0 0 0 1.2cqw #fff9ec, 0 0 0 1.7cqw rgba(184, 134, 58, 0.55), 0 2px 8px rgba(60, 30, 5, 0.3);
+  }
+
+  .cm__cameo-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 14%;
+  }
+
+  .cm__thanks-script {
+    margin-top: 1.4cqw;
+    font: 400 7.4cqw / 1.02 var(--font-script);
+    color: #8a1426;
+    -webkit-text-stroke: 0.2px currentColor;
+    text-wrap: balance;
+  }
+
+  .cm__thanks-quote {
+    font: italic 600 3.9cqw / 1.22 var(--font-display);
+    color: #4a2418;
+    text-wrap: balance;
+  }
+
+  .cm__thanks-sign {
+    font: 700 3.1cqw / 1.2 var(--font-royal);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #85540f;
+  }
+
+  /* The foot of the board: the Accept button, and the way on to the RSVP page once accepted */
+  .cm__foot {
+    display: grid;
+    justify-items: center;
+    gap: 2.2cqw;
+    padding-bottom: 0.4cqw;
   }
 
   .cm__accept-wrap {
@@ -410,7 +454,7 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
   }
 
   .cm__accept:focus-visible,
-  .cm__complete:focus-visible {
+  .cm__rsvp-link:focus-visible {
     outline: 2px solid #8a1426;
     outline-offset: 3px;
   }
@@ -504,27 +548,33 @@ const box = (b: number[]) => `left:${b[0]}%;top:${b[1]}%;width:${b[2]}%;height:$
     display: none;
   }
 
-  .cm__thanks {
-    font: 400 6.4cqw / 1.1 var(--font-script);
-    color: #8a1426;
-  }
-
-  .cm__complete {
-    padding: 1.2cqw 4cqw;
-    border: 1px solid rgba(138, 20, 38, 0.5);
+  .cm__rsvp-link {
+    display: none;
+    align-items: center;
+    padding: 1.4cqw 5.2cqw;
+    border: 1px solid rgba(138, 20, 38, 0.55);
     border-radius: 999px;
-    background: rgba(255, 252, 244, 0.9);
+    background: rgba(255, 252, 244, 0.92);
     color: #8a1426;
-    font: 700 3.4cqw / 1.1 var(--font-royal);
+    font: 700 3.6cqw / 1.1 var(--font-royal);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
 
-  .cm__complete[aria-disabled='true'] {
-    opacity: 0.75;
-    border-style: dashed;
+  .cm__rsvp-link::before {
+    content: '';
+    position: absolute;
+    inset: -8px -6px;
+  }
+
+  .cm__rsvp-link {
+    position: relative;
+  }
+
+  .cm.is-thanks .cm__rsvp-link {
+    display: inline-flex;
   }
 
   /* Without motion the button stays lit instead of blinking and the hand does not tap */

@@ -1475,7 +1475,15 @@ async function main() {
         pieces: pieces.length,
         loaded: pieces.every((p) => p.complete && p.naturalWidth > 20),
         shown: pieces.every((p) => Number(getComputedStyle(p).opacity) > 0.95),
-        names: /Rahul/.test(document.querySelector('#ceremony .cm__names')!.textContent ?? '') && /Wednesday, 7 April 2027/.test(document.querySelector('#ceremony .cm__date')!.textContent ?? '') && /10:30 AM IST/.test(document.querySelector('#ceremony .cm__muhurtham')!.textContent ?? ''),
+        // only the essentials: the ceremony's name, Rahul & Divya and the date; no place, venue or time
+        names: /Rahul/.test(document.querySelector('#ceremony .cm__names')!.textContent ?? '') && /Wednesday, 7 April 2027/.test(document.querySelector('#ceremony .cm__date')!.textContent ?? ''),
+        lean: !/Tirupati|To be provided|Venue|Muhurtham|IST/i.test(document.querySelector<HTMLElement>('#ceremony .cm__invite')!.innerText),
+        fills: (() => {
+          // the mandapam covers the whole page: its first piece reaches the top and the picture's foot the bottom
+          const page = document.getElementById('ceremony')!.getBoundingClientRect();
+          const img = document.querySelector<HTMLElement>('#ceremony .cm__rest')!.getBoundingClientRect();
+          return img.top <= page.top + 2 && img.bottom >= page.bottom - 2 && img.left <= page.left + 2 && img.right >= page.right - 2;
+        })(),
         blinking: getComputedStyle(btn).animationName === 'cm-blink',
         hand: getComputedStyle(document.querySelector('#ceremony .cm__hand')!).animationName === 'cm-tap',
         label: btn.textContent?.trim(),
@@ -1495,7 +1503,7 @@ async function main() {
       return {
         accepted: document.getElementById('ceremony')!.classList.contains('is-accepted'),
         label: document.querySelector('#ceremony [data-accept-text]')!.textContent,
-        thanks: !(document.querySelector('#ceremony [data-accept-thanks]') as HTMLElement).hidden,
+        goingUp: Number(getComputedStyle(document.querySelector('#ceremony .cm__names')!).opacity) < 0.95 || document.getElementById('ceremony')!.classList.contains('is-thanks'),
         hand: getComputedStyle(document.querySelector('#ceremony [data-accept-hand]')!).display === 'none',
         petals: document.querySelectorAll('#ceremony .petal').length,
         sparks: lit,
@@ -1503,13 +1511,33 @@ async function main() {
         stored: localStorage.getItem('rdv:accepted') === '1',
       };
     });
-    await page.waitForTimeout(9000);
+    await page.waitForTimeout(2600);
+    const t = await page.evaluate(() => {
+      const q = (sel: string) => document.querySelector<HTMLElement>(sel)!;
+      const board = q('#ceremony .cm__board').getBoundingClientRect();
+      const inBoard = (el: HTMLElement) => { const r = el.getBoundingClientRect(); return r.left >= board.left - 1 && r.right <= board.right + 1 && r.top >= board.top - 1 && r.bottom <= board.bottom + 1; };
+      const cameo = q('#ceremony .cm__cameo-img') as HTMLImageElement;
+      return {
+        thanksShown: document.getElementById('ceremony')!.classList.contains('is-thanks'),
+        inviteGone: getComputedStyle(q('#ceremony .cm__invite')).display === 'none',
+        couple: cameo.complete && cameo.naturalWidth > 100 && Number(getComputedStyle(q('#ceremony .cm__cameo')).opacity) > 0.95,
+        words: /Thank you for accepting our invitation/.test(q('#ceremony .cm__thanks-script').textContent ?? '') && /“.+”/.test(q('#ceremony .cm__thanks-quote').textContent ?? ''),
+        rsvpLink: getComputedStyle(q('#ceremony [data-rsvp-link]')).display !== 'none' && Number(q('#ceremony [data-rsvp-link]').dataset.goto) > 10,
+        fits: ['.cm__cameo', '.cm__thanks-script', '.cm__thanks-quote', '.cm__thanks-sign', '[data-accept]', '[data-rsvp-link]'].every((sel) => inBoard(q(`#ceremony ${sel}`))),
+        accepted: q('#ceremony [data-accept-text]').textContent,
+      };
+    });
+    await page.locator('#ceremony [data-rsvp-link]').tap();
+    await page.waitForTimeout(900);
+    await settle(page);
+    const wentTo = await current(page);
+    await page.waitForTimeout(6500);
     const done = await page.evaluate(() => ({ burning: document.getElementById('ceremony')!.classList.contains('is-burning'), petals: document.querySelectorAll('#ceremony .petal').length }));
     check(
       'AC-37',
-      'Ceremony: the mandapam pieces arrive one by one, the board shows the details and a blinking Accept button with a tapping hand; accepting starts petals and sparks from the two crackers, is remembered, and the show ends by itself',
-      early.beam < 0.9 && early.board < 0.9 && s.pieces === 19 && s.loaded && s.shown && s.names && s.blinking && s.hand && /Accept/.test(s.label ?? '') && s.tappable && s.inBoard && s.crackers === 2 && s.crackersOnFloor && a.accepted && a.label === 'Accepted' && a.thanks && a.hand && a.petals > 4 && a.sparks > 25 && a.glow && a.stored && !done.burning,
-      JSON.stringify({ early, s, a, done }),
+      'Ceremony: the mandapam fills the page and its pieces arrive one by one; the board shows only the ceremony name, Rahul & Divya and the date with a blinking Accept button and tapping hand; accepting starts petals and sparks from the two crackers while the lines float up and the couple and their thanks appear with a button on to the RSVP page; it is remembered',
+      early.beam < 0.9 && early.board < 0.9 && s.pieces === 19 && s.loaded && s.shown && s.names && s.lean && s.fills && s.blinking && s.hand && /Accept/.test(s.label ?? '') && s.tappable && s.inBoard && s.crackers === 2 && s.crackersOnFloor && a.accepted && a.label === 'Accepted' && a.goingUp && a.hand && a.petals > 4 && a.sparks > 25 && a.glow && a.stored && t.thanksShown && t.inviteGone && t.couple && t.words && t.rsvpLink && t.fits && t.accepted === 'Accepted' && wentTo === 'rsvp' && !done.burning,
+      JSON.stringify({ early, s, a, t, wentTo, done }),
     );
     await ctx.close();
   }

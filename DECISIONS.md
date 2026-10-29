@@ -765,3 +765,20 @@ The client reviewed three pages again.
 - `npm run qa:book`: 74/74 checks pass (AC-01d now checks a very long name wraps inside the card, clear of the divider, at a readable size). `npx vitest run`: 58 pass. `npx astro check`: 0 errors.
 - `npm run perf`: mobile performance 88, accessibility 100, best practices 100.
 
+## 29 October 2026 — Ceremony page fills the whole screen; leaner board; the thanks with the couple
+
+The client liked the Ceremony page but saw a large plain brown space at the top of the phone, wanted the mandapam to fill the whole page with its own arrival animation and no blur or flat colour, wanted the board cut down to the essentials, and wanted accepting to bring the couple from the first page, a thank-you quote and a way on to the RSVP page.
+
+### Decisions
+
+1. **The mandapam fills the page.** The brown gradient "roof" is gone. The carved beam's upper band is stacked two more times under the finials, so the beam reads as a deeper carved cornice, and the picture is sized to cover the whole page, sitting on its foot (on a 390 × 844 phone it is about a fifth wider than the page, so the outermost garlands are cropped a little; on a smaller phone nearly all of it shows). No blur, gradient or flat colour is used; the added rows are the picture's own carving, matched at the joins. The arrival is as before (the beam, then the pillars, drop in from the top, the toran, garlands, lamps, banana plants and floor follow), now over the full height.
+2. **The board shows only:** "The Sacred Wedding Ceremony", "Rahul & Divya", "Wednesday, 7 April 2027", then "Will you grace our wedding?" and the blinking Accept button with its tapping hand. Removed: "Tirupati, Andhra Pradesh", the "To be provided: Ceremony venue name" line, and the Muhurtham time (10:30 AM IST), since the client listed only the other lines as enough (the time is still on the Wedding Events page and in the calendar; it is one line to restore).
+3. **On accepting, in parallel:** the button turns deep red and reads "✓ Accepted" (the hand goes), the petals, the crackers' sparks and the music start as before, and the board's lines float up and fade. Then the couple from the first page (the Welcome page's cut-out of Rahul and Divya in garlands) rise in inside a gold-edged oval, followed by "Thank you for accepting our invitation", a short quote ("Your presence and blessings will make our celebration complete.") signed "— Rahul & Divya", and last a **Go to RSVP** button under the Accepted button, which turns the book to the RSVP page.
+4. **Returning guests** (this device remembers the tap) see the thanks at once, without the celebration; tapping Accepted again repeats the celebration. Under reduced motion the change is instant and silent.
+5. **Still true:** accepting does not store an RSVP (that needs the family's server). The RSVP page has the real form; the Go to RSVP button takes the guest there.
+6. **The quote's words are mine** (a simple, warm thank-you with no facts in it); the family can replace them in `src/components/pages/Ceremony.astro`.
+
+### Results
+
+- `npm run qa:book`: 74/74 checks pass (AC-37 now checks the picture covers the page, the lean board, the lines floating up, the couple and thanks fitting inside the board, and the Go to RSVP button reaching the RSVP page). `npx vitest run`: 58 pass. `npx astro check`: 0 errors.
+

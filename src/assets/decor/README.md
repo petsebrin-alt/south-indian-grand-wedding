@@ -113,13 +113,12 @@ The desktop pictures and canvases are only requested or created on screens that 
 
 `src/assets/ceremony/source/mandapam.webp` is the client's picture of a golden mandapam: carved pillars and beam, a mango-leaf toran, hanging jasmine garlands with red flowers, banana plants, brass lamps and kalasams, a bowl of petals, a rangoli on marble, and a cream board in the middle. `npm run ceremony:assets` (`scripts/ceremony/derive.ts`, measurements in `scene.json`) turns it into:
 
-- `clean`: the whole picture with the wording printed on the board painted out (the cream paper filled in smoothly with a little grain), so the board carries live text (names, date, Muhurtham, place, venue);
+- `clean`: the whole picture with the wording printed on the board painted out (the cream paper filled in smoothly with a little grain), so the board carries live text (the ceremony's name, the names, the date). It is made taller above by stacking two more copies of the carved beam's upper band under the finials (`extend` in `scene.json`), so the mandapam covers a tall phone's whole page with nothing added but its own carving;
 - `base`: a soft warm glow of the hall, shown first. It is a CSS background, since a deliberately blurred picture counts as "low resolution" to Lighthouse;
 - `piece-<id>`: what arrives one by one, each cut out with a soft edge: `beam`, `pillar-l`, `pillar-r`, `toran` (cut by colour, only the green leaves), seven `strand-N` jasmine garlands, `hang-l`/`hang-r` (the little hanging lamps), `banana-l`/`banana-r`, `lamp-l`/`lamp-r`, `floor` and `board`;
-- `ceiling`: the roof carried on above the picture (a gradient from the picture's own top colour up into deep gold);
-- `ceremony.json`: the picture's size, each piece's place in % of the picture, the board, and where the two crackers stand.
+- `ceremony.json`: the picture's size, each piece's place in % of the (taller) picture, the board, and where the two crackers stand. The thanks shown after accepting use the couple cut-out from the Welcome page (`src/assets/welcome/couple.*`), in a gold-edged oval.
 
-The picture keeps its proportions, as wide as the page or a little wider on tall phones (about 78% of the page's height, its plain sides cropped slightly). The two cone crackers are drawn in SVG (deep red, with gold bands) and stand on the floor at the marked places; their sparks are drawn on a canvas only while the celebration runs.
+The picture keeps its proportions and covers the whole page, as wide as the page or wider on tall phones (its plain sides are cropped a little). The two cone crackers are drawn in SVG (deep red, with gold bands) and stand on the floor at the marked places; their sparks are drawn on a canvas only while the celebration runs.
 
 ## All decoration slots
 

@@ -4,11 +4,12 @@
  * hanging jasmine garlands, banana plants, brass lamps and kalasams, a bowl of petals, a rangoli on
  * marble, and a cream board) and the measurements in scene.json:
  *   clean.webp             the whole picture with the wording printed on its board painted out (the board's
- *                          cream paper is filled in smoothly), so the board can carry live text
+ *                          cream paper is filled in smoothly), so the board can carry live text, and made taller
+ *                          above by stacking more copies of the carved beam (scene.json `extend`), so the
+ *                          mandapam fills a tall phone's whole page with nothing added but its own carving
  *   base.webp              a very soft, warm blur of it: the hall as a glow, before anything has arrived
  *   piece-<id>.webp        the elements that arrive one by one, each cut out with a soft edge (a feathered
  *                          rectangle, or by colour for the mango leaves), in the picture's own pixels
- *   ceiling.webp           the picture's top row, softened: the roof carried on above the picture
  *   ceremony.json          the picture's size, each piece's place (in % of the picture) and the board
  * Re-run after replacing the picture or adjusting scene.json.
  */
@@ -105,49 +106,59 @@ const pix = Float32Array.from(src);
     for (let c = 0; c < 3; c++) pix[o + c] += g;
   }
 }
-const clean = Buffer.from(Uint8ClampedArray.from(pix));
-const cleanImg = () => sharp(clean, { raw: { width: W, height: H, channels: 3 } });
+// 1b. Taller: `copies` more of the carved beam's upper band (rows from → to) are stacked under the finials, so
+//     the beam reads as a deeper carved cornice. Everything that was at or below row `from` moves down by `shift`.
+const EX = scene.extend;
+const shift = (EX.to - EX.from) * EX.copies;
+const H2 = H + shift;
+const taller = new Float32Array(W * H2 * 3);
+for (let y = 0; y < H2; y++) {
+  const sy = y < EX.from ? y : y < EX.from + shift ? EX.from + ((y - EX.from) % (EX.to - EX.from)) : y - shift;
+  taller.set(pix.subarray(sy * W * 3, (sy + 1) * W * 3), y * W * 3);
+}
+// Each copy is matched to the one above it where they meet (a hairline of colour difference is smoothed away)
+for (let k = 1; k <= EX.copies; k++) {
+  const seam = EX.from + (EX.to - EX.from) * k;
+  for (let d = 0; d < 6; d++) {
+    const t = (d + 1) / 7;
+    for (let x = 0; x < W; x++) for (let c = 0; c < 3; c++) {
+      const above = taller[((seam - 1) * W + x) * 3 + c], below = taller[(seam * W + x) * 3 + c];
+      const i = ((seam - 3 + d) * W + x) * 3 + c;
+      taller[i] = taller[i] * (1 - 0.35) + (above * (1 - t) + below * t) * 0.35;
+    }
+  }
+}
+const moved = (y: number) => (y >= EX.from ? y + shift : y);
+const clean = Buffer.from(Uint8ClampedArray.from(taller));
+const cleanImg = () => sharp(clean, { raw: { width: W, height: H2, channels: 3 } });
 await write('clean', cleanImg(), 78);
 
 // 2. The hall as a soft glow
 {
   // The board hangs in front of the hall, so the glow is made without it: its rectangle takes the average
   // colour of the ring just outside it
-  const [x0, y0, x1, y1] = scene.board.rect;
+  const [bx0, by0, bx1, by1] = scene.board.rect;
+  const x0 = bx0, x1 = bx1, y0 = moved(by0), y1 = moved(by1);
   const m = 36, avg = [0, 0, 0];
   let n = 0;
   for (let y = y0 - m; y < y1 + m; y++)
     for (let x = x0 - m; x < x1 + m; x++) {
       if (x >= x0 - 2 && x < x1 + 2 && y >= y0 - 2 && y < y1 + 2) continue;
-      for (let c = 0; c < 3; c++) avg[c] += pix[(y * W + x) * 3 + c];
+      for (let c = 0; c < 3; c++) avg[c] += taller[(y * W + x) * 3 + c];
       n++;
     }
-  const glow = Float32Array.from(pix);
+  const glow = Float32Array.from(taller);
   for (let y = y0 - 6; y < y1 + 6; y++) for (let x = x0 - 6; x < x1 + 6; x++) for (let c = 0; c < 3; c++) glow[(y * W + x) * 3 + c] = avg[c] / n;
-  await write('base', sharp(Buffer.from(Uint8ClampedArray.from(glow)), { raw: { width: W, height: H, channels: 3 } }).resize({ width: 40 }).blur(1.4).modulate({ brightness: 0.92 }), 80);
+  await write('base', sharp(Buffer.from(Uint8ClampedArray.from(glow)), { raw: { width: W, height: H2, channels: 3 } }).resize({ width: 40 }).blur(1.4).modulate({ brightness: 0.92 }), 80);
 }
 
-// 3. The ceiling: the roof carried on above the picture, a smooth gradient from the picture's own top colour
-//    up into deep warm gold (a 1 × 64 strip, stretched across the page)
-{
-  const top = [0, 0, 0];
-  let n = 0;
-  for (let y = 4; y < 14; y++) for (let x = 0; x < W; x++) { for (let c = 0; c < 3; c++) top[c] += pix[(y * W + x) * 3 + c]; n++; }
-  const base = top.map((v) => v / n);
-  const deep = [96, 66, 30];
-  const strip = Buffer.alloc(64 * 3);
-  for (let y = 0; y < 64; y++) {
-    const t = smoothstep(0, 1, 1 - y / 63); // 0 at the picture, 1 at the top of the page
-    for (let c = 0; c < 3; c++) strip[y * 3 + c] = Math.round(base[c] * (1 - t * 0.9) + deep[c] * t * 0.9);
-  }
-  await write('ceiling', sharp(strip, { raw: { width: 1, height: 64, channels: 3 } }).resize({ width: 8, height: 64, fit: 'fill' }), 82);
-}
-
-// 4. The pieces
+// 3. The pieces
 const meta: { id: string; box: number[]; size: number[] }[] = [];
 let bytes = 0;
 for (const p of scene.pieces as { id: string; rect: number[]; feather: number | number[]; colour?: string }[]) {
-  const [x0, y0, x1, y1] = p.rect;
+  // the beam takes in the stacked copies; every other piece moves down with what it hangs from
+  const [rx0, ry0, rx1, ry1] = p.rect;
+  const [x0, y0, x1, y1] = p.id === 'beam' ? [rx0, ry0, rx1, ry1 + shift] : [rx0, moved(ry0), rx1, moved(ry1)];
   const bw = x1 - x0, bh = y1 - y0;
   const f = Array.isArray(p.feather) ? p.feather : [p.feather, p.feather, p.feather, p.feather]; // left, top, right, bottom
   const rgba = Buffer.alloc(bw * bh * 4);
@@ -156,7 +167,7 @@ for (const p of scene.pieces as { id: string; rect: number[]; feather: number | 
     // Mango leaves: green (the gold beam and the cream paper have no green)
     for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
       const i = ((y0 + y) * W + x0 + x) * 3;
-      const r = pix[i], g = pix[i + 1], b = pix[i + 2];
+      const r = taller[i], g = taller[i + 1], b = taller[i + 2];
       colour[y * bw + x] = smoothstep(6, 26, g - Math.max(r, b)) * smoothstep(40, 70, g);
     }
     const soft = boxBlur(colour, bw, bh, 1);
@@ -167,11 +178,11 @@ for (const p of scene.pieces as { id: string; rect: number[]; feather: number | 
       const edge = Math.min(f[0] > 0 ? smoothstep(0, f[0], x) : 1, f[1] > 0 ? smoothstep(0, f[1], y) : 1, f[2] > 0 ? smoothstep(0, f[2], bw - 1 - x) : 1, f[3] > 0 ? smoothstep(0, f[3], bh - 1 - y) : 1);
       const a = p.colour ? edge * colour[y * bw + x] : edge;
       const i = ((y0 + y) * W + x0 + x) * 3, o = (y * bw + x) * 4;
-      rgba[o] = pix[i]; rgba[o + 1] = pix[i + 1]; rgba[o + 2] = pix[i + 2]; rgba[o + 3] = Math.round(a * 255);
+      rgba[o] = taller[i]; rgba[o + 1] = taller[i + 1]; rgba[o + 2] = taller[i + 2]; rgba[o + 3] = Math.round(a * 255);
     }
   bytes += await write(`piece-${p.id}`, sharp(rgba, { raw: { width: bw, height: bh, channels: 4 } }), 82, 90);
   const pct = (v: number, t: number) => +((v / t) * 100).toFixed(4);
-  meta.push({ id: p.id, box: [pct(x0, W), pct(y0, H), pct(bw, W), pct(bh, H)], size: [bw, bh] });
+  meta.push({ id: p.id, box: [pct(x0, W), pct(y0, H2), pct(bw, W), pct(bh, H2)], size: [bw, bh] });
 }
 const b = scene.board.rect;
 writeFileSync(
@@ -179,11 +190,11 @@ writeFileSync(
   JSON.stringify(
     {
       width: W,
-      height: H,
+      height: H2,
       pieces: meta,
-      board: { x: +((b[0] / W) * 100).toFixed(4), y: +((b[1] / H) * 100).toFixed(4), w: +(((b[2] - b[0]) / W) * 100).toFixed(4), h: +(((b[3] - b[1]) / H) * 100).toFixed(4) },
-      floor: { y: +((scene.floorY / H) * 100).toFixed(3) },
-      crackers: scene.crackers.map((c: number[]) => [+((c[0] / W) * 100).toFixed(3), +((c[1] / H) * 100).toFixed(3)]),
+      board: { x: +((b[0] / W) * 100).toFixed(4), y: +((moved(b[1]) / H2) * 100).toFixed(4), w: +(((b[2] - b[0]) / W) * 100).toFixed(4), h: +(((b[3] - b[1]) / H2) * 100).toFixed(4) },
+      floor: { y: +((moved(scene.floorY) / H2) * 100).toFixed(3) },
+      crackers: scene.crackers.map((c: number[]) => [+((c[0] / W) * 100).toFixed(3), +((moved(c[1]) / H2) * 100).toFixed(3)]),
     },
     null,
     2,
