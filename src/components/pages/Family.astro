@@ -130,32 +130,73 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     display: block;
   }
 
-  /* The lettering sits on a soft ivory plaque */
+  /* The boards: deep maroon velvet in a grand gold frame (a thick gold band, a thin maroon rule and a fine
+     gold line inside, with gold studs at the corners), so they stand out clearly from the temple and echo
+     the invitation card */
   .fm__head {
     position: absolute;
     left: 6cqw;
     right: 6cqw;
     top: calc(var(--safe-top) + 6cqh);
-    padding: 1.6cqh 4cqw 1.8cqh;
+    padding: 1.9cqh 4cqw 2.1cqh;
     text-align: center;
-    border-radius: 18px;
-    background: linear-gradient(180deg, rgba(255, 251, 243, 0.9), rgba(255, 245, 228, 0.84));
-    box-shadow: 0 0 0 1px rgba(184, 134, 58, 0.4), 0 8px 22px rgba(60, 30, 5, 0.14);
-    text-shadow: 0 0 2px rgba(255, 249, 238, 0.9);
+  }
+
+  .fm__head,
+  .fm__side {
+    border-radius: 14px;
+    background:
+      radial-gradient(ellipse 90% 120% at 50% 0%, rgba(150, 30, 48, 0.55), rgba(150, 30, 48, 0) 70%),
+      linear-gradient(180deg, #70101f, #4d0913);
+    box-shadow:
+      0 0 0 3px #d9b062,
+      0 0 0 4.5px #7a1020,
+      0 0 0 7px #c99a43,
+      0 0 0 8px rgba(255, 233, 170, 0.75),
+      0 10px 22px rgba(40, 8, 8, 0.5),
+      inset 0 0 0 1.5px rgba(240, 205, 125, 0.85),
+      inset 0 0 14px rgba(20, 0, 4, 0.55);
+    color: #f7e4ae;
+  }
+
+  /* A fine gold line inside the maroon, and a gold stud at each corner */
+  .fm__head::before,
+  .fm__side::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 1px dotted rgba(240, 205, 125, 0.7);
+    border-radius: 10px;
+    pointer-events: none;
+  }
+
+  .fm__head::after,
+  .fm__side::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    pointer-events: none;
+    --stud: radial-gradient(circle at 35% 30%, #fff3c4 0, #e1b455 45%, #8a5a14 100%);
+    background:
+      var(--stud) left top / 9px 9px no-repeat,
+      var(--stud) right top / 9px 9px no-repeat,
+      var(--stud) left bottom / 9px 9px no-repeat,
+      var(--stud) right bottom / 9px 9px no-repeat;
   }
 
   .fm__eyebrow {
     font: 700 clamp(11px, 3.2cqw, 13px) / 1.3 var(--font-royal);
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: #6b4308;
+    color: #efc86e;
   }
 
   .fm__title {
     margin-top: 0.6cqh;
     font: 400 clamp(26px, 8.4cqw, 36px) / 1.12 var(--font-script);
-    color: #6a0f1f;
+    color: #fbe9b7;
     -webkit-text-stroke: 0.3px currentColor;
+    text-shadow: 0 1px 2px rgba(20, 0, 4, 0.6);
     text-wrap: balance;
   }
 
@@ -196,39 +237,38 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
   }
 
   .fm__side {
+    position: relative;
     display: grid;
     justify-items: start;
     gap: 1.2cqh;
-    padding: 2cqh 3.2cqw 2.2cqh;
+    padding: 2.2cqh 3.6cqw 2.4cqh;
+    margin-right: 4.6cqw;
     text-align: left;
-    border-radius: 14px;
-    background: linear-gradient(180deg, rgba(255, 251, 243, 0.9), rgba(255, 245, 228, 0.84));
-    box-shadow: 0 0 0 1px rgba(184, 134, 58, 0.4), 0 6px 18px rgba(60, 30, 5, 0.14);
-    text-shadow: 0 0 2px rgba(255, 249, 238, 0.9);
   }
 
   .fm__rel {
     font: 700 clamp(9px, 2.8cqw, 12px) / 1.3 var(--font-royal);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #6b4308;
+    color: #efc86e;
   }
 
   .fm__name {
     font: 400 clamp(22px, 6.8cqw, 31px) / 1.05 var(--font-script);
-    color: #6a0f1f;
+    color: #fbe9b7;
     -webkit-text-stroke: 0.3px currentColor;
+    text-shadow: 0 1px 2px rgba(20, 0, 4, 0.6);
   }
 
   .fm__tbp {
     font: 500 12px / 1.3 var(--font-body);
-    color: #85540f;
+    color: #e9cf95;
     -webkit-text-stroke: 0;
   }
 
   .fm__work {
     font: 600 clamp(15px, 4.6cqw, 19px) / 1.25 var(--font-display);
-    color: #1d5232;
+    color: #f4dba0;
   }
 
   .fm__work::before {
@@ -237,7 +277,7 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     width: 34px;
     height: 1px;
     margin-bottom: 1cqh;
-    background: linear-gradient(90deg, #b8863a, transparent);
+    background: linear-gradient(90deg, #e9c46a, transparent);
   }
 
   /* The client's gold oval frame, with the portrait in its opening under a red border */

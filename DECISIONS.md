@@ -575,7 +575,7 @@ The client's picture has the polaroids on top of the garden, so the garden behin
 
 ### Decisions
 
-1. **The garden behind the polaroids is rebuilt from the picture's own garden** (`scripts/couple/bokeh.ts`, settings under `bokeh` in `scene.json`). I tried filling from copied patches of the picture, soft blurred blobs, and dense stamped leaves; they came out patchy, hazy, or like a green wall. What is used now:
+1. **The garden behind the polaroids is rebuilt from the picture's own garden** (`scripts/couple/bokeh.ts`; replaced on 29 October, see the last section). I tried filling from copied patches of the picture, soft blurred blobs, and dense stamped leaves; they came out patchy, hazy, or like a green wall. What is used now:
    - A leafy shade of green that continues the colours at the edge of each area and deepens inside it. It is never taken from the gold pillars, the people or the sky.
    - Many small sharp leaves and flowers, cut from the picture's own garden (only the leafy pixels, so no sky, stone or gold comes with them), turned and sized differently, laid over the shade.
    - The leaves hang a little past the edge of the area in leaf-shaped outlines, and the picture beside the area softens gradually into it. No rectangle or edge shows.
@@ -685,4 +685,42 @@ The client asked for two things: the Wedding Events names to be large and bold w
 
 - `npm run qa:book`: 70/70 checks pass (new AC-20c checks the names, the blinking buttons and the toast). Unit tests: 58 pass. `npx astro check`: 0 errors.
 - `npm run perf`: mobile performance 89, accessibility 100, best practices 100.
+
+## 29 October 2026 — Cream temple background with swaying garlands; the Love Story page in the peacock ring
+
+The client sent a cream temple picture (golden pillars, hanging jasmine and red-flower garlands, brass lamps, flower vases, petals on marble) and asked for it to replace the maroon-and-gold desktop background, with the hanging flowers swaying in a light wind, realistic and elegant, no cartoon look. For page 7 they asked for the same background, the card carousel kept as it is, the couple's five photographs inside the big ring of their red-and-gold peacock frame (the green version was only a reference), a board below for the couple's story, simple gold frames on the photographs, and the placeholder boxes removed.
+
+### Decisions
+
+1. **Desktop background = the client's picture** (`npm run stage:assets`). The red velvet, the gold border and the corner sprays are removed (with their assets and the step that made them from the invitation card). The picture's own thin border and corner ornaments are left out. Its two sides stand at the screen's edges, as tall as the screen, and the plain cream and marble between them fills the rest, so it fits laptops, large monitors and tablets; the phone mockup (kept as it was, with a softer shadow) stands in front.
+2. **Swaying, not stiff swinging:** each garland, the lamp and the bells are cut out and drawn in thin slices, each swinging a little more than the one above, so a soft wave runs down from where they hang, with slow swells of wind and the lamp's flames flickering. Nothing moves under reduced motion or while the tab is hidden. It is drawn on canvases that exist only on screens that show the stage; phones build none and request none of its pictures (checked by AC-35d).
+3. **Honest limit:** the picture is 1774 × 886 px, so on a very large monitor it is enlarged (softer). The vase flowers do not sway (their movement would be too small to see). A larger copy of the picture would be sharper.
+4. **Love Story page, same background:** the left side of the picture and its mirror, in three parts that fit any page height (the top where the garlands hang, the foot with the vases and marble, and a plain blend between them), shown at about 70% of the picture's size. Its first garland hangs and sways on the page too.
+5. **The peacock frame:** the red-and-gold one, cut out of its baked-in chequered background (by colour, with the board kept whole and the ring's inside made see-through). It is shown a little wider than the page so the ring and peacocks are large (the outer tail feathers run off the edges).
+6. **The carousel** is the existing card ring (cards on a circle that recedes, one per swipe, two on a hard flick), now inside the ring: the photographs show only in the ring's opening, and the frame's pendants hang over them. Each photograph has a simple gold frame (the old white mount and gold corners are removed). It moves on by itself every 4.2 seconds; a touch, key or button pauses that for 9 seconds, then it carries on (before, it stopped for good after the first touch). A step by key or button now starts from where the ring is heading, so it no longer skips when pressed during a swipe's settling.
+7. **The board** (the frame's cream plaque) shows each milestone's title in script and a short line below. The photographs, in the order of the story: Our First Meeting (the country path, his hand on his heart), Becoming Friends (the rain), Falling in Love (the beach at sunset), A Beautiful Proposal (the flower swing under lights) and Forever Begins (hand in hand at sunset, shadows growing old together). The client did not say which photograph is which milestone; I chose this order because it tells the story best, and it can be swapped in `loveStory` in `src/data/wedding.ts`.
+8. **The story lines** are generic, claim no place or date ("A glance, a smile, and our story began.", and so on), because the family has not told their story. They are in `LoveStory.astro` and are replaced by `loveStory[].text` as soon as the family writes it. The "Proposed" tags, "Photo to be provided" and "Story text to be provided" boxes, the placeholder note and the jasmine-swag art are removed from this page.
+9. **Page layout:** content is centred in the page; the ring, board and controls are clipped to the page, the live region sits inside the content (the overflow check reads direct children).
+
+### Results
+
+- `npm run qa:book`: 72/72 checks pass (new AC-19b for the Love Story page, AC-35d for phones, AC-35b now checks the cream background and that the garlands move). `npx vitest run`: 58 pass. `npx astro check`: 0 errors.
+- `npm run perf`: mobile performance 88–89, accessibility 100, best practices 100.
+
+## 29 October 2026 — No leaves on the couple pages, a pale temple behind, zoomed out; red-and-gold boards; calmer Love Story
+
+The client reviewed the Rahul and Divya pages, the Parents page and the Love Story page again.
+
+### Decisions
+
+1. **Couple pages: the leaves are gone.** The banana leaves I added are removed, and so is the picture's own greenery touching the polaroids' area (the area grows through connected leaf-green pixels, up to 90 px). In their place is the temple the client described, a little faded: the colours around each area, with the carved stone and pillars of the temple-courtyard picture (`temple.webp`) laid on top as soft structure (its own dark edges and its green leaf left out, limited so no dark smear). The left shows the carved pillar, the right the courtyard and gopuram, pale, so the cards and the couple stand out. Red and white flowers on the steps, the people and the gold pillars stay. (`scripts/couple/backdrop.ts`, which replaces `bokeh.ts`.)
+2. **Zoomed out further:** the sky above the couple is stretched more (600 rows, mostly in its plain top part so the palms and tower stretch less), so on a phone the couple are about a third smaller than the original and the whole width of the picture shows.
+3. **Feet and the full staircase are not possible from this picture.** The client's picture ends at the hem of the groom's dhoti and the bride's saree; only the top of one foot shows at the very edge, and the steps stop with the picture. A zoom-out cannot show what the picture does not contain, and I did not draw feet. A picture of the couple sitting on the steps with their feet and the whole staircase in it would make this possible.
+4. **Parents page boards:** the title board and each person's board are deep maroon velvet in a grand gold frame (a thick gold band, a thin maroon rule, a pale gold line, a fine dotted gold line inside, a gold stud at each corner), with gold and ivory lettering, so they stand out clearly from the pale temple. They echo the invitation card.
+5. **Love Story page:** the background is faded to 90% over ivory, and the two brass vases (and their flowers) at the bottom are removed: the foot is only petals on marble. Rose petals also drift down the page, two at a time. The content is centred vertically.
+
+### Results
+
+- `npm run qa:book`: 72/72 checks pass. `npx vitest run`: 58 pass. `npx astro check`: 0 errors.
+- `npm run perf`: mobile performance 88 once the computer is idle (it dips to 64–84 in runs while the computer is busy with other work), accessibility 100, best practices 100.
 

@@ -1,11 +1,23 @@
 ---
-/** Page 7 — Our Love Story (PRD §6.8, THEME §13 P8). Ring behaviour: src/motion/ring.ts */
+/**
+ * Page 7 — Our Love Story (PRD §6.8), on the same cream temple background as the desktop screen (the
+ * client's picture: golden pillars and its hanging garlands and bells swaying, petals on marble below; src/assets/stage/, npm run stage:assets). The couple's photographs ride a card carousel
+ * inside the big ring of the client's red-and-gold peacock frame (src/assets/story/, npm run
+ * story:assets), each in a simple gold frame; on the frame's board below, each milestone's title and
+ * a line of its story. Ring behaviour: src/motion/ring.ts; sway: src/motion/sway.ts.
+ */
 import PageShell from '../PageShell.astro';
-import Decor from '../Decor.astro';
+import ScenePhoto from '../ScenePhoto.astro';
 import Icon from '../Icon.astro';
-import Ph from '../Ph.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
+import frame from '../../assets/story/frame.webp';
+import opening from '../../assets/story/opening.webp';
+import meta from '../../assets/story/frame.json';
+import sceneTop from '../../assets/stage/page-top.webp';
+import sceneFoot from '../../assets/stage/page-bottom.webp';
+import sceneGap from '../../assets/stage/page-gap.webp';
+import stage from '../../assets/stage/stage.json';
 
 interface Props {
   page: BookPage;
@@ -14,206 +26,275 @@ interface Props {
 
 const { page, index } = Astro.props;
 const story = wedding.loveStory;
+// Until the family writes their story (loveStory[].text in src/data/wedding.ts), the board carries a
+// short line that claims no place or date
+const lines = [
+  'A glance, a smile, and our story began.',
+  'Easy laughter, long talks, and a friendship that grew.',
+  'Between the talks and the silences, our hearts found each other.',
+  'A promise softly asked and happily answered.',
+  'Hand in hand, today and every sunset to come.',
+];
+
+// The garlands and bells on this page's background: the left side's, and the right side's mirrored
+const pieceImages = import.meta.glob<{ default: ImageMetadata }>('../../assets/stage/piece-*.webp', { eager: true });
+const pieceSrc = (file: string) => pieceImages[`../../assets/stage/${file}.webp`].default.src;
+const PANEL_W = stage.panel.width, PANEL_H = stage.panel.height, COMP_W = stage.page.width, TOP_H = stage.page.top, FOOT_H = stage.page.bottom;
+const pageHalf = COMP_W / 2;
+const pagePieces = (stage.pieces as { id: string; side: string; file: string; box: number[]; amp: number; period: number; lag: number; phase: number }[])
+  .filter((p) => (stage.page.pieces as string[]).includes(p.id))
+  .map((p) => {
+    const px = (p.box[0] / 100) * PANEL_W;
+    // The page shows the left side's first pageHalf columns and, mirrored, the same for the right: the
+    // right side's last pageHalf columns (panel columns PANEL_W - pageHalf and on) fill its right half
+    const x = p.side === 'l' ? px : px - (PANEL_W - pageHalf) + pageHalf;
+    return {
+      ...p,
+      left: (x / COMP_W) * 100,
+      width: (((p.box[2] / 100) * PANEL_W) / COMP_W) * 100,
+      top: (((p.box[1] / 100) * PANEL_H) / TOP_H) * 100,
+      height: (((p.box[3] / 100) * PANEL_H) / TOP_H) * 100,
+    };
+  })
+  .filter((p) => p.left > -20 && p.left < 100);
 ---
 
-<PageShell page={page} index={index} class="ls" note="Placeholder art: D-01 jasmine garland, D-17 gold corner mounts. Couple photographs P-03 to P-07 and the story text to be provided; milestone titles are proposed.">
-  <h2 class="page-title ls__title" tabindex="-1" data-page-heading>Our Love Story</h2>
-
-  <div class="ls__stage">
-    <div class="ls__ring" data-ring data-gesture="x" tabindex="0" role="group" aria-roledescription="carousel" aria-label="Our love story photographs. Use the arrow keys to move between photos.">
-      {
-        story.map((m, i) => (
-          <figure class="ls__card" data-card aria-roledescription="slide" aria-label={`${i + 1} of ${story.length}: ${m.title}`}>
-            {m.photo ? (
-              <img src={m.photo.src} alt={m.photo.alt} draggable="false" />
-            ) : (
-              <div class="ls__ph" aria-hidden="true">
-                <span class="ls__ph-num">{i + 1}</span>
-                <span class="ls__ph-mono">R·D</span>
-                <span class="ls__ph-text">Photo to be provided</span>
-              </div>
-            )}
-            <span class="ls__mount ls__mount--tl" aria-hidden="true" />
-            <span class="ls__mount ls__mount--tr" aria-hidden="true" />
-            <span class="ls__mount ls__mount--bl" aria-hidden="true" />
-            <span class="ls__mount ls__mount--br" aria-hidden="true" />
-          </figure>
-        ))
-      }
+<PageShell page={page} index={index} watermark={false} class="ls">
+  <Fragment slot="architecture">
+    <div class="layer layer--architecture ls__scene" aria-hidden="true" style={`--top:${TOP_H / COMP_W};--foot:${FOOT_H / COMP_W}`}>
+      <div class="ls__gap" data-vars={`background-image:url("${sceneGap.src}")`}></div>
+      <div class="ls__top" style={`aspect-ratio:${COMP_W} / ${TOP_H}`}>
+        <ScenePhoto class="ls__bg" webp={sceneTop} defer />
+        {
+          pagePieces.map((p) => (
+            <span
+              class="sway"
+              data-sway={pieceSrc(p.file)}
+              data-amp={p.amp}
+              data-period={p.period}
+              data-lag={p.lag}
+              data-phase={p.phase}
+              style={`left:${p.left}%;top:${p.top}%;width:${p.width}%;height:${p.height}%`}
+            />
+          ))
+        }
+      </div>
+      <div class="ls__foot" style={`aspect-ratio:${COMP_W} / ${FOOT_H}`}>
+        <ScenePhoto class="ls__bg" webp={sceneFoot} defer />
+      </div>
     </div>
-    <Decor name="jasmine-swag" asset="D-01" class="ls__garland sway" style="--sway:0.6deg;--sway-dur:8s" />
-  </div>
+  </Fragment>
 
-  <div class="ls__caption">
-    <button class="ls__arrow" type="button" data-ring-prev aria-label="Previous photo"><Icon name="chevron-left" /></button>
-    <div class="ls__plate">
-      {
-        story.map((m, i) => (
-          <div class:list={['ls__entry', i === 0 && 'is-active']} data-entry>
-            <p class="ls__milestone">
-              {m.title}
-              {m.titleStatus === 'proposed' && <span class="badge badge--proposed preview-only">Proposed</span>}
-            </p>
-            <p class="ls__story" data-hide-if-missing>
-              <Ph value={m.text} label="Story text" />
-            </p>
-          </div>
-        ))
-      }
+  <div class="ls__main">
+    <h2 class="ls__title" tabindex="-1" data-page-heading>Our Love Story</h2>
+
+    <div class="ls__frame" style={`--frame-ratio:${meta.width} / ${meta.height}`}>
+      <div
+        class="ls__ring"
+        data-ring
+        data-gesture="x"
+        tabindex="0"
+        role="group"
+        aria-roledescription="carousel"
+        aria-label="Our love story photographs. Use the arrow keys to move between photos."
+        data-vars={`--opening:url("${opening.src}")`}
+      >
+        <div class="ls__stage" style={`left:${meta.opening.x + meta.opening.w / 2}%;top:${meta.opening.y + meta.opening.h / 2}%;width:${meta.opening.w}%`}>
+          {
+            story.map((m, i) => (
+              <figure class="ls__card" data-card aria-roledescription="slide" aria-label={`${i + 1} of ${story.length}: ${m.title}`}>
+                {m.photo && (
+                  <>
+                    <img data-src={m.photo.src} alt={m.photo.alt} draggable="false" decoding="async" />
+                    <noscript><img src={m.photo.src} alt={m.photo.alt} decoding="async" /></noscript>
+                  </>
+                )}
+              </figure>
+            ))
+          }
+        </div>
+      </div>
+      <ScenePhoto class="ls__art" webp={frame} defer />
+      <div class="ls__board" style={`left:${meta.board.x}%;top:${meta.board.y}%;width:${meta.board.w}%;height:${meta.board.h}%`}>
+        {
+          story.map((m, i) => (
+            <div class:list={['ls__entry', i === 0 && 'is-active']} data-entry>
+              <p class="ls__milestone">{m.title}</p>
+              <p class="ls__story">{m.text ?? lines[i]}</p>
+            </div>
+          ))
+        }
+      </div>
     </div>
-    <button class="ls__arrow" type="button" data-ring-next aria-label="Next photo"><Icon name="chevron-right" /></button>
-  </div>
 
-  <div class="ls__dots">
-    {story.map((m, i) => <button class:list={['ls__dot', i === 0 && 'is-active']} type="button" data-ring-dot={i} aria-label={`Show photo ${i + 1}: ${m.title}`} />)}
+    <div class="ls__controls">
+      <button class="ls__arrow" type="button" data-ring-prev aria-label="Previous photo"><Icon name="chevron-left" /></button>
+      <div class="ls__dots">
+        {story.map((m, i) => <button class:list={['ls__dot', i === 0 && 'is-active']} type="button" data-ring-dot={i} aria-label={`Show photo ${i + 1}: ${m.title}`} />)}
+      </div>
+      <button class="ls__arrow" type="button" data-ring-next aria-label="Next photo"><Icon name="chevron-right" /></button>
+    </div>
+    <p class="sr-only" aria-live="polite" data-ring-live></p>
   </div>
-  <p class="sr-only" aria-live="polite" data-ring-live></p>
 </PageShell>
 
 <style is:global>
-  .ls__stage {
-    position: relative;
-    width: 100cqw;
-    margin-inline: -12cqw;
-    display: grid;
-    justify-items: center;
+  .ls .page__frame {
+    display: none;
   }
 
-  .ls__ring {
-    position: relative;
+  .ls .page__content {
+    inset: 0;
+    display: block;
+  }
+
+  /* The cream temple picture, in three parts that fit any page height: the top, where the garlands hang;
+     the foot, with the vases, petals and marble; and between them a plain blend of the cream wall that
+     stretches (the peacock frame lies over most of it). The picture is shown at about 70% of its size. */
+  .ls__scene {
+    inset: 0;
+    overflow: hidden;
+    background: #f1e2c6;
+    /* a little faded (90%), so the photographs, the frame and the board stand out clearly */
+    opacity: 0.9;
+  }
+
+  .ls__top,
+  .ls__foot {
+    position: absolute;
+    left: 0;
     width: 100%;
-    height: calc(56cqw * 1.25 + 4cqh);
-    perspective: 1100px;
+  }
+
+  .ls__top {
+    top: 0;
+  }
+
+  .ls__foot {
+    bottom: 0;
+  }
+
+  .ls__gap {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    top: calc(100cqw * var(--top) - 26px);
+    bottom: calc(100cqw * var(--foot) - 26px);
+    background: #f1e2c6 center / 100% 100% no-repeat;
+  }
+
+  .ls__bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Each part's edge by the blend fades into it, so no seam shows */
+  .ls__top .ls__bg {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+  }
+
+  .ls__foot .ls__bg {
+    mask-image: linear-gradient(to bottom, transparent, #000 24px);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+  }
+
+  .ls__main {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: var(--safe-top);
+    padding-bottom: 9cqh;
+  }
+
+  .ls__title {
+    font: 400 clamp(30px, 9.8cqw, 42px) / 1.05 var(--font-script);
+    color: #6a0f1f;
+    -webkit-text-stroke: 0.3px currentColor;
+    text-shadow: 0 0 3px rgba(255, 249, 238, 1), 0 0 8px rgba(255, 249, 238, 1), 0 0 18px rgba(255, 249, 238, 0.95), 0 0 30px rgba(255, 249, 238, 0.8);
+  }
+
+  /* The peacock frame, a little wider than the page so the peacocks and the ring are large */
+  .ls__frame {
+    position: relative;
+    flex: none;
+    width: 116cqw;
+    aspect-ratio: var(--frame-ratio);
+    margin-top: 1.4cqh;
+    filter: drop-shadow(0 10px 14px rgba(70, 35, 10, 0.3));
+  }
+
+  /* The photographs show only inside the ring (the frame's opening, as a mask); the frame's art lies over them */
+  .ls__ring {
+    position: absolute;
+    inset: 0;
+    perspective: 900px;
     touch-action: pan-y pinch-zoom;
     cursor: grab;
     outline-offset: -6px;
+    mask: var(--opening) center / 100% 100% no-repeat;
+    -webkit-mask: var(--opening) center / 100% 100% no-repeat;
   }
 
+  .ls__stage {
+    position: absolute;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+  }
+
+  .ls__art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* A simple gold frame round each photograph */
   .ls__card {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 56cqw;
-    max-width: 300px;
-    aspect-ratio: 4 / 5;
+    width: 47%;
+    aspect-ratio: 2 / 3;
     margin: 0;
-    padding: 2.2cqw;
-    background: #fffdf8;
-    box-shadow:
-      0 0 0 1px rgba(196, 154, 69, 0.35),
-      0 16px 30px rgba(75, 48, 38, 0.22);
+    padding: max(2px, 0.9cqw);
+    background: linear-gradient(135deg, #f6e3a3 0%, #c9993f 38%, #f8ebb8 55%, #a8741f 100%);
+    box-shadow: 0 8px 16px rgba(50, 25, 5, 0.38);
     transform: translate(-50%, -50%);
     will-change: transform;
   }
 
-  .ls__card img,
-  .ls__ph {
+  .ls__card img {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: 50% 38%;
     pointer-events: none;
+    background: #e9d9b7;
   }
 
-  .ls__ph {
-    display: grid;
-    place-content: center;
-    justify-items: center;
-    gap: 6px;
-    background: radial-gradient(circle at 50% 40%, var(--jasmine), var(--sandal));
-    color: var(--gold-text);
-    text-align: center;
-  }
-
-  .ls__ph-num {
-    font: 600 clamp(28px, 9cqw, 44px) / 1 var(--font-display);
-    color: var(--maroon);
-  }
-
-  .ls__ph-mono {
-    font: 600 14px/1 var(--font-display);
-    letter-spacing: 0.06em;
-  }
-
-  .ls__ph-text {
-    font: 500 9px/1.3 var(--font-royal);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-
-  .ls__mount {
+  /* The board: each milestone's title and a line of its story, on the frame's cream plaque */
+  .ls__board {
     position: absolute;
-    width: 12%;
-    aspect-ratio: 1;
-    background: var(--foil-gold);
-  }
-
-  .ls__mount--tl {
-    left: 0;
-    top: 0;
-    clip-path: polygon(0 0, 100% 0, 0 100%);
-  }
-
-  .ls__mount--tr {
-    right: 0;
-    top: 0;
-    clip-path: polygon(0 0, 100% 0, 100% 100%);
-  }
-
-  .ls__mount--bl {
-    left: 0;
-    bottom: 0;
-    clip-path: polygon(0 0, 100% 100%, 0 100%);
-  }
-
-  .ls__mount--br {
-    right: 0;
-    bottom: 0;
-    clip-path: polygon(100% 0, 100% 100%, 0 100%);
-  }
-
-  .ls__garland {
-    width: 92cqw;
-    margin-top: -6cqh;
-    pointer-events: none;
-  }
-
-  .ls__caption {
+    container-type: inline-size;
     display: grid;
-    grid-template-columns: 44px 1fr 44px;
-    align-items: center;
-    gap: 2cqw;
-    width: 112%;
-  }
-
-  .ls__arrow {
-    width: 44px;
-    height: 44px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    border: 1px solid var(--hairline);
-    border-radius: 50%;
-    background: rgba(255, 253, 248, 0.9);
-    color: var(--gold-text);
-  }
-
-  .ls__arrow svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  .ls__plate {
-    display: grid;
-    padding: 1.6cqh 4cqw;
-    background: rgba(255, 253, 248, 0.94);
-    box-shadow:
-      inset 0 0 0 1px var(--gold),
-      inset 0 0 0 4px var(--jasmine),
-      inset 0 0 0 5px var(--hairline);
+    padding: 1.2cqw 3cqw;
+    text-align: center;
   }
 
   .ls__entry {
     grid-area: 1 / 1;
+    display: grid;
+    align-content: center;
+    justify-items: center;
     opacity: 0;
     visibility: hidden;
     transition:
@@ -228,30 +309,57 @@ const story = wedding.loveStory;
   }
 
   .ls__milestone {
-    font: 600 clamp(12px, 3.4cqw, 14px) / 1.3 var(--font-royal);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--brown);
+    font: 400 7.4cqw / 1 var(--font-script);
+    color: #8a1426;
+    -webkit-text-stroke: 0.2px currentColor;
   }
 
   .ls__story {
-    margin-top: 4px;
-    font: italic 500 clamp(15px, 4.4cqw, 18px) / 1.35 var(--font-display);
-    color: var(--brown-soft);
+    margin-top: 0.8cqw;
+    font: italic 600 4.1cqw / 1.2 var(--font-display);
+    color: #4a2418;
+    text-wrap: balance;
+  }
+
+  .ls__controls {
+    display: flex;
+    align-items: center;
+    gap: 3cqw;
+    margin-top: 1.6cqh;
+  }
+
+  .ls__arrow {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1.5px solid #b8863a;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #fffaf0, #f3dfb0);
+    color: #6a0f1f;
+    box-shadow: 0 2px 6px rgba(70, 35, 10, 0.25);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .ls__arrow svg {
+    width: 20px;
+    height: 20px;
   }
 
   .ls__dots {
     display: flex;
-    gap: 4px;
+    gap: 2px;
   }
 
   .ls__dot {
-    width: 28px;
+    width: 26px;
     height: 44px;
     padding: 0;
     border: 0;
     background: none;
     position: relative;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .ls__dot::before {
@@ -259,30 +367,23 @@ const story = wedding.loveStory;
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 8px;
-    height: 12px;
+    width: 9px;
+    height: 9px;
     translate: -50% -50%;
     border-radius: 50%;
-    background: var(--jasmine);
-    box-shadow: inset 0 0 0 1px var(--gold);
+    background: #f7ead0;
+    box-shadow: inset 0 0 0 1.5px #b8863a;
+    transition: background-color 0.3s, scale 0.3s;
   }
 
   .ls__dot.is-active::before {
-    background: var(--maroon);
-    box-shadow: none;
+    background: #8a1426;
+    box-shadow: inset 0 0 0 1.5px #6a0f1f;
+    scale: 1.25;
   }
 
-  @container app (max-height: 699px) {
-    .ls__card {
-      width: 46cqw;
-    }
-
-    .ls__ring {
-      height: calc(46cqw * 1.25 + 2cqh);
-    }
-
-    .ls__garland {
-      display: none;
-    }
+  /* Without scripts the photographs are plain pictures in a row, and the sway has no canvases */
+  html:not(.js) .ls__stage {
+    display: none;
   }
 </style>

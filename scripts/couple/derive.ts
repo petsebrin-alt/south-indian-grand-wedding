@@ -6,7 +6,7 @@
  *                     title can be set in live lettering and the polaroids can pop in one by one
  *                     (AVIF + WebP). The sky and palms behind a title are borrowed from the picture
  *                     (inpaint.ts); the garden behind the polaroids is rebuilt as leaves and flowers
- *                     cut from the picture's own garden (bokeh.ts)
+ *                      (backdrop.ts)
  *   card-<id>         each polaroid (and the groom's gaming cluster), lifted out along its outline:
  *                     the rough corners in scene.json are snapped to the edges of the white frame
  *   cards.json        each card's size and the order it appears in
@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp, { type Sharp } from 'sharp';
 import { inpaint } from '../welcome/inpaint';
-import { softBackground } from './bokeh';
+import { rebuildBackdrop } from './backdrop';
 
 const dir = join(process.cwd(), 'src/assets/couple');
 const scene = JSON.parse(readFileSync(join(dir, 'scene.json'), 'utf8'));
@@ -180,6 +180,32 @@ let cardsGrown = Uint8Array.from(cardsClosed);
   }
 }
 
+// The picture's own greenery beside the polaroids (leaves, shrubs and grass touching their area) goes
+// with them: the area grows through connected leaf-green pixels, up to `leafReach` px, so the temple
+// shows there instead. Red and white flowers, the people and the pillars stay.
+{
+  const isLeafPx = (j: number) => {
+    const r = d[j * 3], g = d[j * 3 + 1], b = d[j * 3 + 2];
+    return (g - b > 40 && g >= r * 0.84) || (g > r + 3 && g > b + 20 && 0.3 * r + 0.59 * g + 0.11 * b > 40);
+  };
+  let frontier: number[] = [];
+  for (let i = 0; i < W * H; i++) if (cardsGrown[i]) frontier.push(i);
+  for (let step = 0; step < scene.leafReach && frontier.length; step++) {
+    const next: number[] = [];
+    for (const i of frontier) {
+      const x = i % W, y = (i / W) | 0;
+      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, y > 0 ? i - W : -1, y < H - 1 ? i + W : -1]) {
+        if (j < 0 || cardsGrown[j] || peopleMask[j] || pillars[j]) continue;
+        if (isLeafPx(j)) (cardsGrown[j] = 1), next.push(j);
+      }
+    }
+    frontier = next;
+  }
+  // Close the little gaps this leaves between leaves
+  const closed = erode(dilate(cardsGrown, 6), 6);
+  for (let i = 0; i < W * H; i++) if (closed[i] && !peopleMask[i] && !pillars[i]) cardsGrown[i] = 1;
+}
+
 // Titles: the sky and palms around them
 const t0 = Date.now();
 const titleAvoid = new Uint8Array(W * H);
@@ -197,7 +223,8 @@ const smoothstep = (a: number, b: number, x: number) => {
 const bands = (['groom', 'bride'] as const).map((side) => {
   const [a, b] = scene.extend[side] as number[];
   const f = scene.extend.feather;
-  const weight = (y: number) => smoothstep(a - f, a + f, y) * (1 - smoothstep(b - f, b + f, y));
+  // more of the stretch falls on the band's top rows (plain sky) than on its lower ones (palms, tower)
+  const weight = (y: number) => smoothstep(a - f, a + f, y) * (1 - smoothstep(b - f, b + f, y)) * (1 + scene.extend.bias * Math.pow(Math.max(0, 1 - (y - a) / (b - a)), 2));
   let total = 0;
   for (let y = 0; y < H; y++) total += weight(y);
   const k = scene.extend.rows / total;
@@ -235,67 +262,29 @@ const taller = (src: ArrayLike<number>, stride: number, smoothly: boolean) => {
   return out;
 };
 const tallerMask = (m: Uint8Array) => Uint8Array.from(taller(m, 1, false), (v) => (v > 0.5 ? 1 : 0));
-/** A box in picture px moved to the taller picture */
-const tallerBox = ([x0, y0, x1, y1]: number[]) => {
-  const e = bands[x0 < scene.bride.span[0] ? 0 : 1].edge;
-  const at = (y: number) => e[Math.max(0, Math.min(H0, Math.round(y)))];
-  return [x0, Math.round(at(y0)), x1, Math.round(at(y1))];
-};
 withTitles = { w: W, h: H2, d: taller(withTitles.d, 3, true) };
 cardsGrown = tallerMask(cardsGrown);
 peopleMask = tallerMask(peopleMask);
 pillars = tallerMask(pillars);
 H = H2;
 
-// Cards: the garden of leaves and flowers behind them (bokeh.ts)
+// Cards: the temple behind them (backdrop.ts): the colours around each area, with the structure of the
+// client's temple picture (carved stone and pillars) on top
 const keep = new Uint8Array(W * H);
 for (let i = 0; i < W * H; i++) if ((peopleMask[i] || pillars[i]) && !cardsGrown[i]) keep[i] = 1;
 const rebuilt = { w: W, h: H, d: Float32Array.from(withTitles.d) };
-// Green leaves, sunlit (yellow-green) or in shade: far more colourful than stone, skin or cloth, and not red
-const isLeaf = (r: number, g: number, b: number) => (g - b > 48 && g >= r * 0.86) || (g > r + 4 && g > b + 22 && 0.3 * r + 0.59 * g + 0.11 * b > 40);
-const foliage = new Uint8Array(W * H), greens = new Uint8Array(W * H);
-for (let i = 0; i < W * H; i++) {
-  const r = withTitles.d[i * 3], g = withTitles.d[i * 3 + 1], b = withTitles.d[i * 3 + 2];
-  const l = 0.3 * r + 0.59 * g + 0.11 * b;
-  // Green leaves (banana leaves, palm fronds, sunlit or in shade): not flowers, sky, stone, gold or skin
-  if (isLeaf(r, g, b)) foliage[i] = 1;
-  if ((g > b + 22 && g > r - 5 && l < 175) || (l >= 62 && l < 85 && g > r && g > b + 6)) greens[i] = 1;
-}
-// Banana leaves from the client's temple picture, sharp and large
 const temple = await sharp(join(process.cwd(), 'src/assets/family/source/temple.webp')).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-const tw = temple.info.width, th = temple.info.height;
-const tpix = Float32Array.from(temple.data);
-const tleaf = new Uint8Array(tw * th);
-for (let i = 0; i < tw * th; i++) {
-  const r = tpix[i * 3], g = tpix[i * 3 + 1], b = tpix[i * 3 + 2];
-  if (isLeaf(r, g, b)) tleaf[i] = 1;
-}
-// The colours from the top of each area to its bottom: the sky above the heads, the picture's own leaf green,
-// and the steps' stone (each from a patch of the picture named in scene.json)
-const patchColour = ([x0, y0, x1, y1]: number[]) => {
-  const t = [0, 0, 0];
-  let n = 0;
-  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { n++; for (let c = 0; c < 3; c++) t[c] += withTitles.d[(y * W + x) * 3 + c]; }
-  return t.map((v) => v / n);
-};
-const palmMask = new Uint8Array(W * H);
-for (const [x0, y0, x1, y1] of (scene.palms as number[][]).map(tallerBox)) for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) palmMask[y * W + x] = foliage[y * W + x];
-const profileFor = (key: string): [number, number[]][] => [
-  [scene.zones.top, patchColour(scene.colours.sky[key])],
-  [scene.zones.sky, patchColour(scene.colours.sky[key])],
-  [scene.zones.green, patchColour(scene.colours.green[key])],
-  [scene.zones.stone, patchColour(scene.colours.stone[key])],
-];
-for (const key of ['groom', 'bride'] as const) {
-  const [hx0, hx1] = scene[key].span;
-  const half = { hole: new Uint8Array(W * H), keep: new Uint8Array(W * H), foliage: new Uint8Array(W * H), greens: new Uint8Array(W * H), palms: new Uint8Array(W * H) };
-  for (let y = 0; y < H; y++) for (let x = hx0; x < hx1; x++) { const i = y * W + x; half.hole[i] = cardsGrown[i]; half.keep[i] = keep[i]; half.foliage[i] = foliage[i]; half.greens[i] = greens[i]; half.palms[i] = palmMask[i]; }
-  softBackground(
-    rebuilt,
-    { hole: half.hole, keep: half.keep, foliage: half.foliage, greens: half.greens, ...scene.bokeh, palms: { mask: half.palms, ...scene.bokeh.palms }, donor: { pix: tpix, w: tw, h: th, leaf: tleaf, ...scene.bokeh.donor } },
-    (l) => console.log(`${key}:${l}`),
-  );
-}
+rebuildBackdrop(
+  rebuilt,
+  {
+    hole: cardsGrown,
+    keep,
+    halves: [scene.groom.span, scene.bride.span],
+    ...scene.backdrop,
+    texture: { pix: Float32Array.from(temple.data), w: temple.info.width, h: temple.info.height, ...scene.backdrop.texture },
+  },
+  (l) => console.log(l),
+);
 console.log(`  backgrounds rebuilt in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
 for (const side of ['groom', 'bride'] as const) {
   const [hx0, hx1] = scene[side].span;

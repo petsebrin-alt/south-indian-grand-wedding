@@ -2,8 +2,8 @@
  * Presentation around the app (PRD §7, THEME §14.1).
  * Phones: the app fills the screen and the stage is invisible.
  * Tablets / wide screens without the mockup: the page is centred at full height.
- * Desktop ≥1024 px landscape: Option B — one phone mockup on maroon velvet inside the
- * invitation card's gold border (Stage.astro).
+ * Desktop ≥1024 px landscape: Option B — one phone mockup in front of the client's cream temple
+ * picture (Stage.astro).
  */
 
 .stage,
@@ -23,7 +23,7 @@
   .js .app {
     width: min(100vw, 60dvh);
     margin-inline: auto;
-    box-shadow: 0 0 60px rgba(20, 0, 4, 0.5);
+    box-shadow: 0 0 60px rgba(70, 40, 12, 0.3);
   }
 
   .js .stage__bg {
@@ -68,7 +68,8 @@
     border-radius: 58px;
     background: linear-gradient(145deg, #e3c78a 0%, #c49a45 28%, #f4e3b5 50%, #c49a45 72%, #8a6420 100%);
     box-shadow:
-      0 40px 80px rgba(20, 0, 4, 0.55),
+      0 40px 70px rgba(80, 48, 14, 0.38),
+      0 10px 24px rgba(80, 48, 14, 0.22),
       0 0 0 1px rgba(255, 255, 255, 0.35) inset;
   }
 
@@ -114,69 +115,41 @@
     position: relative;
     z-index: 1;
   }
-
-  .js .stage__spray {
-    display: block;
-  }
 }
 
 /* ---------------------------------------------------------------- background */
 
-/* Maroon velvet from the card, lit softly from the front: a warm sheen behind the phone,
-   deepening towards the edges */
+/* The client's cream picture: its two sides at the screen's edges, as tall as the screen, with the plain
+   middle (a one-column strip of cream and marble) between them; each side fades into the middle
+   so they join without a seam when a narrower screen makes them overlap behind the phone */
 .stage__bg {
-  --frame-inset: max(14px, 2.4vh);
-  --frame-band: clamp(14px, 2.2vh, 22px);
   overflow: hidden;
-  background-color: #5c0c14;
-  background-image:
-    radial-gradient(ellipse 60% 70% at 50% 46%, rgba(255, 140, 120, 0.12), rgba(255, 140, 120, 0) 70%),
-    radial-gradient(ellipse 115% 105% at 50% 46%, rgba(20, 0, 2, 0) 40%, rgba(20, 0, 2, 0.6) 100%),
-    var(--velvet);
-  background-size: auto, auto, 128px 128px;
+  background: #f1e2c6 center / 100% 100% no-repeat;
 }
 
-/* The card's gold border (beaded band and fine rule) running round the screen */
-.stage__frame {
+.stage__panel {
   position: absolute;
-  inset: var(--frame-inset);
-  border: var(--frame-band) solid transparent;
-  border-image: var(--frame) 34 round;
+  top: 0;
+  height: 100%;
+  aspect-ratio: 540 / 830;
+  background: center / 100% 100% no-repeat;
 }
 
-/* The card's gold paisley sprays, one in each corner inside the border (desktop mockup only:
-   beside a full-height page they would be half hidden) */
-.stage__spray {
-  display: none;
-  --spray-h: min(34vh, 300px);
-  --spray-inset: calc(var(--frame-inset) + var(--frame-band) + 1.4vh);
+.stage__panel--l {
+  left: 0;
+  mask-image: linear-gradient(to right, #000 74%, transparent);
+}
+
+.stage__panel--r {
+  right: 0;
+  mask-image: linear-gradient(to left, #000 74%, transparent);
+}
+
+/* A hanging garland, lamp or bell, drawn on a canvas that sways it (src/motion/sway.ts) */
+.sway {
   position: absolute;
-  width: calc(var(--spray-h) * 112 / 329);
-  height: var(--spray-h);
-  background: var(--spray) center / contain no-repeat;
-}
-
-.stage__spray--bl {
-  left: var(--spray-inset);
-  bottom: var(--spray-inset);
-}
-
-.stage__spray--br {
-  right: var(--spray-inset);
-  bottom: var(--spray-inset);
-  transform: scaleX(-1);
-}
-
-.stage__spray--tl {
-  left: var(--spray-inset);
-  top: var(--spray-inset);
-  transform: scaleY(-1);
-}
-
-.stage__spray--tr {
-  right: var(--spray-inset);
-  top: var(--spray-inset);
-  transform: scale(-1, -1);
+  display: block;
+  pointer-events: none;
 }
 
 .stage__aside--left {

@@ -1,0 +1,200 @@
+{
+  "_note": "Measurements of source/scene.webp (1774 \u00d7 886 px, the client's cream temple picture with a phone in the middle) for scripts/stage/derive.ts. crop: the rows kept (the picture's own thin border and corner ornaments are left out), the left panel's columns and the right panel's, and the column the picture is mirrored about (the right side is the left's mirror). centre: the columns beside the phone that the plain middle strip is taken from. pieces: the hanging garlands, lamp and bells that sway, each a polygon in picture pixels (left side; the right side is mirrored); they are cut out of the panels (the panel is rebuilt without them) and drawn separately so they can move. amp: how far the tip swings, as a share of the piece's length; period: seconds for one sway; lag: how much later the tip moves than the top (the wave along it); flames: where the lamp's flames are [x, y, radius] in picture pixels. page: the Love Story page's portrait background is made of the left side's first `width` columns and their mirror, in three parts: the top (rows above `top`, where the garlands hang; the pieces listed are drawn on it), the foot (rows from `bottom` on: only the petals on the marble, the vases above them are left out) and a plain blend between them that stretches to fit the page; `fade` rows at each cut are softened into the blend.",
+  "crop": {
+    "top": 28,
+    "bottom": 858,
+    "l": [
+      96,
+      636
+    ],
+    "r": [
+      1138,
+      1678
+    ],
+    "mirror": 1773
+  },
+  "centre": [
+    596,
+    636
+  ],
+  "page": {
+    "width": 280,
+    "pieces": [
+      "s1"
+    ],
+    "top": 470,
+    "bottom": 722,
+    "fade": 36
+  },
+  "pieces": [
+    {
+      "id": "s1",
+      "polygon": [
+        [
+          158,
+          28
+        ],
+        [
+          213,
+          28
+        ],
+        [
+          213,
+          254
+        ],
+        [
+          207,
+          257
+        ],
+        [
+          207,
+          339
+        ],
+        [
+          213,
+          342
+        ],
+        [
+          213,
+          464
+        ],
+        [
+          158,
+          464
+        ]
+      ],
+      "amp": 0.034,
+      "period": 4.6,
+      "lag": 1.5,
+      "phase": 0.0
+    },
+    {
+      "id": "s2",
+      "polygon": [
+        [
+          210,
+          28
+        ],
+        [
+          238,
+          28
+        ],
+        [
+          238,
+          258
+        ],
+        [
+          254,
+          262
+        ],
+        [
+          254,
+          336
+        ],
+        [
+          208,
+          336
+        ],
+        [
+          208,
+          262
+        ],
+        [
+          210,
+          258
+        ]
+      ],
+      "amp": 0.028,
+      "period": 3.9,
+      "lag": 1.2,
+      "phase": 1.1
+    },
+    {
+      "id": "lamp",
+      "polygon": [
+        [
+          226,
+          28
+        ],
+        [
+          362,
+          28
+        ],
+        [
+          362,
+          244
+        ],
+        [
+          226,
+          244
+        ]
+      ],
+      "amp": 0.016,
+      "period": 5.6,
+      "lag": 0.6,
+      "phase": 2.3,
+      "flames": [
+        [
+          243,
+          172,
+          16
+        ],
+        [
+          345,
+          172,
+          16
+        ]
+      ]
+    },
+    {
+      "id": "s3",
+      "polygon": [
+        [
+          329,
+          28
+        ],
+        [
+          371,
+          28
+        ],
+        [
+          371,
+          272
+        ],
+        [
+          329,
+          272
+        ]
+      ],
+      "amp": 0.036,
+      "period": 4.2,
+      "lag": 1.4,
+      "phase": 3.4
+    },
+    {
+      "id": "s4",
+      "polygon": [
+        [
+          406,
+          28
+        ],
+        [
+          454,
+          28
+        ],
+        [
+          454,
+          186
+        ],
+        [
+          406,
+          186
+        ]
+      ],
+      "amp": 0.04,
+      "period": 3.5,
+      "lag": 1.3,
+      "phase": 4.6
+    }
+  ]
+}

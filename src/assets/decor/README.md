@@ -15,7 +15,7 @@ The temple-entrance opening is built from six pictures the client supplied, kept
 | `monogram.webp` | The R·D logo (asset D-54): pink and gold letters with lotus, buds and a jhumka, on a transparent background. It comes out of the temple's shrine door after the walk-in, and shows inside the card when it opens. |
 | `card.webp` | The maroon velvet invitation card with gold foil, on a transparent background. Its printed "Dear Guest" is painted out so "Dear" (calligraphy) and the guest's name (serif capitals) can be set there in the same gold; the divider stays where it was printed, above the button, and the couple's names are set under the couple; everything else, including the printed "Open the Invitation" (the button, whose ring blinks), is used as printed. |
 
-`src/assets/opening/scene.json` records where things sit in the entrance photograph, in % of its width and height: the doorway outline, the hanging buds and bells, the garland, swag and banana-leaf pieces that sway (with their pivot and strength), the bell, and how far the courtyard zooms as we walk in. Its `card` entry gives, in pixels of `card.webp`, the card's edges, the lettering to clear, a plain patch of velvet to copy grain from, where the divider moves to, and where the greeting, names and button sit.
+`src/assets/opening/scene.json` records where things sit in the entrance photograph, in % of its width and height: the doorway outline, the hanging buds and bells, the garland, swag and banana-leaf pieces that sway (with their pivot and strength), the bell, and how far the courtyard zooms as we walk in. Its `card` entry gives, in pixels of `card.webp`, the card's edges, the lettering to clear, a plain patch of velvet to copy grain from, where the divider is set (where it was printed), and where the greeting, names and button sit.
 
 After replacing a photograph or changing `scene.json`, run:
 
@@ -24,8 +24,6 @@ npm run opening:assets
 ```
 
 It writes the layers next to `scene.json`: AVIF with a WebP fallback for the large pictures (`entrance`, `frame`, `leaves`, `courtyard`, `bell`, `card`, `monogram`), WebP for the small pieces (`hangings`, `chain`), and `bell.json` (where the chain sits on the bell). Pictures on white are cut out automatically (`scripts/opening/pieces.ts`). A replacement photograph with different framing or a different design needs `scene.json` measured again: `bell.crop`, `bell.link` and `bell.chain` for the bell and chain, `court.shrine` for the shrine door the logo comes from.
-
-The same command makes the desktop background in `src/assets/stage/` from `card.webp` (`scene.json` → `stage`): a seamless tile of the card's maroon velvet, the card's gold border as a nine-slice frame, and the gold paisley spray from its lower corner.
 
 Still to be supplied for the opening:
 
@@ -80,7 +78,7 @@ The page's background is the client's temple-courtyard picture (the same one as 
 
 `src/assets/couple/source/groom-bride.webp` is the client's picture of both pages side by side: the groom with his interest polaroids on the left half, the bride with hers on the right. `npm run couple:assets` turns it into:
 
-- the two photographs with their polaroids and printed titles taken out (the titles become live lettering), made taller so the couple can be shown smaller on their steps (the band of sky above them is stretched, `extend` in `scene.json`). The picture has no view of what was behind the polaroids, so that area is rebuilt as banana leaves cut from the temple picture (`src/assets/family/source/temple.webp`) over a leaf-green shade, with big out-of-focus leaves behind the sharp ones (`scripts/couple/bokeh.ts`, settings under `bokeh` in `scene.json`);
+- the two photographs with their polaroids and printed titles taken out (the titles become live lettering), made taller so the couple can be shown smaller on their steps (the band of sky above them is stretched, mostly its plain top rows; `extend` in `scene.json`). The picture has no view of what was behind the polaroids, so that area (and the picture's own greenery touching it) is rebuilt as the temple: the colours around it, with the carved stone and pillars of the temple picture (`src/assets/family/source/temple.webp`) laid on top as soft structure, so the sides show a pale temple behind the cards and no leaves (`scripts/couple/backdrop.ts`, settings under `backdrop` in `scene.json`);
 - each polaroid, and the groom's gaming cluster, cut out on its own to pop in one by one.
 
 `src/assets/couple/scene.json` holds each polaroid's corners (snapped to its white frame automatically), the title boxes, the people's outlines, and how each side is rebuilt. A replacement picture needs these measured again.
@@ -96,6 +94,20 @@ The dates, times and venues on the pages come from `src/data/wedding.ts`, not fr
 The Parents page's background is the client's temple-courtyard picture (`src/assets/family/source/temple.webp`) as it is: carved pillars with garlands, banana leaves, brass lamps, a gopuram in the distance and the marble floor. `npm run family:assets` encodes it as `src/assets/family/background.*`. The page's lettering sits on soft ivory plaques so it reads over the stonework.
 
 The Parents page's picture frame is the client's ornate gold oval frame (`src/assets/family/source/frame.webp`, photographed on a cream wall). `npm run family:assets` cuts it out of the wall (`src/assets/family/frame.webp`, with its opening measured in `frame.json`) and prepares the portraits from `src/assets/family/source/` (`bride-father`, `bride-mother`, `groom-father`, `groom-mother`) at web size in `public/photos/family/`. Each portrait shows in the frame's opening under a red border. The photographs are named in `family.groom` and `family.bride` in `src/data/wedding.ts` (`fatherPhoto`, `motherPhoto`, and each sibling's `photo`); a new photograph goes in `source/` with the same name, then run the command.
+
+## Desktop background and the Love Story page: the cream temple picture
+
+`src/assets/stage/source/scene.webp` is the client's cream temple picture with a phone in the middle: golden pillars, hanging jasmine and red-flower garlands, brass lamps and bells, flower vases and petals on marble. `npm run stage:assets` (`scripts/stage/derive.ts`, measurements in `scene.json`) turns it into:
+
+- `panel-l`, `panel-r`: the picture's two sides, without its own border, corner ornaments or phone, and with the garlands, lamp and bells taken out (the cream behind them is filled in smoothly). They stand at the screen's edges on a desktop and fade into the middle;
+- `strip`: the plain cream and marble between them (one column, stretched);
+- `piece-<side>-<id>`: each garland (`s1`, `s2`, `s3`, `s4`), the lamp and the bells, cut out with a soft edge. They are drawn on canvases in thin slices that each swing a little more than the one above (`src/motion/sway.ts`), so a soft wave runs down from where they hang, with slow swells of wind; the lamp's flames flicker. Nothing moves under reduced motion;
+- `page-top`, `page-bottom`, `page-gap`: the Love Story page's portrait background, made of the left side and its mirror: the top (where the garlands hang), the foot (only the petals on the marble, no vases) and a plain blend between them that stretches to fit any page height. The foot is only the petals on the marble (the vases are left out). The first garland (`s1`) hangs on it too, shown at 90% opacity;
+- `stage.json`: sizes and where every piece hangs.
+
+The desktop pictures and canvases are only requested or created on screens that show the stage (never on a phone).
+
+`src/assets/story/source/frame.webp` is the client's red-and-gold peacock frame (two peacocks holding a big ring, with a cream board below), which came with a grey-and-white chequered "transparent" background baked in. `npm run story:assets` (`scripts/story/derive.ts`) cuts it out by colour into a real transparent `frame.webp`, makes `opening.webp` (the ring's see-through inside, as a mask: the photographs show only there and the frame's art lies over them) and `frame.json` (the ring and the board's places), and prepares the couple's photographs (`source/story-N.webp`, in the order of the story) into `public/photos/story/`. The photographs are named in `loveStory` in `src/data/wedding.ts`; the milestone titles there are proposed and the story text (`text`) is for the family to write. Until then the board shows a short line under each title that claims no place or date (in `src/components/pages/LoveStory.astro`).
 
 ## All decoration slots
 

@@ -559,10 +559,71 @@ async function main() {
     const still = await active();
     check(
       'AC-19',
-      'Gallery: one photo per swipe, two on a hard flick, keyboard and arrows work, no auto-spin after interaction',
+      'Gallery: one photo per swipe, two on a hard flick, keyboard and arrows work, it pauses after interaction (and carries on by itself later)',
       one === 1 && flick === 3 && key === 4 && button === 3 && still === 3 && (await current(page)) === 'love-story',
       JSON.stringify({ one, flick, key, button, still }),
     );
+    await ctx.close();
+  }
+
+  /* AC-19b the Love Story page: the client's photographs ride the carousel inside the peacock frame's ring,
+     the board names each milestone, the background's garlands sway, and no placeholder boxes remain */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#love-story`);
+    await settle(page);
+    await page.waitForTimeout(1800);
+    const s = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll<HTMLImageElement>('#love-story .ls__card img')];
+      const active = document.querySelector<HTMLElement>('#love-story .ls__entry.is-active')!;
+      const art = document.querySelector<HTMLImageElement>('#love-story .ls__art')!;
+      const ring = document.querySelector<HTMLElement>('#love-story .ls__ring')!;
+      const board = document.querySelector<HTMLElement>('#love-story .ls__board')!.getBoundingClientRect();
+      const frame = document.querySelector<HTMLElement>('#love-story .ls__frame')!.getBoundingClientRect();
+      return {
+        photos: cards.length,
+        loaded: cards.every((c) => c.complete && c.naturalWidth > 100),
+        frameLoaded: art.complete && art.naturalWidth > 500,
+        masked: /url/.test(getComputedStyle(ring).maskImage || getComputedStyle(ring).webkitMaskImage || ''),
+        title: active.querySelector('.ls__milestone')!.textContent,
+        line: (active.querySelector('.ls__story')!.textContent ?? '').length > 10,
+        placeholder: /to be provided|Placeholder|Proposed|Photo to be/i.test(document.getElementById('love-story')!.textContent ?? ''),
+        boardInside: board.left >= frame.left && board.right <= frame.right && board.top >= frame.top && board.bottom <= frame.bottom,
+        canvases: document.querySelectorAll('#love-story .ls__top canvas').length,
+        onScreen: frame.left <= 0 && frame.right >= innerWidth,
+      };
+    });
+    const c1 = await page.evaluate(() => document.querySelector<HTMLCanvasElement>('#love-story .ls__top canvas')!.toDataURL().slice(-300));
+    await page.waitForTimeout(1500);
+    const c2 = await page.evaluate(() => document.querySelector<HTMLCanvasElement>('#love-story .ls__top canvas')!.toDataURL().slice(-300));
+    const first = await page.evaluate(() => document.querySelector('#love-story .ls__entry.is-active .ls__milestone')!.textContent);
+    await page.waitForTimeout(4600);
+    const later = await page.evaluate(() => document.querySelector('#love-story .ls__entry.is-active .ls__milestone')!.textContent);
+    check(
+      'AC-19b',
+      'Love Story: five photographs in the peacock ring (masked to its opening), a board with each title and a line, garlands swaying, no placeholder boxes, and it moves on by itself',
+      s.photos === 5 && s.loaded && s.frameLoaded && s.masked && s.title === 'Our First Meeting' && s.line && !s.placeholder && s.boardInside && s.canvases === 2 && c1 !== c2 && first !== later,
+      JSON.stringify({ s, moved: c1 !== c2, first, later }),
+    );
+    await ctx.close();
+  }
+
+  /* On a phone the desktop background is never built: no canvases, and its pictures are not requested */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    const requested: string[] = [];
+    page.on('request', (r) => /panel-[lr]|piece-[lr]-|\/strip\./.test(r.url()) && requested.push(r.url()));
+    await page.goto(BASE);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#countdown`);
+    await settle(page);
+    await page.waitForTimeout(1200);
+    const canvases = await page.evaluate(() => document.querySelectorAll('.stage__bg canvas').length);
+    check('AC-35d', 'A phone builds no desktop background (no canvases, no panel or garland pictures requested)', canvases === 0 && requested.length === 0, JSON.stringify({ canvases, requested }));
     await ctx.close();
   }
 
@@ -1549,23 +1610,33 @@ async function main() {
     const box = await page.locator('.app').boundingBox();
     const ratio = box ? box.width / box.height : 0;
     check('AC-35', 'Desktop shows the book inside one centred phone mockup', !!box && Math.abs(ratio - 390 / 844) < 0.01 && Math.abs(box.x + box.width / 2 - 720) < 4, JSON.stringify(box));
-    // One mockup and one unchanging background, whichever page is showing (PRD §7.2).
+    // One mockup and one unchanging background, whichever page is showing (PRD §7.2): the client's cream
+    // temple picture (two sides and a plain middle), with its garlands, lamps and bells swaying on canvases.
     const scene = () =>
-      page.evaluate(() => ({
-        devices: document.querySelectorAll('.device').length,
-        bg: getComputedStyle(document.querySelector('.stage__bg')!).backgroundImage,
-        frame: getComputedStyle(document.querySelector('.stage__frame')!).borderImageSource,
-        sprays: [...document.querySelectorAll<HTMLElement>('.stage__bg .stage__spray')].filter((s) => s.getBoundingClientRect().height > 0).length,
-      }));
+      page.evaluate(() => {
+        const panels = [...document.querySelectorAll<HTMLElement>('.stage__panel')];
+        return {
+          devices: document.querySelectorAll('.device').length,
+          strip: getComputedStyle(document.querySelector('.stage__bg')!).backgroundImage.includes('strip'),
+          panels: panels.map((p) => getComputedStyle(p).backgroundImage.includes('panel')).join(),
+          hanging: document.querySelectorAll('.stage__bg canvas').length,
+          velvet: document.querySelectorAll('.stage__frame, .stage__spray').length,
+        };
+      });
     const before = await scene();
+    // The garlands move: the same canvas looks different a moment later
+    const sample = () => page.evaluate(() => document.querySelector<HTMLCanvasElement>('.stage__panel--l canvas')!.toDataURL().length + ':' + document.querySelector<HTMLCanvasElement>('.stage__panel--l canvas')!.toDataURL().slice(-200));
+    const drawn1 = await sample();
+    await page.waitForTimeout(1500);
+    const drawn2 = await sample();
     await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(12));
     await page.waitForTimeout(200);
     const after = await scene();
     check(
       'AC-35b',
-      'Desktop background (velvet, the card gold border, corner sprays) stays the same on every page',
-      before.devices === 1 && JSON.stringify(before) === JSON.stringify(after) && before.bg.includes('velvet') && before.frame.includes('frame') && before.sprays === 4,
-      JSON.stringify({ before, after }),
+      'Desktop background (the cream temple picture, no velvet or border) stays the same on every page, and its garlands, lamp and bells sway',
+      before.devices === 1 && JSON.stringify(before) === JSON.stringify(after) && before.strip && before.panels === 'true,true' && before.hanging === 10 && before.velvet === 0 && drawn1 !== drawn2,
+      JSON.stringify({ before, after, moved: drawn1 !== drawn2 }),
     );
     if (SHOTS) {
       await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(0));

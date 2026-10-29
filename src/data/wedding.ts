@@ -67,12 +67,15 @@ const data: WeddingData = {
     dietaryOptions: ['Vegetarian', 'Jain', 'No onion & garlic', 'Allergies (please specify)'],
   },
 
+  // The couple's photographs (supplied by the client on 29 October 2026, in the order of the story). The
+  // milestone titles are proposed; the story text is for the family to write (the board shows a short
+  // generic line under each title until then).
   loveStory: [
-    { title: 'Our First Meeting', titleStatus: 'proposed', text: null, photo: null },
-    { title: 'Becoming Friends', titleStatus: 'proposed', text: null, photo: null },
-    { title: 'Falling in Love', titleStatus: 'proposed', text: null, photo: null },
-    { title: 'A Beautiful Proposal', titleStatus: 'proposed', text: null, photo: null },
-    { title: 'Forever Begins', titleStatus: 'proposed', text: null, photo: null },
+    { title: 'Our First Meeting', titleStatus: 'proposed', text: null, photo: { src: '/photos/story/story-1.webp', alt: 'Rahul and Divya on a country path in the golden evening light, he looking at her with a hand on his heart' } },
+    { title: 'Becoming Friends', titleStatus: 'proposed', text: null, photo: { src: '/photos/story/story-2.webp', alt: 'Divya splashing happily through a rainy street while Rahul watches her' } },
+    { title: 'Falling in Love', titleStatus: 'proposed', text: null, photo: { src: '/photos/story/story-3.webp', alt: 'Divya resting her head on Rahul\'s shoulder as they watch the sun set over the sea' } },
+    { title: 'A Beautiful Proposal', titleStatus: 'proposed', text: null, photo: { src: '/photos/story/story-4.webp', alt: 'Rahul and Divya together on a flower-hung swing under fairy lights' } },
+    { title: 'Forever Begins', titleStatus: 'proposed', text: null, photo: { src: '/photos/story/story-5.webp', alt: 'Rahul and Divya walking hand in hand at sunset, their shadows growing old together' } },
   ],
 
   dressCode: [

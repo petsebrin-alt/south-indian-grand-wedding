@@ -1,15 +1,26 @@
 ---
 /**
- * Desktop Option B presentation: one phone mockup on maroon velvet inside the invitation card's
- * gold border, with its gold sprays in the corners (PRD §7.2), and no text beside the phone. The
- * velvet, border and sprays are made from the client's card photograph (npm run opening:assets,
- * scripts/opening/stage.ts) and set as CSS backgrounds, so phones never download them.
+ * Desktop presentation (PRD §7.2): one phone mockup in front of the client's cream temple picture,
+ * with no text beside the phone. The picture's two sides (golden pillars, flower vases, petals on
+ * marble) stand at the screen's edges and the plain cream and marble between them fills the rest;
+ * its hanging jasmine and red-flower garlands, brass lamp and bells hang in front and sway in a
+ * light wind (src/motion/sway.ts). Everything comes from the client's picture (npm run
+ * stage:assets, scripts/stage/derive.ts) and is set as CSS backgrounds or drawn on canvases that
+ * are only created on screens that show the stage, so phones never download them.
  */
 import QRCode from 'qrcode';
-import velvet from '../assets/stage/velvet.webp';
-import frame from '../assets/stage/frame.webp';
-import spray from '../assets/stage/spray.webp';
+import panelL from '../assets/stage/panel-l.webp';
+import panelR from '../assets/stage/panel-r.webp';
+import strip from '../assets/stage/strip.webp';
+import stage from '../assets/stage/stage.json';
 import { wedding } from '../data/wedding';
+
+const pieceImages = import.meta.glob<{ default: ImageMetadata }>('../assets/stage/piece-*.webp', { eager: true });
+const pieceSrc = (file: string) => pieceImages[`../assets/stage/${file}.webp`].default.src;
+const sides = [
+  { key: 'l', panel: panelL },
+  { key: 'r', panel: panelR },
+];
 
 const qr = wedding.site.url
   ? await QRCode.toString(wedding.site.url, { type: 'svg', margin: 0, color: { dark: '#4B3026', light: '#FFFDF8' } })
@@ -17,12 +28,27 @@ const qr = wedding.site.url
 ---
 
 <div class="stage">
-  <div class="stage__bg" aria-hidden="true" style={`--velvet:url("${velvet.src}");--frame:url("${frame.src}");--spray:url("${spray.src}")`}>
-    <span class="stage__frame"></span>
-    <span class="stage__spray stage__spray--tl"></span>
-    <span class="stage__spray stage__spray--tr"></span>
-    <span class="stage__spray stage__spray--bl"></span>
-    <span class="stage__spray stage__spray--br"></span>
+  <div class="stage__bg" aria-hidden="true" style={`background-image:url("${strip.src}")`}>
+    {
+      sides.map(({ key, panel }) => (
+        <div class={`stage__panel stage__panel--${key}`} style={`background-image:url("${panel.src}")`}>
+          {stage.pieces
+            .filter((p) => p.side === key)
+            .map((p) => (
+              <span
+                class="sway"
+                data-sway={pieceSrc(p.file)}
+                data-amp={p.amp}
+                data-period={p.period}
+                data-lag={p.lag}
+                data-phase={p.phase}
+                data-flames={p.flames.length ? JSON.stringify(p.flames) : undefined}
+                style={`left:${p.box[0]}%;top:${p.box[1]}%;width:${p.box[2]}%;height:${p.box[3]}%`}
+              />
+            ))}
+        </div>
+      ))
+    }
   </div>
   <aside class="stage__aside stage__aside--left" aria-hidden="true"></aside>
   <div class="device">
@@ -34,3 +60,19 @@ const qr = wedding.site.url
   <aside class="stage__aside stage__aside--right" aria-hidden="true">{qr && <div class="stage__qr" set:html={qr} />}</aside>
   <p class="stage__portrait-note" aria-hidden="true">Best viewed in portrait</p>
 </div>
+
+<script>
+  import { startSway } from '../motion/sway';
+
+  // Only where the stage is shown (see src/styles/stage.css); phones never create the canvases
+  const wide = matchMedia('(min-aspect-ratio: 3/5)');
+  let sway: ReturnType<typeof startSway> | null = null;
+  const apply = () => {
+    if (wide.matches) {
+      sway ??= startSway([...document.querySelectorAll<HTMLElement>('.stage__bg [data-sway]')]);
+      sway.start();
+    } else sway?.stop();
+  };
+  wide.addEventListener('change', apply);
+  apply();
+</script>

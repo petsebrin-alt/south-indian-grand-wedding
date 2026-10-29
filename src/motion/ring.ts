@@ -4,10 +4,13 @@ import { gsap, isReducedMotion } from './choreo';
  * 3D circular photo gallery (PRD §6.8, THEME M-10). Cards sit on a ring that recedes into the
  * page; the front card is large and sharp, side cards turn away and dim slightly (no heavy blur).
  * One card per swipe, two at most on a hard flick; never spins continuously. Horizontal swipes
- * belong to the ring (data-gesture="x"); vertical swipes still turn the book's page.
+ * belong to the ring (data-gesture="x"); vertical swipes still turn the book's page. Left alone it
+ * moves to the next photo every few seconds; a touch, key or button pauses that for a while, then it
+ * carries on. Under reduced motion nothing moves by itself.
  */
 const STEP_MS = 700;
-const AUTO_MS = 6000;
+const AUTO_MS = 4200;
+const RESUME_MS = 9000;
 
 export function initRing(page: HTMLElement) {
   const ring = page.querySelector<HTMLElement>('[data-ring]')!;
@@ -19,7 +22,7 @@ export function initRing(page: HTMLElement) {
   const step = 360 / n;
   const state = { angle: 0 };
   let active = 0;
-  let interacted = false;
+  let pausedUntil = 0;
   let autoTimer = 0;
 
   const wrap = (d: number) => ((((d + 180) % 360) + 360) % 360) - 180;
@@ -60,6 +63,7 @@ export function initRing(page: HTMLElement) {
   }
 
   function goTo(targetAngle: number) {
+    heading = targetAngle;
     gsap.killTweensOf(state);
     setActive(indexFor(targetAngle));
     if (isReducedMotion()) {
@@ -70,10 +74,12 @@ export function initRing(page: HTMLElement) {
     gsap.to(state, { angle: targetAngle, duration: STEP_MS / 1000, ease: 'power3.out', onUpdate: layout });
   }
 
-  const move = (delta: number) => goTo(Math.round(state.angle / step) * step - delta * step);
+  // A step starts from where the ring is heading (while it is still settling after a swipe), not from
+  // wherever it is mid-way
+  let heading = 0;
+  const move = (delta: number) => goTo((gsap.isTweening(state) ? Math.round(heading / step) : Math.round(state.angle / step)) * step - delta * step);
   const stopAuto = () => {
-    interacted = true;
-    clearTimeout(autoTimer);
+    pausedUntil = Date.now() + RESUME_MS;
   };
 
   /* ---- pointer: horizontal drag rotates, vertical is left to the book */
@@ -155,12 +161,12 @@ export function initRing(page: HTMLElement) {
     move(e.key === 'ArrowRight' ? 1 : -1);
   });
 
-  /* ---- slow auto-advance until the guest interacts (never under reduced motion) */
+  /* ---- auto-advance, paused for a while after a touch (never under reduced motion) */
   const scheduleAuto = () => {
     clearTimeout(autoTimer);
-    if (interacted || isReducedMotion()) return;
+    if (isReducedMotion()) return;
     autoTimer = window.setTimeout(() => {
-      if (page.dataset.state === 'current' && !document.hidden) move(1);
+      if (page.dataset.state === 'current' && !document.hidden && Date.now() >= pausedUntil) move(1);
       scheduleAuto();
     }, AUTO_MS);
   };
