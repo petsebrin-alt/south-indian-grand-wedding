@@ -665,3 +665,24 @@ The client reviewed four screens and asked for changes to each.
 
 - `npm run qa:book`: 69/69 checks pass (AC-01d now measures the guest's name on its own). Unit tests: 58 pass. `npx astro check`: 0 errors.
 - `npm run perf`: mobile performance 89, accessibility 100, best practices 100.
+
+## 29 October 2026 — Larger event names with Location buttons; the couple zoomed out on their steps
+
+The client asked for two things: the Wedding Events names to be large and bold with a blinking Location button for each event, and the Rahul and Divya pages to be zoomed out so the couple sit relaxed on the temple steps as in their picture, with banana and coconut leaves around them instead of grass and flowers.
+
+### Decisions
+
+1. **Event names:** each name (Engagement, Haldi, Mehndi, Sangeet, Wedding, Reception) is much larger and bolder, sized so each fills about the same width of its circle (like the "Wedding Events" signboard). The date and time are a little larger too. The date is shortened to "Tue, 6 April 2027" and the "Venue" lines are gone to make room for the button.
+2. **Location button:** under each event's details, a gold pill with a pin, "LOCATION". It blinks (1.5 seconds, brighter gold and a soft glow), and under reduced motion it stays lit. It opens Google Maps once a public venue has a map link or coordinates. No venue has one yet, so it says why when tapped (a toast: "Location will be shared once the venue is confirmed", or "The address is shared personally — please contact the family" for the family homes, or the Engagement note). No address or map link was invented. The Engagement has no event or venue, so its button explains that. The rest of the circle still opens the event's details sheet (which has Location and Calendar as before).
+3. **Couple pages zoomed out** (`npm run couple:assets`):
+   - The picture is made taller by stretching only the band of soft sky between the garlands and the heads (the sky, distant palms and tower grow taller). The bells, garland tops, the people and the steps keep their size. It is shown from its foot up, so on a phone the couple are about a fifth smaller and the temple steps show under them, as in the original.
+   - Because the picture has no view of what lies beside the couple behind the polaroids, that area (now taller too) is built from banana leaves cut from the temple picture (big sharp leaves with big out-of-focus ones behind them), with a softly lit leaf-green underneath. The grass and flowers are gone. Banana leaves hang past the area's edge in irregular outlines so no rectangle shows. The sky and the coconut palms the client's picture already has are kept.
+   - The title sits lower, in the sky above the couple.
+4. **Honest note:** the banana leaves are cut from the client's temple picture (they are the real leaves of that photograph) and the coconut palms are the picture's own, but the arrangement is made by the script, not photographed. A background without the polaroids would be better still.
+5. **Not done as asked:** the client also suggested a little opacity or blur. None was added; the leaves are sharp, with the far ones soft.
+
+### Results
+
+- `npm run qa:book`: 70/70 checks pass (new AC-20c checks the names, the blinking buttons and the toast). Unit tests: 58 pass. `npx astro check`: 0 errors.
+- `npm run perf`: mobile performance 89, accessibility 100, best practices 100.
+

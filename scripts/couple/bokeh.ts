@@ -27,14 +27,37 @@ export interface BokehOptions {
   foliage: Uint8Array;
   /** Of those, the green leaves and their shade (the colour of the area behind the leaves) */
   greens: Uint8Array;
-  /** The leafy shade of the area, as a share of the garden's own leaf colour (< 1 is darker), and its least brightness */
+  /** The leafy shade of the area, as a share of the garden's own leaf colour (< 1 is darker), its least
+   *  brightness, and how far the area is pulled towards that shade (0 keeps the colours around it) */
   shade: number;
   minLight: number;
+  shadeMix: number;
+  /** The colour of the area from top to bottom (sky, then green, then stone), as [y, [r, g, b]] stops in picture px; used instead of the garden's leaf colour */
+  profile?: [number, number[]][];
+  /** Palm fronds from the picture, laid in the upper part of the area: where palms are (a mask), how many per area covered, radius range, the least share of a cut-out that is frond, and the rows they may fall in */
+  palms?: { mask: Uint8Array; density: number; radius: [number, number]; minFoliage: number; rows: [number, number] };
+  /** Big leaves (banana leaves) borrowed from another picture, laid over the area: where they come from
+   *  (pixels and a mask of the leafy ones), their radius range and scale in px, how many per area
+   *  covered, how far they may tilt (degrees), and the least share of a cut-out that is leaf */
+  donor?: { far?: { radius: [number, number]; scale: [number, number]; density: number; blur: number }; pix: Float32Array; w: number; h: number; leaf: Uint8Array; radius: [number, number]; scale: [number, number]; density: number; tilt: number; minFoliage: number; rows: [number, number] };
   /** The sharp leaves and flowers laid over the area and a little way past it: how many per area covered
    *  (1 covers it about once), their radius range in px, the least share of a cut-out's source that is
    *  leafy, and px they may hang past the edge */
-  leaves: { density: number; radius: [number, number]; minFoliage: number; fringe: number; flowers: number };
+  leaves: { density: number; radius: [number, number]; minFoliage: number; fringe: number; fringeShare: number };
   seed?: number;
+}
+
+/** Colour at row y between the stops of a profile */
+function profileAt(stops: [number, number[]][], y: number) {
+  if (y <= stops[0][0]) return stops[0][1];
+  for (let k = 1; k < stops.length; k++) {
+    if (y <= stops[k][0]) {
+      const t = (y - stops[k - 1][0]) / (stops[k][0] - stops[k - 1][0]);
+      const e = t * t * (3 - 2 * t);
+      return stops[k - 1][1].map((v, c) => v * (1 - e) + stops[k][1][c] * e);
+    }
+  }
+  return stops[stops.length - 1][1];
 }
 
 const smooth = (t: number) => {
@@ -164,11 +187,13 @@ export function softBackground(img: Picture, o: BokehOptions, log: (line: string
   for (let i = 0; i < W * H; i++) {
     for (let c = 0; c < 3; c++) picture[i * 3 + c] = o.hole[i] ? fill[c][i] : orig[i * 3 + c];
     if (!o.hole[i]) continue;
-    const k = smooth(edge[i] / o.ramp);
+    const k = smooth(edge[i] / o.ramp) * o.shadeMix;
     const grain = (rand() + rand() + rand() - 1.5) * o.grain * 2 * k;
     const lift = Math.max(1, o.minLight / Math.max(1, (0.3 * leafMean[0][i] + 0.59 * leafMean[1][i] + 0.11 * leafMean[2][i]) * o.shade));
     for (let c = 0; c < 3; c++) {
-      const target = leafMean[c][i] * o.shade * lift * (1 + 0.16 * slow[i] + 0.08 * mid[i]);
+      const y = (i / W) | 0;
+      const base = o.profile ? profileAt(o.profile, y)[c] : leafMean[c][i] * o.shade * lift;
+      const target = base * (1 + 0.1 * slow[i] + 0.05 * mid[i]);
       picture[i * 3 + c] = fill[c][i] * (1 - k) + target * k + grain;
     }
     // no dark halo where a polaroid's shadow lay beside the area
@@ -195,78 +220,126 @@ export function softBackground(img: Picture, o: BokehOptions, log: (line: string
     for (let c = 0; c < 3; c++) out[i * 3 + c] = Math.min(255, Math.max(0, picture[i * 3 + c] * (1 - w) + soft[c][i] * w));
   }
 
-  // Sharp leaves and flowers from the picture itself, in small rotated and scaled cut-outs (only the
+  // Leaves from the picture itself and from the donor picture, in rotated and scaled cut-outs (only the
   // leafy pixels), over the area and hanging a little past its edge
-  const eroded = new Float32Array(W * H);
-  for (let y = 1; y < H - 1; y++)
-    for (let x = 1; x < W - 1; x++) {
-      const i = y * W + x;
-      eroded[i] = known[i] * o.foliage[i] * o.foliage[i - 1] * o.foliage[i + 1] * o.foliage[i - W] * o.foliage[i + W];
-    }
-  const alpha = boxBlur(eroded, W, H, 1);
-  const half = Math.ceil(o.leaves.radius[1] * 1.25) + 2;
-  const integ = (value: (i: number) => number) => {
-    const t = new Float64Array((W + 1) * (H + 1));
-    for (let y = 0; y < H; y++) {
-      let row = 0;
-      for (let x = 0; x < W; x++) {
-        row += value(y * W + x);
-        t[(y + 1) * (W + 1) + x + 1] = t[y * (W + 1) + x + 1] + row;
+  type Pool = { pix: Float32Array; w: number; h: number; alpha: Float32Array; sources: { x: number; y: number; mean: number[] }[] };
+  const makePool = (pix: Float32Array, w: number, h: number, mask: Uint8Array, valid: Float32Array | null, halfSize: number, minFoliage: number, alphaBlur = 1): Pool => {
+    const eroded = new Float32Array(w * h);
+    for (let y = 1; y < h - 1; y++)
+      for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x;
+        eroded[i] = (valid ? valid[i] : 1) * mask[i] * mask[i - 1] * mask[i + 1] * mask[i - w] * mask[i + w];
       }
-    }
-    return (x0: number, y0: number, x1: number, y1: number) => t[y1 * (W + 1) + x1] - t[y0 * (W + 1) + x1] - t[y1 * (W + 1) + x0] + t[y0 * (W + 1) + x0];
+    const alpha = alphaBlur > 1 ? blur3(eroded, w, h, alphaBlur) : boxBlur(eroded, w, h, 1);
+    const integ = (value: (i: number) => number) => {
+      const t = new Float64Array((w + 1) * (h + 1));
+      for (let y = 0; y < h; y++) {
+        let row = 0;
+        for (let x = 0; x < w; x++) {
+          row += value(y * w + x);
+          t[(y + 1) * (w + 1) + x + 1] = t[y * (w + 1) + x + 1] + row;
+        }
+      }
+      return (x0: number, y0: number, x1: number, y1: number) => t[y1 * (w + 1) + x1] - t[y0 * (w + 1) + x1] - t[y1 * (w + 1) + x0] + t[y0 * (w + 1) + x0];
+    };
+    const fol = integ((i) => alpha[i]);
+    const sums = [0, 1, 2].map((c) => integ((i) => alpha[i] * pix[i * 3 + c]));
+    const sources: Pool['sources'] = [];
+    for (let y = halfSize; y < h - halfSize; y += 4)
+      for (let x = halfSize; x < w - halfSize; x += 4) {
+        const a = fol(x - halfSize, y - halfSize, x + halfSize, y + halfSize);
+        if (a < minFoliage * (2 * halfSize) ** 2) continue;
+        sources.push({ x, y, mean: sums.map((t) => t(x - halfSize, y - halfSize, x + halfSize, y + halfSize) / a) });
+      }
+    return { pix, w, h, alpha, sources };
   };
-  const fol = integ((i) => alpha[i]);
-  const sums = [0, 1, 2].map((c) => integ((i) => alpha[i] * orig[i * 3 + c]));
-  const sources: { x: number; y: number; mean: number[] }[] = [];
-  for (let y = half; y < H - half; y += 4)
-    for (let x = half; x < W - half; x += 4) {
-      const a = fol(x - half, y - half, x + half, y + half);
-      if (a < o.leaves.minFoliage * (2 * half) ** 2) continue;
-      sources.push({ x, y, mean: sums.map((t) => t(x - half, y - half, x + half, y + half) / a) });
-    }
-  const flowery = sources.filter((c) => c.mean[0] > c.mean[1] * 1.12);
-  log(`  ${sources.length} places to take leaves and flowers from (${flowery.length} flower-rich)`);
+  const bilinear = (map: Float32Array, w: number, stride: number, c: number, ix: number, iy: number, fx: number, fy: number) =>
+    map[(iy * w + ix) * stride + c] * (1 - fx) * (1 - fy) + map[(iy * w + ix + 1) * stride + c] * fx * (1 - fy) + map[((iy + 1) * w + ix) * stride + c] * (1 - fx) * fy + map[((iy + 1) * w + ix + 1) * stride + c] * fx * fy;
+
   const inside: number[] = [], fringe: number[] = [];
   for (let i = 0; i < W * H; i++) {
     if (o.hole[i]) inside.push(i);
     else if (away[i] <= o.leaves.fringe && !o.keep[i]) fringe.push(i);
   }
-  const meanR = (o.leaves.radius[0] + o.leaves.radius[1]) / 2;
-  const stampsWanted = Math.round((inside.length * o.leaves.density) / (Math.PI * meanR * meanR * 0.45));
-  const bilinear = (map: Float32Array, stride: number, c: number, ix: number, iy: number, fx: number, fy: number) =>
-    map[(iy * W + ix) * stride + c] * (1 - fx) * (1 - fy) + map[(iy * W + ix + 1) * stride + c] * fx * (1 - fy) + map[((iy + 1) * W + ix) * stride + c] * (1 - fx) * fy + map[((iy + 1) * W + ix + 1) * stride + c] * fx * fy;
-  for (let n = 0; n < stampsWanted && sources.length; n++) {
-    const wantFringe = fringe.length && rand() < 0.22;
-    const pool = wantFringe ? fringe : inside;
-    const i = pool[Math.floor(rand() * pool.length)];
-    if (wantFringe && rand() < smooth(away[i] / o.leaves.fringe)) continue;
-    const cx = i % W, cy = (i / W) | 0;
-    const r = o.leaves.radius[0] + rand() * (o.leaves.radius[1] - o.leaves.radius[0]);
-    const scale = 0.85 + rand() * 0.4, rot = rand() * Math.PI * 2, flip = rand() < 0.5 ? -1 : 1;
-    // About a third of the cut-outs are the flower-rich ones, the rest whatever fits the colours here
-    const from = flowery.length && rand() < o.leaves.flowers ? flowery : sources;
-    let pick = from[0], bestCost = Infinity;
-    for (let t = 0; t < 14; t++) {
-      const cand = from[Math.floor(rand() * from.length)];
-      const cost = Math.abs(cand.mean[0] - mean[0][i]) + Math.abs(cand.mean[1] - mean[1][i]) + Math.abs(cand.mean[2] - mean[2][i]) + rand() * 25;
-      if (cost < bestCost) ((bestCost = cost), (pick = cand));
-    }
-    const cr = Math.cos(rot), sr = Math.sin(rot);
-    for (let y = Math.max(0, cy - Math.ceil(r)); y <= Math.min(H - 1, cy + Math.ceil(r)); y++)
-      for (let x = Math.max(0, cx - Math.ceil(r)); x <= Math.min(W - 1, cx + Math.ceil(r)); x++) {
-        const j = y * W + x;
-        if (!o.hole[j] && (o.keep[j] || away[j] > o.leaves.fringe)) continue;
-        const u = x - cx, v = y - cy, dist = Math.hypot(u, v);
-        if (dist > r) continue;
-        const sx = pick.x + ((cr * u - sr * v) / scale) * flip, sy = pick.y + (sr * u + cr * v) / scale;
-        const ix = Math.floor(sx), iy = Math.floor(sy);
-        if (ix < 0 || iy < 0 || ix >= W - 1 || iy >= H - 1) continue;
-        let a = bilinear(alpha, 1, 0, ix, iy, sx - ix, sy - iy) * smooth((1 - dist / r) * 2);
-        if (!o.hole[j]) a *= smooth(1 - away[j] / o.leaves.fringe) * 0.95;
-        if (a < 0.02) continue;
-        for (let c = 0; c < 3; c++) out[j * 3 + c] = out[j * 3 + c] * (1 - a) + (bilinear(orig, 3, c, ix, iy, sx - ix, sy - iy) + (mean[c][j] - pick.mean[c]) * 0.2) * a;
+  const stampPool = (pool: Pool, count: number, radius: [number, number], scaleRange: [number, number], tilt: number | null, rows: [number, number] = [0, H], soft = false) => {
+    if (!pool.sources.length) return;
+    for (let n = 0; n < count; n++) {
+      const wantFringe = fringe.length && rand() < o.leaves.fringeShare;
+      const where = wantFringe ? fringe : inside;
+      const i = where[Math.floor(rand() * where.length)];
+      const row = (i / W) | 0;
+      if (row < rows[0] || row > rows[1]) continue;
+      if (wantFringe && rand() < smooth(away[i] / (o.leaves.fringe * 1.1))) continue;
+      const cx = i % W, cy = (i / W) | 0;
+      const r = radius[0] + rand() * (radius[1] - radius[0]);
+      const scale = scaleRange[0] + rand() * (scaleRange[1] - scaleRange[0]);
+      const rot = tilt === null ? rand() * Math.PI * 2 : ((rand() * 2 - 1) * tilt * Math.PI) / 180;
+      const flip = rand() < 0.5 ? -1 : 1;
+      let pick = pool.sources[0], bestCost = Infinity;
+      for (let t = 0; t < 14; t++) {
+        const cand = pool.sources[Math.floor(rand() * pool.sources.length)];
+        const cost = Math.abs(cand.mean[0] - mean[0][i]) * 0.3 + Math.abs(cand.mean[1] - mean[1][i]) * 0.3 + Math.abs(cand.mean[2] - mean[2][i]) * 0.3 + rand() * 25;
+        if (cost < bestCost) ((bestCost = cost), (pick = cand));
       }
+      const cr = Math.cos(rot), sr = Math.sin(rot);
+      for (let y = Math.max(0, cy - Math.ceil(r)); y <= Math.min(H - 1, cy + Math.ceil(r)); y++)
+        for (let x = Math.max(0, cx - Math.ceil(r)); x <= Math.min(W - 1, cx + Math.ceil(r)); x++) {
+          const j = y * W + x;
+          if (!o.hole[j] && (o.keep[j] || away[j] > o.leaves.fringe)) continue;
+          const u = x - cx, v = y - cy, dist = Math.hypot(u, v);
+          if (dist > r) continue;
+          const sx = pick.x + ((cr * u - sr * v) / scale) * flip, sy = pick.y + (sr * u + cr * v) / scale;
+          const ix = Math.floor(sx), iy = Math.floor(sy);
+          if (ix < 0 || iy < 0 || ix >= pool.w - 1 || iy >= pool.h - 1) continue;
+          let a = bilinear(pool.alpha, pool.w, 1, 0, ix, iy, sx - ix, sy - iy);
+          if (!soft) a = Math.min(1, Math.max(0, (a - 0.2) / 0.4)); // only the solid leaf, not the pale rim where it met the sky
+          a *= smooth((1 - dist / r) * 2);
+          if (!o.hole[j]) a *= smooth(1 - away[j] / (o.leaves.fringe * (0.25 + 0.85 * (0.5 + 0.5 * Math.tanh(reachNoise[j]))))) * 0.95;
+          if (a < 0.02) continue;
+          for (let c = 0; c < 3; c++) out[j * 3 + c] = out[j * 3 + c] * (1 - a) + bilinear(pool.pix, pool.w, 3, c, ix, iy, sx - ix, sy - iy) * a;
+        }
+    }
+  };
+  const meanR = (o.leaves.radius[0] + o.leaves.radius[1]) / 2;
+  // The big banana leaves go in first, behind
+  if (o.donor) {
+    const d = o.donor;
+    const soft = Float32Array.from(d.pix);
+    for (let c = 0; c < 3; c++) {
+      const ch = new Float32Array(d.w * d.h);
+      for (let i = 0; i < d.w * d.h; i++) ch[i] = d.pix[i * 3 + c];
+      const b = boxBlur(ch, d.w, d.h, 1);
+      for (let i = 0; i < d.w * d.h; i++) soft[i * 3 + c] = b[i];
+    }
+    // Behind them, big out-of-focus leaves (the same banana leaves, enlarged and blurred)
+    if (d.far) {
+      const blurred = Float32Array.from(d.pix);
+      for (let c = 0; c < 3; c++) {
+        const ch = new Float32Array(d.w * d.h);
+        for (let i = 0; i < d.w * d.h; i++) ch[i] = d.pix[i * 3 + c];
+        const b = blur3(ch, d.w, d.h, d.far.blur);
+        for (let i = 0; i < d.w * d.h; i++) blurred[i * 3 + c] = b[i];
+      }
+      const far = makePool(blurred, d.w, d.h, d.leaf, null, Math.ceil(d.far.radius[0] / d.far.scale[1]), d.minFoliage, d.far.blur);
+      const fr = (d.far.radius[0] + d.far.radius[1]) / 2;
+      stampPool(far, Math.round((inside.length * d.far.density) / (Math.PI * fr * fr * 0.5)), d.far.radius, d.far.scale, d.tilt, d.rows, true);
+    }
+    const pool = makePool(soft, d.w, d.h, d.leaf, null, Math.ceil(d.radius[0] / d.scale[1]), d.minFoliage);
+    const dr = (d.radius[0] + d.radius[1]) / 2;
+    log(`  ${pool.sources.length} places to take big leaves from`);
+    stampPool(pool, Math.round((inside.length * d.density) / (Math.PI * dr * dr * 0.5)), d.radius, d.scale, d.tilt, d.rows);
+  }
+  if (o.palms) {
+    const p = o.palms;
+    const pool = makePool(orig, W, H, p.mask, null, Math.ceil(p.radius[0] * 0.7), p.minFoliage);
+    log(`  ${pool.sources.length} places to take palm fronds from`);
+    const pr = (p.radius[0] + p.radius[1]) / 2;
+    stampPool(pool, Math.round((inside.length * p.density) / (Math.PI * pr * pr * 0.45)), p.radius, [0.9, 1.2], 30, p.rows);
+  }
+  if (o.leaves.density > 0) {
+    const own = makePool(orig, W, H, o.foliage, known, Math.ceil(o.leaves.radius[1] * 1.25) + 2, o.leaves.minFoliage);
+    log(`  ${own.sources.length} places to take leaves from`);
+    stampPool(own, Math.round((inside.length * o.leaves.density) / (Math.PI * meanR * meanR * 0.45)), o.leaves.radius, [0.85, 1.25], null);
   }
   log(`  ${cells.length} px rebuilt as soft, leafy background`);
 }

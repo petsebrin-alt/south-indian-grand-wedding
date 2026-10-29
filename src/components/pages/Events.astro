@@ -7,16 +7,19 @@
  * event's current details in live text (the picture's printed dates differ).
  * Part 1: Engagement, Haldi, Mehndi · Part 2: Sangeet, the Wedding, the Reception (as in the picture).
  * The picture has an Engagement medallion but the invitation has no Engagement event yet, so it shows
- * its name and "Details to be provided". Tapping a medallion opens its event's details (venue, calendar).
+ * its name and "Details to be provided". Each name is set large and bold, and under the details is a
+ * blinking Location button: it opens the map once a venue has one, otherwise it says why not (the
+ * venues are not confirmed yet). Tapping the rest of a medallion opens its event's details sheet.
  * Motion: src/motion/pages/events.ts (a bright gold ring draws round each medallion in turn, and its
  * details appear).
  */
 import PageShell from '../PageShell.astro';
 import ScenePhoto from '../ScenePhoto.astro';
+import Icon from '../Icon.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
 import { formatDateLong, formatTime } from '../../lib/format';
-import { venueById } from '../../lib/venue';
+import { directionsUrl, locationUnavailableMessage, venueById } from '../../lib/venue';
 import discs from '../../assets/events/discs.json';
 import page1 from '../../assets/events/page-1.webp';
 import page1Avif from '../../assets/events/page-1.avif';
@@ -37,6 +40,9 @@ const order: Record<1 | 2, string[]> = { 1: ['engagement', 'haldi', 'mehndi'], 2
 const shortName = (name: string) => name.replace('Hindu Wedding Ceremony', 'Wedding').replace('Grand Wedding Reception', 'Reception').replace('Sangeet Night', 'Sangeet');
 const bg = part === 1 ? { webp: page1, avif: page1Avif } : { webp: page2, avif: page2Avif };
 
+// The size of each name, so that all of them fill about the same width of the disc
+const nameSize: Record<string, number> = { engagement: 25.5, haldi: 35, mehndi: 32.5, sangeet: 30.5, wedding: 29, reception: 27.5 };
+
 const items = order[part].map((id) => {
   const d = (discs as Record<string, { cx: number; cy: number; r: number; ring: number }>)[id];
   const event = wedding.events.find((e) => e.id === id) ?? null;
@@ -46,11 +52,12 @@ const items = order[part].map((id) => {
     id,
     event,
     name: event ? shortName(event.name) : 'Engagement',
+    fit: nameSize[id] ?? 26,
     style: `left:${((d.cx - d.r) / BOX.w) * 100}%;top:${((d.cy - d.r) / BOX.h) * 100}%;width:${((2 * d.r) / BOX.w) * 100}%`,
     ringR: (d.ring / d.r) * 50,
-    weekday,
-    date,
-    venue: venue ? (venue.name ?? (venue.privacy === 'onRequest' ? venue.label : 'To be provided')) : '',
+    day: `${weekday.slice(0, 3)}, ${date}`,
+    maps: venue ? directionsUrl(venue) : null,
+    why: venue ? locationUnavailableMessage(venue) : 'The Engagement details will be shared once they are confirmed',
   };
 });
 ---
@@ -77,33 +84,33 @@ const items = order[part].map((id) => {
               <circle class="ev__ring-line" cx="50" cy="50" r={it.ringR} transform="rotate(-90 50 50)" />
             </svg>
             <div class="ev__disc">
-              <h3 class="ev__name">{it.name}</h3>
+              <h3 class="ev__name" style={`--fit:${it.fit}cqw`}>{it.name}</h3>
               {it.event ? (
                 <>
-                  <p class="ev__date">
-                    <span class="ev__weekday">{it.weekday}</span>
-                    <span>{it.date}</span>
-                  </p>
+                  <p class="ev__date">{it.day}</p>
                   <p class="ev__time">
                     {formatTime(it.event.startISO)} IST
                     {it.event.timeStatus === 'proposed' && <span class="ev__tag">Proposed</span>}
                     {it.event.id === 'wedding' && <span class="ev__tag ev__tag--muhurtham">Muhurtham</span>}
                   </p>
-                  <span class="ev__rule" aria-hidden="true" />
-                  <p class="ev__venue">
-                    <span class="ev__venue-label">Venue</span>
-                    <span>{it.venue}</span>
-                  </p>
                   <button class="ev__open" type="button" data-open-dialog={`event-${it.event.id}`} aria-haspopup="dialog" aria-label={`Details of ${it.event.name}: venue, map and calendar`} />
                 </>
               ) : (
-                <>
-                  <span class="ev__rule" aria-hidden="true" />
-                  <p class="ev__venue">
-                    <span>Details to be provided</span>
-                  </p>
-                </>
+                <p class="ev__date">Details to be provided</p>
               )}
+              {
+                it.maps ? (
+                  <a class="ev__loc" href={it.maps} target="_blank" rel="noopener" aria-label={`Location of ${it.name} (opens Google Maps)`}>
+                    <Icon name="pin" />
+                    <span>Location</span>
+                  </a>
+                ) : (
+                  <button class="ev__loc" type="button" aria-disabled="true" data-disabled-message={it.why} aria-label={`Location of ${it.name}: ${it.why}`}>
+                    <Icon name="pin" />
+                    <span>Location</span>
+                  </button>
+                )
+              }
             </div>
           </li>
         ))
@@ -231,26 +238,23 @@ const items = order[part].map((id) => {
     color: #4a2418;
   }
 
+  /* Each name large and bold, like the "Wedding Events" signboard */
   .ev__name {
     margin-bottom: 1.5cqw;
-    font: 400 20.5cqw / 1 var(--font-script);
+    font: 400 var(--fit, 26cqw) / 0.98 var(--font-script);
     color: #8a1426;
-    -webkit-text-stroke: 0.25px currentColor;
+    -webkit-text-stroke: 0.024em currentColor;
+    text-shadow: 0 0.04em 0 rgba(138, 20, 38, 0.28);
   }
 
   .ev__date {
-    display: grid;
-    font: 600 9.8cqw / 1.15 var(--font-display);
-  }
-
-  .ev__weekday {
-    font-weight: 500;
+    font: 600 10.4cqw / 1.15 var(--font-display);
   }
 
   .ev__time {
     display: grid;
     justify-items: center;
-    font: 700 9.8cqw / 1.15 var(--font-display);
+    font: 700 10.4cqw / 1.15 var(--font-display);
   }
 
   .ev__tag {
@@ -269,21 +273,72 @@ const items = order[part].map((id) => {
     color: #8a1426;
   }
 
-  .ev__rule {
-    width: 46%;
-    height: 1px;
-    margin-block: 1cqw;
-    background: linear-gradient(90deg, transparent, #b8863a 20%, #b8863a 80%, transparent);
-  }
-
-  .ev__venue {
-    display: grid;
-    font: 500 8cqw / 1.15 var(--font-display);
-  }
-
-  .ev__venue-label {
-    font-weight: 700;
+  /* The Location button: a gold pill that blinks, so a guest knows to touch it */
+  .ev__loc {
+    position: relative;
+    z-index: 2;
+    margin-top: 2.6cqw;
+    display: inline-flex;
+    align-items: center;
+    gap: 2.2cqw;
+    padding: 2.4cqw 5.8cqw 2.4cqw 4.6cqw;
+    border: max(1px, 0.5cqw) solid #b8863a;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fff9e8, #f1d9a0);
     color: #6a0f1f;
+    font: 700 8.2cqw / 1 var(--font-royal);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 1px 2px rgba(60, 30, 5, 0.3);
+    animation: ev-blink 1.5s ease-in-out infinite;
+  }
+
+  .ev__loc svg {
+    width: 9.4cqw;
+    height: 9.4cqw;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+  }
+
+  /* At least 44 px to tap, though the pill is drawn smaller */
+  .ev__loc::before {
+    content: '';
+    position: absolute;
+    inset: -10px -8px;
+  }
+
+  @keyframes ev-blink {
+    0%,
+    100% {
+      border-color: #b8863a;
+      background: linear-gradient(180deg, #fff9e8, #f1d9a0);
+      box-shadow: 0 1px 2px rgba(60, 30, 5, 0.3), 0 0 0 0 rgba(236, 184, 72, 0);
+    }
+
+    50% {
+      border-color: #e0a52f;
+      background: linear-gradient(180deg, #fffdf2, #ffe9a8);
+      box-shadow: 0 1px 2px rgba(60, 30, 5, 0.3), 0 0 4.2cqw 1.2cqw rgba(240, 180, 60, 0.9);
+    }
+  }
+
+  .ev__loc:active {
+    transform: scale(0.96);
+  }
+
+  .ev__loc:focus-visible {
+    outline: 2px solid #8a1426;
+    outline-offset: 2px;
+  }
+
+  /* Without motion the pill stays lit instead of blinking */
+  .reduce-motion .ev__loc {
+    animation: none;
+    box-shadow: 0 1px 2px rgba(60, 30, 5, 0.3), 0 0 3cqw 0.8cqw rgba(240, 180, 60, 0.75);
   }
 
   /* The whole disc opens the event's details */

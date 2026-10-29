@@ -78,7 +78,9 @@ const lines = [
     display: none;
   }
 
-  /* The photograph covers the page at its own proportions; the person stays in the middle */
+  /* The photograph covers the page at its own proportions, from the foot up: the couple sit on their
+     temple steps with more of the garden around them (the picture is taller than the original, with
+     extra sky above the couple, so on a tall phone it is shown about a fifth smaller) */
   .pc__scene {
     inset: 0;
     overflow: hidden;
@@ -90,11 +92,11 @@ const lines = [
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: 52% 50%;
+    object-position: 52% 100%;
   }
 
   .pc--bride .pc__photo {
-    object-position: 49% 50%;
+    object-position: 49% 100%;
   }
 
   .pc .page__content {
@@ -107,7 +109,7 @@ const lines = [
     position: absolute;
     left: 22cqw;
     right: 22cqw;
-    top: calc(var(--safe-top) + 6.5cqh);
+    top: calc(var(--safe-top) + 12cqh);
     display: grid;
     justify-items: center;
     font-family: var(--font-script);

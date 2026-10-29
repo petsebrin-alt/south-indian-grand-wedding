@@ -80,7 +80,7 @@ The page's background is the client's temple-courtyard picture (the same one as 
 
 `src/assets/couple/source/groom-bride.webp` is the client's picture of both pages side by side: the groom with his interest polaroids on the left half, the bride with hers on the right. `npm run couple:assets` turns it into:
 
-- the two photographs with their polaroids and printed titles taken out (the titles become live lettering). The picture has no view of what was behind the polaroids, so that garden is rebuilt from the picture's own: a leafy shade that continues the colours around it, with sharp leaves and flowers cut from the picture's garden laid over it (`scripts/couple/bokeh.ts`, settings under `bokeh` in `scene.json`);
+- the two photographs with their polaroids and printed titles taken out (the titles become live lettering), made taller so the couple can be shown smaller on their steps (the band of sky above them is stretched, `extend` in `scene.json`). The picture has no view of what was behind the polaroids, so that area is rebuilt as banana leaves cut from the temple picture (`src/assets/family/source/temple.webp`) over a leaf-green shade, with big out-of-focus leaves behind the sharp ones (`scripts/couple/bokeh.ts`, settings under `bokeh` in `scene.json`);
 - each polaroid, and the groom's gaming cluster, cut out on its own to pop in one by one.
 
 `src/assets/couple/scene.json` holds each polaroid's corners (snapped to its white frame automatically), the title boxes, the people's outlines, and how each side is rebuilt. A replacement picture needs these measured again.

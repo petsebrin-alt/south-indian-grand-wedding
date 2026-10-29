@@ -661,8 +661,8 @@ async function main() {
           // The Engagement has no event yet: its name and "Details to be provided"
           text:
             item.dataset.event === 'engagement'
-              ? /Engagement/.test(item.querySelector('.ev__name')?.textContent ?? '') && /Details to be provided/.test(item.querySelector('.ev__venue')?.textContent ?? '')
-              : !!item.querySelector('.ev__name')?.textContent && !!item.querySelector('.ev__date')?.textContent && /IST/.test(item.querySelector('.ev__time')?.textContent ?? '') && !!item.querySelector('.ev__venue')?.textContent,
+              ? /Engagement/.test(item.querySelector('.ev__name')?.textContent ?? '') && /Details to be provided/.test(item.querySelector('.ev__date')?.textContent ?? '') && !!item.querySelector('.ev__loc')
+              : !!item.querySelector('.ev__name')?.textContent && !!item.querySelector('.ev__date')?.textContent && /IST/.test(item.querySelector('.ev__time')?.textContent ?? '') && !!item.querySelector('.ev__loc'),
           visible: Number(getComputedStyle(item.querySelector('.ev__name')!).opacity) > 0.95,
           onScreen: (() => {
             const r = item.querySelector('.ev__disc')!.getBoundingClientRect();
@@ -700,6 +700,24 @@ async function main() {
     const calendarOpen = await page.evaluate(() => !document.getElementById('calendar-wedding')!.hidden);
     check('AC-20b', 'Each event opens its details: Location waits for a venue, Calendar only for the confirmed wedding; the sheet fits and explains', okSheets && detailsFit && /venue is confirmed/.test(toastText ?? '') && calendarOpen, JSON.stringify({ all, detailsFit, toastText, calendarOpen }));
     await page.keyboard.press('Escape');
+    // Each medallion has its own blinking Location button; with no confirmed venue it says why (a toast)
+    const locs = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('#events-wedding .ev__item, #events .ev__item')].map((item) => {
+        const b = item.querySelector<HTMLElement>('.ev__loc');
+        const r = b?.getBoundingClientRect();
+        return { id: item.dataset.event, there: !!b, blinking: !!b && getComputedStyle(b).animationName === 'ev-blink', message: b?.dataset.disabledMessage ?? null, wide: item.closest('#events-wedding') ? !!r && r.width >= 60 && r.height >= 13 : true };
+      }),
+    );
+    await page.locator('#events-wedding .ev__item[data-event="wedding"] .ev__loc').tap({ force: true });
+    await page.waitForTimeout(300);
+    const locToast = await page.locator('[data-toast]').textContent();
+    const nameSizes = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#events .ev__name, #events-wedding .ev__name')].map((n) => parseFloat(getComputedStyle(n).fontSize) / (n.closest<HTMLElement>('.ev__item')!.getBoundingClientRect().width / 100)));
+    check(
+      'AC-20c',
+      'Every medallion has a large, bold name and a blinking Location button; with no confirmed venue it says why when tapped',
+      locs.length === 6 && locs.every((l) => l.there && l.blinking && l.wide && l.message) && /venue is confirmed/.test(locToast ?? '') && nameSizes.length === 6 && nameSizes.every((n) => n >= 14),
+      JSON.stringify({ locs, locToast, nameSizes }),
+    );
     const rings = await page.evaluate(() => {
       const circles = [...document.querySelectorAll<SVGCircleElement>('#events-wedding .ev__ring-line')];
       return { n: circles.length, len: Math.min(...circles.map((c) => c.getTotalLength())) };
