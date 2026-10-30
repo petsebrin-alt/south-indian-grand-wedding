@@ -29,7 +29,6 @@ import EventSheet from '../components/EventSheet.astro';
 import TravelSheet from '../components/TravelSheet.astro';
 import { travelTiles } from '../lib/travel';
 import WishesAll from '../components/WishesAll.astro';
-import RsvpForm from '../components/RsvpForm.astro';
 import ContactSheet from '../components/ContactSheet.astro';
 import PrivacySheet from '../components/PrivacySheet.astro';
 import ShareSheet from '../components/ShareSheet.astro';
@@ -42,12 +41,10 @@ import Family from '../components/pages/Family.astro';
 import LoveStory from '../components/pages/LoveStory.astro';
 import Events from '../components/pages/Events.astro';
 import Ceremony from '../components/pages/Ceremony.astro';
-import Reception from '../components/pages/Reception.astro';
 import DressCode from '../components/pages/DressCode.astro';
 import Venues from '../components/pages/Venues.astro';
 import Travel from '../components/pages/Travel.astro';
 import Wishes from '../components/pages/Wishes.astro';
-import Rsvp from '../components/pages/Rsvp.astro';
 import Help from '../components/pages/Help.astro';
 import ThankYou from '../components/pages/ThankYou.astro';
 import { bookPages } from '../data/pages';
@@ -111,12 +108,10 @@ const p = (id: string) => {
           <Events {...p('events')} part={1} />
           <Events {...p('events-wedding')} part={2} />
           <Ceremony {...p('ceremony')} />
-          <Reception {...p('reception')} />
+          <Wishes {...p('wishes')} />
           <DressCode {...p('dress-code')} />
           <Venues {...p('venues')} />
           <Travel {...p('travel')} />
-          <Wishes {...p('wishes')} />
-          <Rsvp {...p('rsvp')} />
           <Help {...p('help')} />
           <ThankYou {...p('thank-you')} />
         </main>
@@ -126,7 +121,6 @@ const p = (id: string) => {
         {wedding.events.map((e) => <EventSheet event={e} />)}
         {travelTiles.map((t) => <TravelSheet item={t.key} icon={t.icon} />)}
         <WishesAll />
-        <RsvpForm />
         {wedding.contacts.map((c) => <ContactSheet contact={c} />)}
         <PrivacySheet />
         <ShareSheet />

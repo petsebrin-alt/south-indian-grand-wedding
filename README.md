@@ -1,6 +1,6 @@
 # Rahul & Divya — Royal South Indian Hindu Wedding Invitation
 
-An interactive invitation book: 18 sections on a cover plus 19 pages that turn with a realistic page curl. Specification: [PRD.md](PRD.md) · visual direction: [THEME.md](THEME.md) · decisions and phase results: [DECISIONS.md](DECISIONS.md).
+An interactive invitation book: 15 sections on a cover plus 16 pages that turn with a realistic page curl. Specification: [PRD.md](PRD.md) · visual direction: [THEME.md](THEME.md) · decisions and phase results: [DECISIONS.md](DECISIONS.md).
 
 ## Run it
 

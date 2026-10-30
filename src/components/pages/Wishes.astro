@@ -1,6 +1,6 @@
 ---
 /**
- * Page 15 — Wishing Wall (PRD §6.15), after the client's picture: a golden double door slides open on a
+ * Page 11 — Wishing Wall (PRD §6.15), after the client's picture: a golden double door slides open on a
  * temple hall (src/assets/wishes/, cut from the client's two pictures; npm run wishes:assets), a jasmine
  * garland along a brass rod with the blessings hanging from it on gold chains, each on a cream board with
  * a brass bell; below them the "Write a Blessing" card, and a "View all wishes" button under that. A new
@@ -93,6 +93,10 @@ const t = meta.board.text;
         <svg class="ww__send-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5L3.5 10.6l6.6 2.6 2.6 6.7z" /><path d="M10.1 13.2l10.4-9.7" /></svg>
         <span class="btn-sending"><span class="petal-spinner" aria-hidden="true"></span> Sending…</span>
       </button>
+      <p class="ww__privacy" style={box([13.148, 86.9, 73.333, 3.7])}>
+        Shared after approval ·
+        <button class="ww__link" type="button" data-open-dialog="privacy" aria-haspopup="dialog">How we use your details</button>
+      </p>
       <div data-bot></div>
     </form>
 
@@ -367,7 +371,8 @@ const t = meta.board.text;
 
   .ww__notes,
   .ww__field,
-  .ww__send {
+  .ww__send,
+  .ww__privacy {
     position: absolute;
     left: var(--x);
     top: var(--y);
@@ -532,6 +537,27 @@ const t = meta.board.text;
     stroke-width: 1.5;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+
+  .ww__privacy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3em;
+    font: 400 calc(var(--u) * 8.4) / 1 var(--font-body);
+    color: #7a6552;
+    white-space: nowrap;
+  }
+
+  .ww__link {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: #6a1424;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
   }
 
   .ww__send .btn-sending {

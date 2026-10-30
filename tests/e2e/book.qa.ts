@@ -107,16 +107,16 @@ async function main() {
   {
     const ctx = await mobileContext(browser);
     const page = await ctx.newPage();
-    await page.goto(`${BASE}#rsvp`);
+    await page.goto(`${BASE}#dress-code`);
     await settle(page);
     check('AC-05a', 'Fresh deep link shows the cover first', (await current(page)) === 'cover');
     await enterAndOpen(page);
     await page.waitForTimeout(200);
     await settle(page);
-    check('AC-05b', 'Opening the cover lands on the deep-linked page', (await current(page)) === 'rsvp', String(await current(page)));
+    check('AC-05b', 'Opening the cover lands on the deep-linked page', (await current(page)) === 'dress-code', String(await current(page)));
     await page.reload();
     await settle(page);
-    check('AC-05c', 'Reload in the same session keeps the guest on their page', (await current(page)) === 'rsvp', String(await current(page)));
+    check('AC-05c', 'Reload in the same session keeps the guest on their page', (await current(page)) === 'dress-code', String(await current(page)));
     await ctx.close();
   }
 
@@ -252,7 +252,7 @@ async function main() {
     await page.goto(BASE);
     const height = await page.evaluate(() => document.documentElement.scrollHeight);
     const sections = await page.locator('section.page').count();
-    check('AC-07c', 'Without JavaScript the pages read as one continuous scroll', sections === 19 && height > 844 * 18, `${sections} pages, ${height}px tall`);
+    check('AC-07c', 'Without JavaScript the pages read as one continuous scroll', sections === 17 && height > 844 * 16, `${sections} pages, ${height}px tall`);
     await ctx.close();
   }
 
@@ -1019,9 +1019,10 @@ async function main() {
     );
     await page.keyboard.press('Escape');
     await page.waitForTimeout(400);
-    await page.evaluate(() => (location.hash = 'rsvp'));
+    // A fresh load (the wall asks the server for the latest blessings at most once a minute), then a visit from another page
+    await page.evaluate(() => (location.hash = 'dress-code'));
+    await page.reload();
     await settle(page);
-    await page.waitForTimeout(1800); // the doors close once the page is out of sight
     await page.evaluate(() => (location.hash = 'wishes'));
     await settle(page);
 
@@ -1099,96 +1100,18 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-25 / AC-27 RSVP validation, offline and server errors keep input; success only with a stored ID; no duplicates */
+  /* AC-26 the backend still emails the families for an RSVP, and the admin page lists and exports it. The RSVP form page is no
+     longer in the book (the client's request), so the response is posted straight to the API; the form's own rules are covered
+     by the unit tests of the handlers (tests/backend.test.ts). */
   {
-    const { ctx, page } = await openedPage('rsvp');
-    await page.getByRole('button', { name: 'Respond now' }).tap();
-    await page.waitForTimeout(500);
-    await page.getByRole('button', { name: 'Continue' }).tap();
-    const validation = await page.evaluate(() => ({
-      error: document.querySelector('[data-error-for="guestName"]')!.textContent,
-      focus: document.activeElement?.id,
-      invalid: document.getElementById('rsvp-name')!.getAttribute('aria-invalid'),
-    }));
-    await page.locator('#rsvp-name').fill('Lakshmi Narayanan');
-    await page.locator('#rsvp-form .choice-card', { hasText: 'Joyfully accept' }).tap();
-    await page.locator('#rsvp-form [data-step-up]').tap();
-    await page.getByRole('button', { name: 'Continue' }).tap();
-    await page.locator('#rsvp-form .chip-check', { hasText: 'Reception' }).tap();
-    await page.locator('#rsvp-form .consent').tap();
-
-    const status = () => page.evaluate(() => document.querySelector('#rsvp-form [data-form-status]')!.textContent ?? '');
-    const flipped = () => page.evaluate(() => document.querySelector('[data-rsvp-flip]')!.classList.contains('is-done'));
-    const submit = page.locator('#rsvp-form [data-submit]');
-
-    await ctx.setOffline(true);
-    await submit.tap();
-    await page.waitForTimeout(300);
-    const offline = await status();
-    await ctx.setOffline(false);
-
-    await dev(page, 'fail', { count: 1, status: 503 });
-    await submit.tap();
-    await page.waitForFunction(() => /couldn't save/.test(document.querySelector('#rsvp-form [data-form-status]')!.textContent ?? ''), null, { timeout: 15000, polling: POLL });
-    const serverError = { status: await status(), flipped: await flipped(), name: await page.locator('#rsvp-name').inputValue(), stored: (await admin(page, 'summary')).totals.responses };
-
-    // The next attempt reaches the server and is stored, but its reply is lost (a timeout from the guest's side).
-    let lost = false;
-    await page.route('**/api/rsvp', async (route) => {
-      if (!lost && route.request().method() === 'POST') {
-        lost = true;
-        await route.fetch();
-        return route.abort('failed');
-      }
-      return route.continue();
-    });
-    await submit.tap();
-    await page.waitForFunction(() => document.querySelector('#rsvp-form [data-submit] .btn-label')!.textContent === 'Retry' && !document.querySelector('#rsvp-form [data-submit]')!.classList.contains('is-sending'), null, { timeout: 15000, polling: POLL });
-    const afterLost = { flipped: await flipped(), stored: (await admin(page, 'summary')).totals.responses };
-    // Retry twice in a row (a double tap): the server recognises the same submission.
-    await page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>('[data-rsvp-form]')!;
-      form.requestSubmit();
-      form.requestSubmit();
-    });
-    await page.waitForFunction(() => document.querySelector('[data-rsvp-flip]')!.classList.contains('is-done'), null, { timeout: 15000, polling: POLL });
-    await page.waitForTimeout(700);
-    const summary = await admin(page, 'summary');
-    const done = await page.evaluate(() => ({
-      text: document.querySelector('[data-rsvp-done]')!.textContent!.replace(/\s+/g, ' '),
-      saved: !!JSON.parse(localStorage.getItem('rdv:rsvp') ?? 'null')?.id,
-    }));
-    check(
-      'AC-25',
-      'RSVP: inline errors focus the field; offline and server errors keep every answer; success only once stored',
-      validation.error === 'Please enter your name.' &&
-        validation.focus === 'rsvp-name' &&
-        validation.invalid === 'true' &&
-        /offline/.test(offline) &&
-        /details are still here/.test(serverError.status) &&
-        !serverError.flipped &&
-        serverError.name === 'Lakshmi Narayanan' &&
-        serverError.stored === 0 &&
-        done.text.includes('Thank you, Lakshmi!') &&
-        done.text.includes('2 guests') &&
-        done.saved,
-      JSON.stringify({ validation, offline, serverError, done }),
-    );
-    check('AC-27', 'A lost reply, a retry and a double tap still store exactly one RSVP', !afterLost.flipped && afterLost.stored === 1 && summary.totals.responses === 1 && summary.totals.headcount === 2, JSON.stringify({ afterLost, totals: summary.totals }));
-    if (SHOTS) await page.screenshot({ path: `${SHOTS}/phase4-rsvp-thank-you.png` });
-
-    // Editing changes the same record.
-    await page.unroute('**/api/rsvp');
-    await page.getByRole('button', { name: 'Edit my response', exact: true }).tap();
-    await page.waitForTimeout(700);
-    await page.locator('#rsvp-form .choice-card', { hasText: 'Regretfully decline' }).tap();
-    await page.getByRole('button', { name: 'Continue' }).tap();
-    await submit.tap();
-    await page.waitForFunction(() => document.querySelector('[data-rsvp-flip]')!.classList.contains('is-done') && /received/.test(document.querySelector('[data-done-title]')!.textContent ?? ''), null, { timeout: 15000, polling: POLL });
-    const edited = await admin(page, 'summary');
-    check('PH4-edit', '"Edit my response" updates the same RSVP', edited.totals.responses === 1 && edited.rsvps[0].attendance === 'decline', JSON.stringify(edited.totals));
-
-    /* AC-26 the families are emailed, and the admin page lists and exports the response */
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await dev(page, 'reset');
+    const body = { guestName: 'Lakshmi Narayanan', attendance: 'decline', attendeeCount: 1, events: ['wedding'], dietary: [], consent: true, editToken: 'qa-edit-token-0123456789abcdef', website: '', elapsedMs: 8000 };
+    const key = 'qa-rsvp-key-0000000000000001';
+    const first = await page.request.post(`${BASE}api/rsvp`, { headers: { 'Idempotency-Key': key }, data: body });
+    const again = await page.request.post(`${BASE}api/rsvp`, { headers: { 'Idempotency-Key': key }, data: body }); // a retry stores nothing new
     const outbox = (await dev(page, 'outbox')) as unknown as { to: string[]; subject: string; text: string }[];
     const mails = outbox.map((m) => m.subject);
     await page.goto(`${BASE}admin`);
@@ -1197,11 +1120,12 @@ async function main() {
     const row = await page.evaluate(() => document.querySelector('[data-rsvps] tr')!.textContent);
     const csv = await (await page.request.get(`${BASE}api/admin/export?type=rsvps`, { headers: { Authorization: 'Bearer dev-admin' } })).text();
     const unauthorised = (await page.request.get(`${BASE}api/admin/summary`)).status();
+    const stored = (await admin(page, 'summary')).totals.responses;
     check(
       'AC-26',
-      'Each RSVP emails the families; the admin page lists it and exports CSV; signed-out requests are refused',
-      mails.length === 2 && /New RSVP: Lakshmi Narayanan/.test(mails[0]) && /Updated RSVP/.test(mails[1]) && !!row?.includes('Lakshmi Narayanan') && csv.includes('Lakshmi Narayanan,Declines') && unauthorised === 401,
-      JSON.stringify({ mails, row, unauthorised }),
+      'An RSVP emails the families once (a retry stores nothing new); the admin page lists it and exports CSV; signed-out requests are refused',
+      first.status() === 201 && again.status() === 200 && stored === 1 && mails.length === 1 && /New RSVP: Lakshmi Narayanan/.test(mails[0]) && !!row?.includes('Lakshmi Narayanan') && csv.includes('Lakshmi Narayanan,Declines') && unauthorised === 401,
+      JSON.stringify({ first: first.status(), again: again.status(), stored, mails, row, unauthorised }),
     );
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/phase4-admin.png`, fullPage: true });
     await ctx.close();
@@ -1463,7 +1387,7 @@ async function main() {
     await page.waitForTimeout(6800);
     const dotAfter = await page.evaluate(() => [...document.querySelectorAll('[data-ring-dot]')].findIndex((d) => d.classList.contains('is-active')));
     // Thank You: the lettering is complete at once, and Return fades straight to Welcome.
-    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(18));
+    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(16));
     await page.waitForTimeout(200);
     const lettering = await page.evaluate(() => [...document.querySelectorAll<SVGPathElement>('#thank-you .ty__glyph')].every((p) => Number(getComputedStyle(p).fillOpacity) > 0.99));
     await page.getByRole('button', { name: 'Return to First Page' }).tap();
@@ -1603,17 +1527,12 @@ async function main() {
     await ctx.close();
   }
 
-  /* Ceremony and reception finish their entrances */
+  /* The ceremony finishes its entrance */
   {
-    const { ctx, page } = await openedPage('reception');
-    const curtains = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#reception .rc__curtain')].map((c) => +getComputedStyle(c).transform.split('(')[1].split(',')[0]));
-    const cardShown = await page.evaluate(() => getComputedStyle(document.querySelector('#reception .rc__card')!).opacity === '1');
-    await page.evaluate(() => (location.hash = 'ceremony'));
-    await page.waitForTimeout(150);
-    await settle(page);
+    const { ctx, page } = await openedPage('ceremony');
     await page.waitForTimeout(5200);
     const plaque = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#ceremony .cm__line')].every((l) => Number(getComputedStyle(l).opacity) > 0.95));
-    check('PH3-scenes', 'Reception curtains part and the card appears; the mandapam board and its details appear', curtains.every((s) => Math.abs(s - 0.34) < 0.02) && cardShown && plaque, JSON.stringify({ curtains, cardShown, plaque }));
+    check('PH3-scenes', 'The mandapam board and its details appear', plaque, JSON.stringify({ plaque }));
     await ctx.close();
   }
 
