@@ -144,6 +144,19 @@ const data: WeddingData = {
     },
   ],
 
+  // Past guests' blessings: they hang on the Wishing Wall (and are listed in "View all wishes") until real blessings
+  // take their places, so the wall always shows four boards. These four are SAMPLES for the template: replace them with
+  // real blessings the guests have given, or empty the list (the wall then waits with empty boards). The launch check
+  // (npm run build:production) stops the build while samples remain, unless 'wishingWall.samples' is in site.hiddenFields.
+  wishingWall: {
+    samples: [
+      { name: 'Lakshmi Aunty', message: 'May your life together be filled with love and laughter.', writtenAt: '2026-10-19T19:42:00+05:30' },
+      { name: 'Karthik & Meera', message: 'Wishing you a lifetime of happiness. Cannot wait to celebrate!', writtenAt: '2026-10-21T08:15:00+05:30' },
+      { name: 'Suresh Uncle', message: 'God bless you both. May every sunrise bring you joy.', writtenAt: '2026-10-24T21:03:00+05:30' },
+      { name: 'Anitha', message: 'Two hearts, one beautiful journey. Best wishes always!', writtenAt: '2026-10-27T17:30:00+05:30' },
+    ],
+  },
+
   travel: {
     airport: {
       title: 'Airport',

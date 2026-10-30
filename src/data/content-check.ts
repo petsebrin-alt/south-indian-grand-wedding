@@ -57,6 +57,8 @@ export function checkContent(d: WeddingData): CheckItem[] {
   need(!!d.rsvp.maxAttendees, 'M-25', 'rsvp.maxAttendees', 'Maximum attendees per RSVP');
   need(d.rsvp.notifyEmails.length > 0, 'M-25', 'rsvp.notifyEmails', 'RSVP notification email addresses');
 
+  need(d.wishingWall.samples.length === 0, 'S-01', 'wishingWall.samples', 'Sample blessings on the Wishing Wall (replace them with real ones, or remove them)');
+
   const copyIds: Record<keyof WeddingData['copy'], string> = {
     welcomeMessage: 'C-01',
     teluguTitle: 'C-04',

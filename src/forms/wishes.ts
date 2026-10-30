@@ -49,7 +49,20 @@ export async function refreshServerWall(): Promise<boolean> {
 
 const byNewest = (a: PublicWish, b: PublicWish) => b.created_at.localeCompare(a.created_at);
 
-/** What hangs on the wall now, newest first: the guest's own blessings and the approved ones, each once. */
+/** Past guests' blessings from the data (`wishingWall.samples`), newest first: they fill the wall until real ones take their places. */
+function sampleWishes(): PublicWish[] {
+  const raw = wishesRoot()?.querySelector('script[data-wall-samples]')?.textContent;
+  if (!raw) return [];
+  try {
+    return (JSON.parse(raw) as { name: string; message: string; writtenAt: string }[])
+      .map((w, i) => ({ id: `sample-${i}`, name: w.name, message: w.message, created_at: w.writtenAt }))
+      .sort(byNewest);
+  } catch {
+    return [];
+  }
+}
+
+/** What hangs on the wall now, newest first: the guest's own blessings and the approved ones, each once, then past guests' blessings. */
 export function wallWishes(): WallWish[] {
   const mine = readMine();
   const mineIds = new Set(mine.map((m) => m.id));
@@ -57,12 +70,12 @@ export function wallWishes(): WallWish[] {
   const all: WallWish[] = [...mine.map((m) => ({ ...m, mine: true })), ...serverWall.map((w) => ({ ...w, mine: mineIds.has(w.id) }))]
     .sort(byNewest)
     .filter((w) => (seen.has(w.id) ? false : (seen.add(w.id), true)));
-  // The wall always holds a full set of boards: empty ones wait for blessings to hang in their place
+  // The wall always holds a full set of four boards: real blessings first, then past guests' blessings in their
+  // places, and empty boards only if there are none of those either
   const blanks = (n: number): WallWish[] => Array.from({ length: n }, (_, i) => ({ id: `blank-${i}`, name: '', message: '', created_at: '', blank: true }));
-  if (all.length) {
-    const real = all.slice(0, WALL_SIZE);
-    return [...real, ...blanks(WALL_SIZE - real.length)];
-  }
+  const real = all.slice(0, WALL_SIZE);
+  const past = sampleWishes().slice(0, WALL_SIZE - real.length);
+  if (real.length + past.length) return [...real, ...past, ...blanks(WALL_SIZE - real.length - past.length)];
   const names = wishesRoot()?.querySelector('.ww__t3')?.textContent?.replace(/\s+/g, ' ').trim() ?? 'the couple';
   return [{ id: 'placeholder', name: '', message: `Be the first to bless ${names}`, created_at: '', placeholder: true }, ...blanks(WALL_SIZE - 1)];
 }
@@ -245,9 +258,12 @@ function initAllWishes() {
 
     if (localMode()) {
       const mine = readMine().sort(byNewest);
+      const past = sampleWishes();
       mine.forEach((w) => list.append(renderWish({ ...w, pending: false })));
-      count.textContent = `${mine.length} ${mine.length === 1 ? 'blessing' : 'blessings'}`;
-      empty.hidden = mine.length > 0;
+      past.forEach((w) => list.append(renderWish(w)));
+      const n = mine.length + past.length;
+      count.textContent = `${n} ${n === 1 ? 'blessing' : 'blessings'}`;
+      empty.hidden = n > 0;
       more.hidden = true;
       loading = false;
       more.disabled = false;
@@ -274,7 +290,10 @@ function initAllWishes() {
     const have = new Set([...list.children].map((c) => (c as HTMLElement).dataset.wishId));
     res.data.items.filter((w) => !have.has(w.id)).forEach((w) => list.append(renderWish(w)));
     cursor = res.data.nextCursor;
-    const total = res.data.total + (reset ? waiting.length : 0);
+    // Past guests' blessings close the list, after the last of the real ones
+    const past = sampleWishes();
+    if (!cursor) past.filter((w) => !have.has(w.id)).forEach((w) => list.append(renderWish(w)));
+    const total = res.data.total + (reset ? waiting.length : 0) + past.length;
     count.textContent = `${total} ${total === 1 ? 'blessing' : 'blessings'}`;
     empty.hidden = total > 0;
     more.hidden = !cursor;

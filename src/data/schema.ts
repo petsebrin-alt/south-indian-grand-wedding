@@ -126,6 +126,11 @@ export const weddingSchema = z.object({
       palette: z.array(z.object({ name: text, color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'a colour like #7a2635') })).min(1).max(4),
     }),
   ),
+  // Past guests' blessings shown on the Wishing Wall (and in "View all wishes") until real ones fill it, so the wall always
+  // hangs four boards. They are samples for the template: replace them with real blessings or empty the list before launch.
+  wishingWall: z.object({
+    samples: z.array(z.object({ name: text, message: text, writtenAt: istDateTime })).max(4),
+  }),
   travel: z.object({
     airport: travelItem,
     railway: travelItem,

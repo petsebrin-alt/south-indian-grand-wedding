@@ -46,6 +46,24 @@ describe('no invented personal details (PRD §4)', () => {
   });
 });
 
+describe('wishing wall samples', () => {
+  it('has four past guests\' blessings, each with a name, a message short enough for a board and a time in the past', () => {
+    expect(wedding.wishingWall.samples).toHaveLength(4);
+    for (const w of wedding.wishingWall.samples) {
+      expect(w.name.length).toBeGreaterThan(0);
+      expect(w.message.length).toBeGreaterThan(10);
+      expect(w.message.length).toBeLessThanOrEqual(80);
+      expect(new Date(w.writtenAt).getTime()).toBeLessThan(Date.parse('2027-04-07'));
+    }
+  });
+
+  it('holds production back while samples remain, unless the families chose to keep them', () => {
+    expect(launchBlockers(wedding).some((b) => b.id === 'S-01')).toBe(true);
+    expect(launchBlockers({ ...wedding, wishingWall: { samples: [] } }).some((b) => b.id === 'S-01')).toBe(false);
+    expect(launchBlockers({ ...wedding, site: { ...wedding.site, hiddenFields: ['wishingWall.samples'] } }).some((b) => b.id === 'S-01')).toBe(false);
+  });
+});
+
 describe('launch check', () => {
   it('blocks production while launch-critical details are missing', () => {
     const blockers = launchBlockers(wedding);

@@ -17,11 +17,12 @@ export interface WallWish extends PublicWish {
   blank?: boolean;
 }
 
-/** [left, chain length]: where the 1st, 2nd, 3rd and 4th newest hang. The lower pair's chains run clear of the bells above. */
+/** [left, chain length]: where the 1st, 2nd, 3rd and 4th newest hang. The first keeps clear of the Contents button in the
+ * corner; the lower pair's chains run clear of the bells above them. */
 const SLOTS: [number, number][] = [
-  [5, 24],
+  [20, 24],
   [321, 50],
-  [38, 270],
+  [50, 270],
   [288, 296],
 ];
 export const WALL_SIZE = SLOTS.length;

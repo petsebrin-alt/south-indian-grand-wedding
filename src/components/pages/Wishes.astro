@@ -62,6 +62,7 @@ const t = meta.board.text;
     </div>
 
     <ul class="ww__wall" data-wall aria-label="Recent blessings"></ul>
+    <script type="application/json" data-wall-samples set:html={JSON.stringify(wedding.wishingWall.samples).replace(/</g, '\\u003c')} />
 
     <form class="ww__card" data-wish-form novalidate style={`--card-title:${meta.card.title}%`}>
       <img class="ww__card-art" data-src={card.src} width={meta.card.width} height={meta.card.height} alt="" decoding="async" />
@@ -300,9 +301,9 @@ const t = meta.board.text;
   /* The wish, on the cream of the board */
   .ww__lines {
     position: absolute;
-    left: var(--text-x);
+    left: calc(var(--text-x) - 5%);
     top: var(--text-y);
-    width: var(--text-w);
+    width: calc(var(--text-w) + 10%);
     height: var(--text-h);
     display: flex;
     flex-direction: column;
@@ -328,8 +329,8 @@ const t = meta.board.text;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    font: 500 calc(var(--u) * 7) / 1.2 var(--font-royal);
-    letter-spacing: 0.06em;
+    font: 500 calc(var(--u) * 6.5) / 1.2 var(--font-royal);
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     color: #6d5a49;
   }

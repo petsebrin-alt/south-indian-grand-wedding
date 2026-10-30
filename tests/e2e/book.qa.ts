@@ -973,7 +973,7 @@ async function main() {
     check(
       'AC-39',
       'A sent blessing hangs on the wall as a new board in the first place with its name, the bell dings once, and the form empties',
-      hung.boards >= 1 && hung.boards <= 4 && hung.place === '5' && hung.text === 'May your life together be as bright as a thousand diyas.' && hung.by === '— Meera Iyer' && hung.onScreen && hung.dings === 1 && hung.emptied,
+      hung.boards >= 1 && hung.boards <= 4 && hung.place === '20' && hung.text === 'May your life together be as bright as a thousand diyas.' && hung.by === '— Meera Iyer' && hung.onScreen && hung.dings === 1 && hung.emptied,
       JSON.stringify(hung),
     );
 
@@ -1013,8 +1013,8 @@ async function main() {
     });
     check(
       'AC-24',
-      'View All: approved only, each with a name and date and time, 20 then "Load more", count shown, scrolls independently, 44 px close',
-      firstPage === 20 && all.count === 25 && all.label === '25 blessings' && !all.hasPending && all.moreHidden && all.scrolls && all.closeOk && all.named && all.dated && all.distinct,
+      'View All: approved ones then the four past guests\' blessings, each with a name and date and time, 20 then "Load more", count shown, scrolls independently, 44 px close',
+      firstPage === 20 && all.count === 29 && all.label === '29 blessings' && !all.hasPending && all.moreHidden && all.scrolls && all.closeOk && all.named && all.dated && all.distinct,
       JSON.stringify({ firstPage, ...all }),
     );
     await page.keyboard.press('Escape');
@@ -1091,12 +1091,13 @@ async function main() {
       return {
         boards: boards.length,
         text: boards[0]?.querySelector('.ww__msg')?.textContent ?? '',
+        names: boards.map((b) => b.querySelector('.ww__by')?.textContent ?? ''),
         fieldsInView: input.top > 0 && send.bottom < innerHeight && all.bottom <= innerHeight,
         sendBelowFields: send.top > input.bottom,
         allBelowCard: all.top >= send.bottom,
       };
     });
-    check('AC-41', 'No blessings yet: one board invites the first and three empty boards wait; the fields, Send and View all fit a 360 × 640 phone', empty.boards === 4 && /^Be the first to bless Rahul/.test(empty.text) && empty.fieldsInView && empty.sendBelowFields && empty.allBelowCard, JSON.stringify(empty));
+    check('AC-41', 'No blessings from the server yet: four past guests\' blessings hang on the wall (never fewer); the fields, Send and View all fit a 360 × 640 phone', empty.boards === 4 && empty.names.every((n) => n.length > 2) && empty.text.length > 10 && empty.fieldsInView && empty.sendBelowFields && empty.allBelowCard, JSON.stringify(empty));
     await ctx.close();
   }
 

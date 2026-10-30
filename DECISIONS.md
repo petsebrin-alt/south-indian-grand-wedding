@@ -885,8 +885,22 @@ The client looked at the live Wishing Wall and said the background was blurred: 
 
 1. **The hall is filled with the real picture, not a smooth guess.** `scripts/wishes/cut.py` now fills each place that was covered in two ways. The floor under the card is the real floor strip below it, reflected upwards and blended in, so its streaks of lamplight, tile lines and jasmine petals run on. The walls, pillars and plants behind the boards are taken from the other side of the hall (the hall is nearly the same either side of its door), mirrored and blended in with Poisson blending, so the carvings, panels and pillars are real. Only a few places whose mirror image was also covered (the two inner walls beside the heading) keep a soft fill, and boards now hang over most of those.
 2. **Sharper.** The hall picture is made 1.6 times larger with Lanczos resizing, then sharpened and given more local contrast, so carvings and panels read as structure. The page loads about 120 KB more (211 KB in AVIF).
-3. **A full set of boards at all times.** The wall always shows four boards: with no blessings yet one says "Be the first to bless Rahul & Divya" and three hang empty (cream boards with their gold ornaments), and each blessing takes the place of an empty board as it arrives (the others move along; the last one leaves). This is the look of the client's picture even before anyone has written.
+3. **A full set of boards at all times** (changed the same day, see the next entry): the wall always shows four boards, never one.
 
 ### Results
 
 - `npm run qa:book` (AC-41 now expects the invitation board and three empty ones) and `npx vitest run`.
+
+## 30 October 2026 — Four past guests' blessings always hang on the Wishing Wall
+
+The client saw the wall with a single board ("Be the first to bless…") and did not want that: when the doors open the wall should be a neat presentation of four hanging blessings from past guests, and new blessings are added to it one at a time.
+
+### Decisions
+
+1. **Four boards always.** Past guests' blessings fill the wall until real ones take their places. Real blessings (approved ones from the server and the guest's own) come first, newest first; any places left are filled by the past guests' blessings; a new blessing is lowered into the first place and the others move along, the last one leaving. They are also listed, with their names and dates, at the end of "View all wishes" (the count includes them).
+2. **They are samples, in the data.** `wishingWall.samples` in `src/data/wedding.ts` holds four blessings with a name, a message (kept under 80 characters so it fits a board) and a time: Lakshmi Aunty, Karthik & Meera, Suresh Uncle and Anitha. **These guests and words are invented for the template**; the families should replace them with real blessings or empty the list before the invitation is sent. With the list empty the wall falls back to one invitation board and three empty ones. The launch check (`npm run build:production`) now stops the build while samples remain (item S-01), unless `wishingWall.samples` is listed in `site.hiddenFields`.
+3. **The first board keeps clear of the Contents button** in the corner (it hung a little under it), and the lettering on every board has more width, so names and words fit without being cut.
+
+### Results
+
+- `npm run qa:book` (AC-41: four past guests' blessings hang when the server has none; AC-24 counts them at the end of the list) and `npx vitest run` (the samples are four, short, in the past; production is held back while they remain).
