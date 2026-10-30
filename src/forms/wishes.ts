@@ -1,83 +1,114 @@
 import { apiAvailable, errorMessage, fetchWishes, newIdempotencyKey, submitWish } from '../lib/api';
 import { getBotToken } from '../lib/bot-check';
+import { prefetchDing, ringDing } from '../lib/bell';
 import { LIMITS, validateWish } from '../../supabase/functions/_shared/validate.ts';
 import type { PublicWish } from '../../supabase/functions/_shared/types.ts';
+import { getWall, WALL_SIZE, type WallWish } from '../motion/wishwall';
 import { atLeast, clearError, liveCounter, setSending, showErrors, store } from './shared';
 
 /**
  * Wishing Wall (PRD §6.15, AC-23, AC-24).
- * - The wall shows the latest approved blessings.
- * - "Write a Blessing" confirms only after the server stored the wish (it then awaits approval).
- * - "View All Wishes" lists approved blessings, newest first, 20 at a time.
+ * - The wall shows the latest approved blessings, and this guest's own as soon as they have written them.
+ * - "Send Your Wish" confirms only after the server stored the wish (it then awaits approval), and hangs
+ *   the new board on the wall with the temple bell's ding.
+ * - "View all wishes" lists approved blessings, newest first, 20 at a time, with each guest's name and
+ *   the date and time they wrote it.
+ * A static preview build has no server: there the wall keeps the guest's own blessings on this device only
+ * (so the page can be tried), and a production build without a server says the wall opens soon.
  */
 const DRAFT_KEY = 'rdv:wish-draft';
+const MINE_KEY = 'rdv:wishes-mine';
+
+type Mine = PublicWish & { pending?: boolean };
+
+const wishesRoot = () => document.querySelector<HTMLElement>('[data-wishes]');
+/** A preview build with no API: blessings live in this browser only. */
+export const localMode = () => !apiAvailable && wishesRoot()?.dataset.siteMode === 'preview';
+
+const readMine = () => store.get<Mine[]>(MINE_KEY) ?? [];
+const addMine = (w: Mine) => store.set(MINE_KEY, [w, ...readMine().filter((m) => m.id !== w.id)].slice(0, 60));
 
 /* ------------------------------------------------------------------ the wall */
 
+let serverWall: PublicWish[] = [];
 let lastWallFetch = -Infinity;
 
-export async function refreshWall(page: HTMLElement, onFilled?: (cards: HTMLElement[]) => void) {
-  if (!apiAvailable || performance.now() - lastWallFetch < 60_000) return;
+/** Fetch the latest approved blessings (at most once a minute). Returns true when the list changed. */
+export async function refreshServerWall(): Promise<boolean> {
+  if (!apiAvailable || performance.now() - lastWallFetch < 60_000) return false;
   lastWallFetch = performance.now();
-  const res = await fetchWishes(null, 5);
+  const res = await fetchWishes(null, 8);
   if (!res.ok) {
     lastWallFetch = -Infinity; // try again next time the page is shown
-    return;
+    return false;
   }
-  const slots = [...page.querySelectorAll<HTMLElement>('[data-wall-slot]')];
-  const empty = page.querySelector<HTMLElement>('[data-wall-empty]')!;
-  const filled: HTMLElement[] = [];
-  slots.forEach((slot, i) => {
-    const wish = res.data.items[i];
-    if (!wish) {
-      slot.hidden = true;
-      return;
-    }
-    slot.querySelector('.ww__msg')!.textContent = wish.message;
-    slot.querySelector('.ww__name')!.textContent = `— ${wish.name}`;
-    if (slot.hidden) filled.push(slot);
-    slot.hidden = false;
-  });
-  empty.hidden = res.data.items.length > 0;
-  if (filled.length) onFilled?.(filled);
+  const changed = res.data.items.map((w) => w.id).join() !== serverWall.map((w) => w.id).join();
+  serverWall = res.data.items;
+  return changed;
 }
 
-/* ------------------------------------------------------------------ composer */
+const byNewest = (a: PublicWish, b: PublicWish) => b.created_at.localeCompare(a.created_at);
+
+/** What hangs on the wall now, newest first: the guest's own blessings and the approved ones, each once. */
+export function wallWishes(): WallWish[] {
+  const mine = readMine();
+  const mineIds = new Set(mine.map((m) => m.id));
+  const seen = new Set<string>();
+  const all: WallWish[] = [...mine.map((m) => ({ ...m, mine: true })), ...serverWall.map((w) => ({ ...w, mine: mineIds.has(w.id) }))]
+    .sort(byNewest)
+    .filter((w) => (seen.has(w.id) ? false : (seen.add(w.id), true)));
+  if (all.length) return all.slice(0, WALL_SIZE);
+  return [{ id: 'placeholder', name: '', message: `Be the first to bless ${wishesRoot()?.querySelector('.ww__t3')?.textContent?.replace(/\s+/g, ' ').trim() ?? 'the couple'}`, created_at: '', placeholder: true }];
+}
+
+/** Keep the ding ready for the first blessing (no sound until the guest writes one). */
+export const prepareWall = () => prefetchDing();
+
+/* ------------------------------------------------------------------ the card */
 
 function initComposer() {
-  const dialog = document.getElementById('wish-composer');
-  if (!dialog) return;
-  const form = dialog.querySelector<HTMLFormElement>('[data-wish-form]')!;
-  const formState = form.querySelector<HTMLElement>('[data-state-form]')!;
-  const doneState = form.querySelector<HTMLElement>('[data-state-done]')!;
+  const root = wishesRoot();
+  const form = root?.querySelector<HTMLFormElement>('[data-wish-form]');
+  if (!root || !form) return;
   const status = form.querySelector<HTMLElement>('[data-form-status]')!;
+  const ok = form.querySelector<HTMLElement>('[data-form-ok]')!;
   const submit = form.querySelector<HTMLButtonElement>('[data-submit]')!;
   const label = submit.querySelector('.btn-label')!;
   const name = form.elements.namedItem('name') as HTMLInputElement;
   const message = form.elements.namedItem('message') as HTMLTextAreaElement;
   const website = form.elements.namedItem('website') as HTMLInputElement;
+  const live = root.querySelector<HTMLElement>('[data-wall-live]');
   const updateCount = liveCounter(message, form.querySelector('[data-counter-for="message"]'), LIMITS.messageMax);
-  let openedAt = 0;
+  const local = localMode();
+
+  if (local) root.querySelector<HTMLElement>('[data-wall-local]')!.hidden = false;
+  if (!apiAvailable && !local) {
+    // A production build with no server: say so rather than take words that could never be kept
+    status.textContent = errorMessage('unavailable', 'blessing');
+    const all = root.querySelector<HTMLElement>('.ww__all');
+    all?.setAttribute('aria-disabled', 'true');
+    if (all) all.dataset.disabledMessage = errorMessage('unavailable', 'blessing');
+    form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>('input, textarea, button').forEach((c) => (c.disabled = true));
+    return;
+  }
+
+  let startedAt = 0; // when the guest started writing (the server turns away forms filled in implausibly fast)
   let key: string | null = null;
   let signature = '';
 
-  dialog.addEventListener('dialog:open', () => {
-    openedAt = performance.now();
-    if (!doneState.hidden) {
-      doneState.hidden = true;
-      formState.hidden = false;
-    }
-    const draft = store.get<{ name: string; message: string }>(DRAFT_KEY);
-    if (draft && !name.value && !message.value) {
-      name.value = draft.name;
-      message.value = draft.message;
-      updateCount();
-    }
-  });
+  const draft = store.get<{ name: string; message: string }>(DRAFT_KEY);
+  if (draft) {
+    name.value = draft.name;
+    message.value = draft.message;
+    updateCount();
+  }
 
   form.addEventListener('input', (e) => {
     const target = e.target as HTMLInputElement;
+    startedAt ||= performance.now();
     if (target.name) clearError(form, target.name);
+    status.textContent = '';
+    ok.textContent = '';
     store.set(DRAFT_KEY, { name: name.value, message: message.value });
   });
 
@@ -85,51 +116,90 @@ function initComposer() {
     e.preventDefault();
     if (submit.disabled) return;
     status.textContent = '';
+    ok.textContent = '';
     const valid = validateWish({ name: name.value, message: message.value });
     if (!valid.ok) return showErrors(form, valid.errors);
 
     setSending(submit, true);
-    // A retry of the same words reuses the key, so the server can never store it twice (AC-27).
-    const sig = `${valid.value.name}\n${valid.value.message}`;
-    if (sig !== signature || !key) {
-      key = newIdempotencyKey();
-      signature = sig;
-    }
-    await atLeast(openedAt, LIMITS.minFillMs + 200);
-    const botToken = await getBotToken(form.querySelector('[data-bot]')!);
-    const res = await submitWish({ ...valid.value, website: website.value, elapsedMs: Math.round(performance.now() - openedAt), botToken }, key);
-    setSending(submit, false);
-
-    if (res.ok) {
-      store.remove(DRAFT_KEY);
-      form.reset();
-      updateCount();
+    let wish: Mine;
+    if (local) {
+      wish = { id: `local-${Date.now().toString(36)}`, name: valid.value.name, message: valid.value.message, created_at: new Date().toISOString() };
+      await new Promise((r) => setTimeout(r, 450));
+    } else {
+      // A retry of the same words reuses the key, so the server can never store it twice (AC-27).
+      const sig = `${valid.value.name}\n${valid.value.message}`;
+      if (sig !== signature || !key) {
+        key = newIdempotencyKey();
+        signature = sig;
+      }
+      startedAt ||= performance.now();
+      await atLeast(startedAt, LIMITS.minFillMs + 200);
+      const botToken = await getBotToken(form.querySelector('[data-bot]')!);
+      const res = await submitWish({ ...valid.value, website: website.value, elapsedMs: Math.round(performance.now() - startedAt), botToken }, key);
+      if (!res.ok) {
+        setSending(submit, false);
+        if (res.kind === 'validation' && res.fields) return showErrors(form, res.fields);
+        status.textContent = errorMessage(res.kind, 'blessing');
+        label.textContent = 'Try again';
+        return;
+      }
+      wish = { id: res.data.id, name: valid.value.name, message: valid.value.message, created_at: new Date().toISOString(), pending: true };
       key = null;
       signature = '';
-      label.textContent = 'Send Blessing';
-      formState.hidden = true;
-      doneState.hidden = false;
-      doneState.focus();
-      return;
     }
-    if (res.kind === 'validation' && res.fields) return showErrors(form, res.fields);
-    status.textContent = errorMessage(res.kind, 'blessing');
-    label.textContent = 'Try again';
+    setSending(submit, false);
+    store.remove(DRAFT_KEY);
+    addMine(wish);
+    form.reset();
+    updateCount();
+    startedAt = 0;
+    label.textContent = 'Send Your Wish';
+    ok.textContent = local
+      ? 'Thank you! Your blessing hangs on the wall (kept on this device).'
+      : 'Thank you! Your blessing hangs on the wall now, and joins everyone’s once the family has seen it.';
+    if (live) live.textContent = 'Your blessing is hanging on the wall.';
+    const wall = getWall();
+    if (wall) await wall.hang({ ...wish, mine: true }, () => void ringDing());
+    else void ringDing();
   });
 }
 
 /* ------------------------------------------------------------------ all wishes */
 
-function renderWish(w: PublicWish): HTMLLIElement {
+const whenFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+const fmtWhen = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : whenFormat.format(d).replace(',', ' ·').replace(/\b(am|pm)\b/i, (m) => m.toLowerCase());
+};
+
+function renderWish(w: Mine): HTMLLIElement {
   const li = document.createElement('li');
   li.className = 'wishes-all__card';
+  li.dataset.wishId = w.id;
   const msg = document.createElement('p');
   msg.className = 'wishes-all__msg';
   msg.textContent = w.message; // guest text is always rendered as text, never HTML
   const by = document.createElement('p');
-  by.className = 'wishes-all__name';
-  by.textContent = `— ${w.name}`;
+  by.className = 'wishes-all__by';
+  const who = document.createElement('span');
+  who.className = 'wishes-all__name';
+  who.textContent = `— ${w.name}`;
+  by.append(who);
+  const when = fmtWhen(w.created_at);
+  if (when) {
+    const time = document.createElement('time');
+    time.className = 'wishes-all__when';
+    time.dateTime = w.created_at;
+    time.textContent = when;
+    by.append(time);
+  }
   li.append(msg, by);
+  if (w.pending) {
+    const note = document.createElement('p');
+    note.className = 'wishes-all__note';
+    note.textContent = 'Yours · will show for everyone once the family has seen it';
+    li.append(note);
+  }
   return li;
 }
 
@@ -143,6 +213,18 @@ function initAllWishes() {
   const more = dialog.querySelector<HTMLButtonElement>('[data-wishes-more]')!;
   let cursor: string | null = null;
   let loading = false;
+  let focusId: string | null = null;
+  document.addEventListener('wishes:focus', (e) => (focusId = (e as CustomEvent<string>).detail));
+
+  const showFocus = () => {
+    const id = focusId;
+    focusId = null;
+    if (!id) return;
+    const card = [...list.children].find((c) => (c as HTMLElement).dataset.wishId === id) as HTMLElement | undefined;
+    if (!card) return;
+    card.classList.add('is-focus');
+    requestAnimationFrame(() => card.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+  };
 
   const load = async (reset: boolean) => {
     if (loading) return;
@@ -154,6 +236,19 @@ function initAllWishes() {
     }
     error.textContent = '';
     more.disabled = true;
+
+    if (localMode()) {
+      const mine = readMine().sort(byNewest);
+      mine.forEach((w) => list.append(renderWish({ ...w, pending: false })));
+      count.textContent = `${mine.length} ${mine.length === 1 ? 'blessing' : 'blessings'}`;
+      empty.hidden = mine.length > 0;
+      more.hidden = true;
+      loading = false;
+      more.disabled = false;
+      showFocus();
+      return;
+    }
+
     const res = await fetchWishes(cursor, 20);
     loading = false;
     more.disabled = false;
@@ -164,12 +259,21 @@ function initAllWishes() {
       if (reset) count.textContent = '';
       return;
     }
-    res.data.items.forEach((w) => list.append(renderWish(w)));
+    // This guest's own blessing that the family has not yet approved leads the list, marked as theirs. It is
+    // one that falls within the first page's span of time yet is not in it (an older one may simply be on a later page).
+    const shown = new Set(res.data.items.map((w) => w.id));
+    const oldest = res.data.items.length ? res.data.items[res.data.items.length - 1].created_at : '';
+    const waiting = reset ? readMine().filter((m) => m.pending && !shown.has(m.id) && (!res.data.nextCursor || m.created_at > oldest)).sort(byNewest) : [];
+    waiting.forEach((w) => list.append(renderWish(w)));
+    const have = new Set([...list.children].map((c) => (c as HTMLElement).dataset.wishId));
+    res.data.items.filter((w) => !have.has(w.id)).forEach((w) => list.append(renderWish(w)));
     cursor = res.data.nextCursor;
-    count.textContent = `${res.data.total} ${res.data.total === 1 ? 'blessing' : 'blessings'}`;
-    empty.hidden = res.data.total > 0;
+    const total = res.data.total + (reset ? waiting.length : 0);
+    count.textContent = `${total} ${total === 1 ? 'blessing' : 'blessings'}`;
+    empty.hidden = total > 0;
     more.hidden = !cursor;
     more.textContent = 'Load more blessings';
+    showFocus();
   };
 
   dialog.addEventListener('dialog:open', () => void load(true));

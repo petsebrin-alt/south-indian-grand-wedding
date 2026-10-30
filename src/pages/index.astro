@@ -28,7 +28,6 @@ import CalendarSheet from '../components/CalendarSheet.astro';
 import EventSheet from '../components/EventSheet.astro';
 import TravelSheet from '../components/TravelSheet.astro';
 import { travelTiles } from '../lib/travel';
-import WishComposer from '../components/WishComposer.astro';
 import WishesAll from '../components/WishesAll.astro';
 import RsvpForm from '../components/RsvpForm.astro';
 import ContactSheet from '../components/ContactSheet.astro';
@@ -126,7 +125,6 @@ const p = (id: string) => {
         {wedding.events.map((e) => <CalendarSheet eventId={e.id} />)}
         {wedding.events.map((e) => <EventSheet event={e} />)}
         {travelTiles.map((t) => <TravelSheet item={t.key} icon={t.icon} />)}
-        <WishComposer />
         <WishesAll />
         <RsvpForm />
         {wedding.contacts.map((c) => <ContactSheet contact={c} />)}

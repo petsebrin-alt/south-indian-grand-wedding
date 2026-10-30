@@ -96,3 +96,48 @@ export function ringBell(recording: string | null, strikes = 2) {
     }, i * 520);
   }
 }
+
+/* ------------------------------------------------------------------ the Wishing Wall's ding */
+
+// A single "ding" of a brass temple bell, built from how cast brass sounds (scripts/wishes/bell.py), played
+// whenever a new blessing is hung on the wall. Fetched ahead of time (no sound), decoded and played from
+// the guest's own action; each ding is a hair different in pitch, as a real bell is never struck twice alike.
+const DING_URL = `${import.meta.env.BASE_URL}audio/temple-ding.wav`;
+let dingBytes: Promise<ArrayBuffer | null> | null = null;
+let dingBuffer: AudioBuffer | null = null;
+
+export function prefetchDing() {
+  dingBytes ??= fetch(DING_URL)
+    .then((r) => (r.ok ? r.arrayBuffer() : null))
+    .catch(() => null);
+}
+
+export async function ringDing() {
+  if (!soundOn()) return;
+  try {
+    ctx ??= new AudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
+    if (!dingBuffer) {
+      prefetchDing();
+      const bytes = await dingBytes;
+      if (bytes) dingBuffer = await ctx.decodeAudioData(bytes.slice(0));
+    }
+    if (dingBuffer) {
+      const src = ctx.createBufferSource();
+      src.buffer = dingBuffer;
+      src.playbackRate.value = 0.985 + Math.random() * 0.03;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.9;
+      src.connect(gain).connect(ctx.destination);
+      src.start();
+      return;
+    }
+  } catch {
+    /* fall through to the synthesised bell */
+  }
+  try {
+    synthesise(880);
+  } catch {
+    /* no audio on this device */
+  }
+}

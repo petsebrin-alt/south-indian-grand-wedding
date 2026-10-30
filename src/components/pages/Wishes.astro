@@ -1,9 +1,31 @@
 ---
-/** Page 15 — Wishing Wall (PRD §6.15, THEME §13 P16). Behaviour: src/forms/wishes.ts */
+/**
+ * Page 15 — Wishing Wall (PRD §6.15), after the client's picture: a golden double door slides open on a
+ * temple hall (src/assets/wishes/, cut from the client's two pictures; npm run wishes:assets), a jasmine
+ * garland along a brass rod with the blessings hanging from it on gold chains, each on a cream board with
+ * a brass bell; below them the "Write a Blessing" card, and a "View all wishes" button under that. A new
+ * blessing is lowered on its own chain from the rod as the temple bell rings, and the others make room.
+ * Behaviour: src/motion/pages/wishes.ts, src/motion/wishwall.ts, src/forms/wishes.ts. The golden doors, the
+ * hall and the pieces of the board and card are the client's pictures; the writing on them is real text.
+ */
 import PageShell from '../PageShell.astro';
-import Decor from '../Decor.astro';
+import ScenePhoto from '../ScenePhoto.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
+import { siteMode } from '../../lib/site-mode';
+import { LIMITS } from '../../../supabase/functions/_shared/validate.ts';
+import meta from '../../assets/wishes/wishes.json';
+import scene from '../../assets/wishes/scene.webp';
+import sceneAvif from '../../assets/wishes/scene.avif';
+import doorL from '../../assets/wishes/door-l.webp';
+import doorLAvif from '../../assets/wishes/door-l.avif';
+import doorR from '../../assets/wishes/door-r.webp';
+import doorRAvif from '../../assets/wishes/door-r.avif';
+import board from '../../assets/wishes/board.webp';
+import chain from '../../assets/wishes/chain.webp';
+import ornTop from '../../assets/wishes/orn-top.webp';
+import ornBottom from '../../assets/wishes/orn-bottom.webp';
+import card from '../../assets/wishes/card.webp';
 
 interface Props {
   page: BookPage;
@@ -12,234 +34,630 @@ interface Props {
 
 const { page, index } = Astro.props;
 const { groom, bride } = wedding.couple;
-const shapes = ['arch', 'rect', 'scallop', 'rect', 'arch'];
+const box = (b: number[]) => `--x:${b[0]}%;--y:${b[1]}%;--w:${b[2]}%;--h:${b[3]}%`;
+const t = meta.board.text;
 ---
 
-<PageShell page={page} index={index} watermark={false} class="ww" note="Placeholder art: D-35 blessing cards (CSS), D-01 jasmine, D-08 bells, D-07 diya. Wishes appear here after a family member approves them.">
-  <h2 class="page-title ww__title" tabindex="-1" data-page-heading>Blessings for {groom.name} &amp; {bride.name}</h2>
-
-  <div class="ww__hang">
-    <div class="ww__rod" aria-hidden="true">
-      <Decor name="jasmine-swag" asset="D-01" class="ww__rod-jasmine" />
-      <Decor name="temple-bell" asset="D-08" class="ww__bell ww__bell--a sway" style="--sway:2deg;--sway-dur:5s" />
-      <Decor name="temple-bell" asset="D-08" class="ww__bell ww__bell--b sway" style="--sway:2deg;--sway-dur:5.8s;--sway-delay:-1s" />
+<PageShell page={page} index={index} watermark={false} class="ww">
+  <Fragment slot="architecture">
+    <div class="layer layer--architecture ww__scene" aria-hidden="true" data-scene>
+      <ScenePhoto class="ww__bg" avif={sceneAvif} webp={scene} defer />
     </div>
-    <ul class="ww__cards" data-wall aria-label="Recent blessings">
-      <li class="ww__card ww__card--arch ww__card--empty" data-wall-empty>
-        <p class="ww__msg">Be the first to bless the couple</p>
-      </li>
-      {
-        shapes.map((shape, i) => (
-          <li class:list={['ww__card', `ww__card--${shape}`, i === 4 && 'ww__card--extra']} data-wall-slot hidden style={`--i:${i};--col:${(i % 2) + 1};--row:${Math.floor(i / 2) + 1};--drop:${i % 2}`}>
-            <p class="ww__msg" />
-            <p class="ww__name" />
-          </li>
-        ))
-      }
-    </ul>
-  </div>
-
-  <div class="ww__actions">
-    <button class="btn-primary" type="button" data-open-dialog="wish-composer" aria-haspopup="dialog" data-needs-api="blessing">Write a Blessing</button>
-    <button class="btn-secondary" type="button" data-open-dialog="wishes-all" aria-haspopup="dialog" data-needs-api="blessing">View All Wishes</button>
-  </div>
-
-  <Fragment slot="foreground">
-    <span class="layer layer--foreground ww__diya" aria-hidden="true">
-      <Decor name="agal-diya" asset="D-07" class="ww__diya-img" />
-      <span class="flame ww__diya-flame"></span>
-    </span>
   </Fragment>
+
+  <div
+    class="ww__world"
+    data-wishes
+    data-site-mode={siteMode}
+    style={`--chain-url:url("${chain.src}");--board-ratio:${meta.board.height / meta.board.width};--chain-w:${meta.chain.width / 2};--chain-h:${meta.chain.height / 2};--card-ratio:${meta.card.width / meta.card.height};--hang:${meta.board.hang}%;--text-x:${t[0]}%;--text-y:${t[1]}%;--text-w:${t[2]}%;--text-h:${t[3]}%`}
+  >
+    <div class="ww__heading">
+      <img class="ww__orn ww__orn--top" data-src={ornTop.src} width={meta['orn-top'].width} height={meta['orn-top'].height} alt="" decoding="async" />
+      <h2 class="ww__title" tabindex="-1" data-page-heading>
+        <span class="ww__t1">Blessings</span>
+        <span class="ww__t2">for</span>
+        <span class="ww__t3">{groom.name} <span class="ww__amp">&amp;</span> {bride.name}</span>
+      </h2>
+      <img class="ww__orn ww__orn--bottom" data-src={ornBottom.src} width={meta['orn-bottom'].width} height={meta['orn-bottom'].height} alt="" decoding="async" />
+    </div>
+
+    <ul class="ww__wall" data-wall aria-label="Recent blessings"></ul>
+
+    <form class="ww__card" data-wish-form novalidate style={`--card-title:${meta.card.title}%`}>
+      <img class="ww__card-art" data-src={card.src} width={meta.card.width} height={meta.card.height} alt="" decoding="async" />
+      <h3 class="ww__form-title">Write a Blessing</h3>
+      <div class="ww__notes" style={box(meta.card.subtitle)}>
+        <p class="ww__err" role="alert" data-error-for="name"></p>
+        <p class="ww__err" role="alert" data-error-for="message"></p>
+        <p class="ww__err" role="alert" data-form-status></p>
+        <p class="ww__ok" role="status" data-form-ok></p>
+        <p class="ww__sub">Share your love, prayers and best wishes for {groom.name} &amp; {bride.name}.</p>
+      </div>
+      <label class="ww__field ww__field--name" style={box(meta.card.name)}>
+        <span class="sr-only">Your name</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6" /><path d="M5 20c.6-4 3.4-6 7-6s6.4 2 7 6" /></svg>
+        <input name="name" placeholder="Your Name" autocomplete="name" maxlength={LIMITS.wishNameMax} required />
+      </label>
+      <label class="ww__field ww__field--wish" style={box(meta.card.wish)}>
+        <span class="sr-only">Your blessing</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4.2L16.6 4.2a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.2 19z" /><path d="M14.6 6.2l3.2 3.2" /></svg>
+        <textarea name="message" placeholder="Write your wish here..." maxlength={LIMITS.messageMax} required></textarea>
+        <span class="ww__count" aria-live="polite" data-counter-for="message">0 / {LIMITS.messageMax}</span>
+      </label>
+      <div class="hp" aria-hidden="true">
+        <label for="wish-website">Leave this empty</label>
+        <input id="wish-website" name="website" tabindex="-1" autocomplete="off" />
+      </div>
+      <button class="ww__send" type="submit" style={box(meta.card.button)} data-submit>
+        <span class="btn-label">Send Your Wish</span>
+        <svg class="ww__send-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5L3.5 10.6l6.6 2.6 2.6 6.7z" /><path d="M10.1 13.2l10.4-9.7" /></svg>
+        <span class="btn-sending"><span class="petal-spinner" aria-hidden="true"></span> Sending…</span>
+      </button>
+      <div data-bot></div>
+    </form>
+
+    <button class="ww__all" type="button" data-open-dialog="wishes-all" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14M5 12h14M5 17.5h9" /></svg>
+      View all wishes
+    </button>
+    <p class="ww__local" data-wall-local hidden>Preview: blessings are kept on this device until the guest-book is connected.</p>
+    <p class="sr-only" aria-live="polite" data-wall-live></p>
+
+    <template data-board-template>
+      <li class="ww__board">
+        <div class="ww__swing">
+          <span class="ww__chain" aria-hidden="true"></span>
+          <button class="ww__pendant" type="button" data-open-dialog="wishes-all" aria-haspopup="dialog">
+            <img class="ww__sprite" src={board.src} width={meta.board.width} height={meta.board.height} alt="" decoding="async" draggable="false" />
+            <span class="ww__lines">
+              <span class="ww__msg"></span>
+              <span class="ww__by"></span>
+            </span>
+          </button>
+        </div>
+      </li>
+    </template>
+
+    <div class="ww__doors" aria-hidden="true" data-doors>
+      <div class="ww__door ww__door--l"><ScenePhoto class="ww__door-img" avif={doorLAvif} webp={doorL} defer /></div>
+      <div class="ww__door ww__door--r"><ScenePhoto class="ww__door-img" avif={doorRAvif} webp={doorR} defer /></div>
+    </div>
+  </div>
+
 </PageShell>
 
 <style is:global>
-  /* Heading from 6%, buttons to 92% (PRD §6.15): this page uses more of the height than most. */
+  /* One design unit (--u) is a pixel of a 430 × 932 phone, scaled to the page, so the wall keeps its shape on
+     any phone; the hall behind it fills the page. */
+  .ww {
+    --u: min(0.2326cqw, 0.1073cqh);
+    --card-w: 320;
+    --rod: 17;
+  }
+
+  .ww .page__frame {
+    display: none;
+  }
+
   .ww .page__content {
-    top: calc(var(--safe-top) + 5.5cqh);
-    bottom: calc(var(--safe-bottom) + 8cqh);
-    gap: 1.2cqh;
+    inset: 0;
+    display: block;
+  }
+
+  /* ---------------------------------------------------------------- the hall */
+  .ww__scene {
+    inset: 0;
+    overflow: hidden;
+    background: #5a3414;
+  }
+
+  .ww__bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 0;
+  }
+
+  .ww__world {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* ---------------------------------------------------------------- the heading */
+  .ww__heading {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--u) * 138);
+    width: calc(var(--u) * 214);
+    translate: -50% 0;
+    display: grid;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .ww__orn {
+    display: block;
+    max-width: none;
+    height: auto;
+  }
+
+  .ww__orn--top {
+    width: calc(var(--u) * 104);
+  }
+
+  .ww__orn--bottom {
+    width: calc(var(--u) * 134);
+    margin-top: calc(var(--u) * 6);
   }
 
   .ww__title {
-    max-width: 16em;
+    display: grid;
+    justify-items: center;
+    margin-top: calc(var(--u) * 6);
+    color: #f6e8c6;
+    text-shadow:
+      0 1px 2px rgba(34, 14, 4, 0.85),
+      0 0 12px rgba(34, 14, 4, 0.7),
+      0 0 26px rgba(34, 14, 4, 0.5);
   }
 
-  /* Cards hang on gold threads from a jasmine-garlanded brass rod; the threads are clipped at the rod */
-  .ww__hang {
-    position: relative;
-    flex: none;
-    width: 112%;
+  .ww__t1 {
+    font: 500 calc(var(--u) * 22) / 1.1 var(--font-royal);
+    letter-spacing: 0.24em;
+    text-indent: 0.24em;
+    text-transform: uppercase;
+  }
+
+  .ww__t2 {
+    margin-top: calc(var(--u) * 5);
+    font: 500 calc(var(--u) * 12.5) / 1 var(--font-royal);
+    letter-spacing: 0.4em;
+    text-indent: 0.4em;
+    text-transform: uppercase;
+  }
+
+  .ww__t3 {
+    margin-top: calc(var(--u) * 5);
+    font: 600 calc(var(--u) * 31) / 1.05 var(--font-display);
+    font-variant-caps: small-caps;
+    letter-spacing: 0.035em;
+    white-space: nowrap;
+  }
+
+  .ww__amp {
+    font-style: italic;
+    font-weight: 500;
+    padding: 0 0.04em;
+  }
+
+  /* ---------------------------------------------------------------- the wall: boards hang from the rod */
+  .ww__wall {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--u) * var(--rod));
+    width: calc(var(--u) * 430);
+    height: calc(var(--u) * 640);
+    translate: -50% 0;
     overflow: hidden;
-    padding-top: 14px;
-  }
-
-  .ww__rod {
-    position: absolute;
-    left: 2%;
-    right: 2%;
-    top: 0;
-    height: 10px;
-    z-index: 2;
-    border-radius: 5px;
-    background: linear-gradient(180deg, #f1d99b 0%, #c49a45 45%, #7a5718 100%);
-    box-shadow: 0 3px 6px rgba(75, 48, 38, 0.25);
-  }
-
-  .ww__rod-jasmine {
-    position: absolute;
-    left: -2%;
-    top: -4px;
-    width: 104%;
     pointer-events: none;
   }
 
-  .ww__bell {
+  .ww__board {
+    --x: 5;
+    --chain: 40;
     position: absolute;
-    top: 6px;
-    width: 4.4cqw;
+    top: 0;
+    left: calc(var(--u) * var(--x));
+    width: calc(var(--u) * 104);
+    will-change: transform;
   }
 
-  .ww__bell--a {
-    left: 33%;
-  }
-
-  .ww__bell--b {
-    right: 33%;
-  }
-
-  /* Staggered two columns (PRD §6.15): left 1·3·5, right 2·4 hanging lower. The area keeps its
-     height whether it holds one card or five, so the title and buttons never move. */
-  .ww__cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-auto-rows: min-content;
-    align-content: start;
-    gap: 2cqh 4cqw;
-    min-height: 47cqh;
-    padding: 3cqh 2cqw 2.4cqh;
-    isolation: isolate;
-  }
-
-  .ww__cards:has(> .ww__card--empty:not([hidden])) {
-    align-content: center;
-  }
-
-  .ww__card {
+  .ww__swing {
     position: relative;
-    z-index: calc(10 - var(--i, 0));
-    display: grid;
-    align-content: center;
-    gap: 5px;
-    min-height: 11cqh;
-    padding: 1.5cqh 3.2cqw 1.4cqh;
-    background-color: #fffdf8;
-    background-image: var(--paper-texture);
-    background-blend-mode: multiply;
-    box-shadow:
-      inset 0 0 0 1px var(--gold),
-      inset 0 0 0 4px #fffdf8,
-      inset 0 0 0 5px var(--hairline),
-      0 8px 16px rgba(75, 48, 38, 0.16);
-    --tilt: calc((var(--i, 0) - 2) * 1.2deg);
-    transform-origin: 50% -20px;
-    rotate: var(--tilt);
+    padding-top: calc(var(--u) * var(--chain));
+    transform-origin: 50% 0;
+    filter: drop-shadow(0 calc(var(--u) * 5) calc(var(--u) * 6) rgba(30, 12, 2, 0.45));
   }
 
-  .ww__card[data-wall-slot] {
-    grid-column: var(--col);
-    grid-row: var(--row);
-    top: calc(var(--drop) * 4cqh); /* not a transform: GSAP owns the transform during the drop */
-  }
-
-  /* Gold thread up to the rod; it passes behind the cards hanging above */
-  .ww__card::before {
-    content: '';
+  /* The chain runs from the rod to the board's bow (the top of the sprite) */
+  .ww__chain {
     position: absolute;
-    left: 50%;
-    bottom: 100%;
-    width: 1px;
-    height: 60cqh;
-    background: var(--gold);
+    left: var(--hang);
+    top: 0;
+    width: calc(var(--u) * var(--chain-w) * 0.66);
+    height: calc(var(--u) * var(--chain) + var(--u) * 6);
+    translate: -50% 0;
+    background: var(--chain-url) 50% 0 / 100% calc(var(--u) * var(--chain-h) * 0.66) repeat-y;
   }
 
-  .ww__card--empty {
-    grid-column: 1 / -1;
-    justify-self: center;
-    width: 64%;
-    --tilt: -1.5deg;
+  .ww__pendant {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: center;
+    pointer-events: auto;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .ww__card--arch {
-    border-radius: 40% 40% 8px 8px / 16% 16% 8px 8px;
-    padding-top: 2.6cqh;
+  .ww__sprite {
+    display: block;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+    user-select: none;
   }
 
-  .ww__card--rect {
-    border-radius: 4px;
-  }
-
-  .ww__card--scallop {
-    border-radius: 18px 18px 18px 18px / 12px 12px 12px 12px;
+  /* The wish, on the cream of the board */
+  .ww__lines {
+    position: absolute;
+    left: var(--text-x);
+    top: var(--text-y);
+    width: var(--text-w);
+    height: var(--text-h);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--u) * 4);
+    padding-inline: calc(var(--u) * 3);
+    color: #3a281f;
   }
 
   .ww__msg {
     display: -webkit-box;
-    -webkit-line-clamp: 4;
+    -webkit-line-clamp: 5;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    font: italic 500 clamp(14px, 4cqw, 16px) / 1.28 var(--font-display);
-    color: var(--brown);
+    font: 600 calc(var(--u) * 11.4) / 1.17 var(--font-display);
+    text-wrap: balance;
     overflow-wrap: anywhere;
   }
 
-  .ww__name {
+  .ww__by {
+    max-width: 100%;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    font: 500 10px/1.3 var(--font-royal);
-    letter-spacing: 0.12em;
+    font: 500 calc(var(--u) * 7) / 1.2 var(--font-royal);
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--gold-text);
+    color: #6d5a49;
   }
 
-  .ww__actions {
-    display: grid;
-    gap: 1.2cqh;
-    width: 100%;
+  .ww__board.is-mine .ww__by {
+    color: #8a1426;
   }
 
-  .ww__diya {
+  /* ---------------------------------------------------------------- the card */
+  .ww__card {
+    position: absolute;
     left: 50%;
-    bottom: calc(var(--safe-bottom) + 7cqh);
-    width: 12cqw;
+    bottom: calc(var(--safe-bottom) + 50px + var(--u) * 48);
+    width: calc(var(--u) * var(--card-w));
+    aspect-ratio: var(--card-ratio);
     translate: -50% 0;
+    filter: drop-shadow(0 calc(var(--u) * 8) calc(var(--u) * 12) rgba(30, 12, 2, 0.4));
+    z-index: 3;
   }
 
-  .ww__diya-img {
+  .ww__card-art {
+    position: absolute;
+    inset: 0;
     width: 100%;
+    height: 100%;
+    pointer-events: none;
   }
 
-  .ww__diya-flame {
-    left: 92%;
-    top: 46%;
-    width: 16%;
+  .ww__form-title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--card-title);
+    translate: 0 -50%;
+    text-align: center;
+    font: 500 calc(var(--u) * 21) / 1 var(--font-display);
+    color: #3a281f;
+  }
+
+  .ww__notes,
+  .ww__field,
+  .ww__send {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: var(--w);
+    height: var(--h);
+  }
+
+  .ww__notes {
+    display: grid;
+    align-content: center;
+    text-align: center;
+  }
+
+  .ww__sub,
+  .ww__err,
+  .ww__ok {
+    font: 400 calc(var(--u) * 10.2) / 1.28 var(--font-body);
+    color: #6a584a;
+  }
+
+  .ww__err {
+    color: #8a1426;
+    font-weight: 600;
+  }
+
+  .ww__ok {
+    color: #1d5232;
+    font-weight: 600;
+  }
+
+  .ww__err:empty,
+  .ww__ok:empty {
+    display: none;
+  }
+
+  .ww__err:not(:empty) ~ .ww__err {
+    display: none;
+  }
+
+  .ww__notes:has(.ww__err:not(:empty), .ww__ok:not(:empty)) .ww__sub {
+    display: none;
+  }
+
+  .ww__field {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--u) * 8);
+    padding: 0 calc(var(--u) * 10);
+    border: 1px solid rgba(176, 142, 84, 0.6);
+    border-radius: calc(var(--u) * 10);
+    background: rgba(255, 252, 243, 0.55);
+    box-shadow: inset 0 1px 2px rgba(120, 90, 40, 0.08);
+    cursor: text;
+    transition:
+      border-color 0.25s,
+      background-color 0.25s,
+      box-shadow 0.25s;
+  }
+
+  .ww__field--wish {
+    align-items: flex-start;
+    padding-top: calc(var(--u) * 9);
+  }
+
+  .ww__field:focus-within {
+    border-color: #a8741f;
+    background: rgba(255, 253, 247, 0.9);
+    box-shadow:
+      0 0 0 2px rgba(201, 162, 74, 0.35),
+      inset 0 1px 2px rgba(120, 90, 40, 0.08);
+  }
+
+  .ww__field:has([aria-invalid='true']) {
+    border-color: #8a1426;
+  }
+
+  .ww__field svg {
+    flex: none;
+    width: calc(var(--u) * 15);
+    height: calc(var(--u) * 15);
+    fill: none;
+    stroke: #6a584a;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .ww__field input,
+  .ww__field textarea {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: none;
+    font: 600 calc(var(--u) * 13) / 1.3 var(--font-display);
+    color: #3a281f;
+    resize: none;
+  }
+
+  /* the page's general focus ring (a pale halo) is replaced by the field's own gold ring */
+  .ww__field input:focus,
+  .ww__field textarea:focus {
+    outline: 0;
+    box-shadow: none;
+  }
+
+  .ww__field textarea {
+    padding-bottom: calc(var(--u) * 12);
+    overscroll-behavior: contain;
+  }
+
+  .ww__field input::placeholder,
+  .ww__field textarea::placeholder {
+    color: #85735f;
+    opacity: 1;
+  }
+
+  .ww__count {
+    position: absolute;
+    right: calc(var(--u) * 10);
+    bottom: calc(var(--u) * 5);
+    font: 500 calc(var(--u) * 7.6) / 1 var(--font-body);
+    color: #85735f;
+    pointer-events: none;
+  }
+
+  .ww__send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--u) * 9);
+    padding: 0;
+    border: 1px solid #c9a24a;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #8a2234 0%, #6a1626 52%, #55101e 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 214, 150, 0.35),
+      inset 0 0 0 1.5px rgba(80, 12, 24, 0.55),
+      0 calc(var(--u) * 3) calc(var(--u) * 6) rgba(60, 10, 20, 0.35);
+    color: #f8e8c4;
+    font: 600 calc(var(--u) * 15.5) / 1 var(--font-display);
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      filter 0.25s,
+      transform 0.15s;
+  }
+
+  .ww__send:active {
+    transform: scale(0.985);
+    filter: brightness(1.12);
+  }
+
+  .ww__send-icon {
+    width: calc(var(--u) * 15);
+    height: calc(var(--u) * 15);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .ww__send .btn-sending {
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ww__send.is-sending .btn-label,
+  .ww__send.is-sending .ww__send-icon {
+    display: none;
+  }
+
+  .ww__send.is-sending .btn-sending {
+    display: inline-flex;
+  }
+
+  /* ---------------------------------------------------------------- View all wishes */
+  .ww__all {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--safe-bottom) + 50px);
+    translate: -50% 0;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--u) * 8);
+    min-width: calc(var(--u) * 190);
+    height: calc(var(--u) * 38);
+    padding: 0 calc(var(--u) * 22);
+    border: 1px solid #b8893a;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fdf1cf 0%, #efd694 55%, #dcb868 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 calc(var(--u) * 3) calc(var(--u) * 8) rgba(40, 16, 4, 0.45);
+    color: #5e1424;
+    font: 600 calc(var(--u) * 11) / 1 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .ww__all svg {
+    width: calc(var(--u) * 14);
+    height: calc(var(--u) * 14);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+  }
+
+  .ww__local[hidden] {
+    display: none;
+  }
+
+  .ww__local {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    bottom: calc(var(--safe-bottom) + 50px + var(--u) * 40 + 4px);
+    z-index: 4;
+    text-align: center;
+    font: 500 9px/1.3 var(--font-body);
+    color: #f6e8c6;
+    text-shadow: 0 1px 3px rgba(20, 8, 2, 0.9);
+    pointer-events: none;
+  }
+
+  /* ---------------------------------------------------------------- the golden doors */
+  .ww__doors {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .ww__door {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    overflow: hidden;
+    will-change: transform;
+  }
+
+  .ww__door--l {
+    left: 0;
+    box-shadow: 4px 0 18px rgba(20, 8, 0, 0.5);
+  }
+
+  .ww__door--r {
+    right: 0;
+    box-shadow: -4px 0 18px rgba(20, 8, 0, 0.5);
+  }
+
+  .ww__door-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ww__door--l .ww__door-img {
+    object-position: 100% 50%;
+  }
+
+  .ww__door--r .ww__door-img {
+    object-position: 0% 50%;
+  }
+
+  .ww__doors.is-open {
+    visibility: hidden;
+  }
+
+  html:not(.js) .ww__doors,
+  html:not(.js) .ww__board {
+    display: none;
   }
 
   @container app (max-height: 699px) {
-    .ww__card {
-      min-height: 11cqh;
-      padding-block: 1.4cqh;
-    }
-
-    .ww__cards {
-      min-height: 40cqh;
-    }
-
-    .ww__card--extra {
-      display: none;
-    }
-
-    .ww__diya {
+    .ww__local {
       display: none;
     }
   }

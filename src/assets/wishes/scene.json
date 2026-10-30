@@ -1,0 +1,42 @@
+{
+  "_note": "Coordinates, in pixels of the client's two pictures (source/wall.webp 977 × 1609, source/door.webp 977 × 1609), for scripts/wishes/cut.py. boards: where each of the picture's five hanging boards is, as an offset from board 2 (the one cut out as the sprite). unit.crop is the sprite's box (the medallion, the board, its clasp, the jasmine and the bell) and unit.text the lettering on it that is rubbed out. title.top and title.bottom are the two gold flourishes round the heading (the heading's lettering itself is real text on the page). chain is a straight run of the long gold chain at the right, tiled to any length. card.region holds the 'Write a Blessing' card, card.erase is the lettering and fields on it that are rubbed out, and card.layout where the title, subtitle, fields and button were (the page puts real ones there). scene: the picture is trimmed by `trim` pixels each side, then made taller to the phone's shape (target w × h) by repeating plain seams of the hall between rows band[0] and band[1].",
+  "boards": [[0, 0], [493, -1], [-93, 279], [598, 201], [-145, -66]],
+  "unit": {
+    "crop": [186, 236, 344, 636],
+    "text": [213, 342, 318, 470]
+  },
+  "title": {
+    "box": [368, 286, 676, 545],
+    "top": [418, 296, 620, 346],
+    "bottom": [390, 476, 650, 530]
+  },
+  "chain": {
+    "x": [855, 865],
+    "y": [130, 430]
+  },
+  "card": {
+    "region": [205, 975, 775, 1474],
+    "erase": [262, 1068, 712, 1434],
+    "layout": {
+      "titleY": 1096,
+      "subtitle": [292, 1124, 688, 1168],
+      "name": [292, 1184, 688, 1232],
+      "wish": [292, 1244, 688, 1346],
+      "button": [292, 1360, 688, 1418]
+    }
+  },
+  "scene": {
+    "trim": 30,
+    "target": [430, 932],
+    "band": [250, 1560]
+  },
+  "door": {
+    "target": [430, 932],
+    "upscale": 1.6
+  },
+  "upscale": {
+    "board": 2,
+    "card": 2,
+    "title": 2
+  }
+}

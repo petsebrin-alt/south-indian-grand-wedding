@@ -1,9 +1,14 @@
 ---
-/** "View All Wishes" overlay (PRD §6.15): approved blessings only, newest first, 20 at a time. */
+/**
+ * "View all wishes" overlay (PRD §6.15): a full frame on the Wishing Wall's temple hall holding every
+ * approved blessing, newest first, 20 at a time, each on a cream board with the guest's name and the date
+ * and time they wrote it. Behaviour: src/forms/wishes.ts
+ */
 import Icon from './Icon.astro';
+import hall from '../assets/wishes/scene.webp';
 ---
 
-<div id="wishes-all" class="overlay" role="dialog" aria-modal="true" aria-labelledby="wishes-all-title" hidden data-wishes-all>
+<div id="wishes-all" class="overlay" role="dialog" aria-modal="true" aria-labelledby="wishes-all-title" hidden data-wishes-all style={`--hall:url("${hall.src}")`}>
   <header class="overlay__header">
     <h2 id="wishes-all-title" class="overlay__title">All Blessings</h2>
     <button class="overlay__close" type="button" data-dialog-close data-autofocus aria-label="Close all blessings">
@@ -22,61 +27,144 @@ import Icon from './Icon.astro';
 </div>
 
 <style is:global>
+  /* The temple hall of the Wishing Wall, darkened, with the gold of its doors for rules and lettering */
+  #wishes-all {
+    background-color: #24120a;
+    background-image: linear-gradient(180deg, rgba(34, 17, 8, 0.78), rgba(26, 12, 5, 0.9)), var(--hall);
+    background-size: cover;
+    background-position: 50% 0;
+    background-blend-mode: normal;
+  }
+
+  #wishes-all .overlay__header {
+    border-bottom: 1px solid rgba(214, 170, 90, 0.5);
+    background: linear-gradient(180deg, rgba(20, 9, 3, 0.7), rgba(20, 9, 3, 0));
+  }
+
+  #wishes-all .overlay__title {
+    color: #f4e2b0;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  }
+
+  #wishes-all .overlay__close {
+    background: rgba(255, 240, 205, 0.1);
+    border-color: rgba(230, 190, 110, 0.6);
+    color: #f4e2b0;
+  }
+
   .wishes-all__count {
-    margin-bottom: 14px;
+    margin-bottom: 16px;
     text-align: center;
     font: 500 12px/1.4 var(--font-royal);
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--gold-text);
+    color: #e6c77c;
   }
 
   .wishes-all__grid {
-    columns: 2 150px;
-    column-gap: 12px;
+    display: grid;
+    gap: 14px;
+    max-width: 440px;
+    margin: 0 auto;
   }
 
   .wishes-all__card {
-    break-inside: avoid;
-    margin-bottom: 12px;
-    padding: 16px 14px 12px;
-    background: #fffdf8;
-    border-radius: 30% 30% 6px 6px / 10% 10% 6px 6px;
+    position: relative;
+    padding: 20px 22px 16px;
+    border-radius: 14px;
+    background-color: #fbf3df;
+    background-image: var(--paper-texture);
+    background-blend-mode: multiply;
     box-shadow:
-      inset 0 0 0 1px var(--gold),
-      inset 0 0 0 4px #fffdf8,
-      inset 0 0 0 5px var(--hairline),
-      0 6px 12px rgba(75, 48, 38, 0.12);
+      inset 0 0 0 1px #c9a24a,
+      inset 0 0 0 5px #fbf3df,
+      inset 0 0 0 6px rgba(201, 162, 74, 0.55),
+      0 8px 18px rgba(0, 0, 0, 0.4);
+    transition: box-shadow 0.6s;
   }
 
-  .wishes-all__card:nth-child(3n + 2) {
-    border-radius: 6px;
+  /* a small gold lotus-bud, as on the boards */
+  .wishes-all__card::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 8px;
+    width: 9px;
+    height: 9px;
+    translate: -50% 0;
+    rotate: 45deg;
+    border: 1px solid rgba(176, 130, 48, 0.8);
+    border-radius: 1px 50% 1px 50%;
+  }
+
+  .wishes-all__card.is-focus {
+    box-shadow:
+      inset 0 0 0 1px #c9a24a,
+      inset 0 0 0 5px #fbf3df,
+      inset 0 0 0 6px rgba(201, 162, 74, 0.55),
+      0 0 0 3px rgba(246, 214, 130, 0.9),
+      0 0 26px rgba(246, 200, 100, 0.75),
+      0 8px 18px rgba(0, 0, 0, 0.4);
   }
 
   .wishes-all__msg {
-    font: italic 500 16px/1.4 var(--font-display);
-    color: var(--brown);
+    margin-top: 6px;
+    font: italic 600 19px/1.35 var(--font-display);
+    color: #3a281f;
+    text-align: center;
     white-space: pre-line;
     overflow-wrap: anywhere;
   }
 
+  .wishes-all__by {
+    display: grid;
+    gap: 3px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(176, 130, 48, 0.35);
+    text-align: center;
+  }
+
   .wishes-all__name {
-    margin-top: 8px;
-    font: 500 10px/1.3 var(--font-royal);
+    font: 600 11.5px/1.3 var(--font-royal);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--gold-text);
+    color: #6a1424;
+    overflow-wrap: anywhere;
+  }
+
+  .wishes-all__when {
+    font: 500 11.5px/1.3 var(--font-body);
+    letter-spacing: 0.02em;
+    color: #6d5a49;
+  }
+
+  .wishes-all__note {
+    margin-top: 6px;
+    text-align: center;
+    font: italic 500 12.5px/1.3 var(--font-display);
+    color: #8a6420;
   }
 
   .wishes-all__empty {
     text-align: center;
-    font: italic 500 18px/1.4 var(--font-display);
-    color: var(--brown-soft);
+    font: italic 500 19px/1.4 var(--font-display);
+    color: #f1dca4;
   }
 
   .wishes-all__more {
     display: grid;
     place-items: center;
-    margin-top: 8px;
+    margin-top: 16px;
+  }
+
+  #wishes-all .btn-secondary {
+    border-color: rgba(230, 190, 110, 0.7);
+    background: rgba(255, 240, 205, 0.1);
+    color: #f4e2b0;
+  }
+
+  #wishes-all .form-status--error {
+    color: #ffd2c4;
   }
 </style>

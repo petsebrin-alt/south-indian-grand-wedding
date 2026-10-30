@@ -911,22 +911,31 @@ async function main() {
   const publicWishes = async (page: Page) => ((await (await page.request.get(`${BASE}api/wishes?limit=50`)).json()) as { total: number }).total;
   const toastText = (page: Page) => page.evaluate(() => document.querySelector('[data-toast]')?.textContent ?? '');
 
-  /* AC-23 a blessing confirms only after it is stored, stays private until approved, and survives an error */
+  /* AC-23 a blessing confirms only after it is stored, stays private until approved, survives an error, and hangs on the wall with the temple bell */
   {
     const { ctx, page } = await openedPage('wishes');
     await dev(page, 'reset');
-    await page.getByRole('button', { name: 'Write a Blessing' }).tap();
-    await page.waitForTimeout(450);
-    await page.locator('#wish-name').fill('Meera Iyer');
-    await page.locator('#wish-message').fill('May your life together be as bright as a thousand diyas.');
+    await page.evaluate(() => {
+      const w = window as unknown as { __dings: number };
+      w.__dings = 0;
+      const start = AudioBufferSourceNode.prototype.start;
+      AudioBufferSourceNode.prototype.start = function (...args: Parameters<typeof start>) {
+        w.__dings++;
+        return start.apply(this, args);
+      };
+    });
+    await page.waitForFunction(() => document.querySelector('#wishes .ww__doors')?.classList.contains('is-open'), null, { timeout: 8000, polling: POLL });
+    await page.locator('#wishes .ww__field--name input').fill('Meera Iyer');
+    await page.locator('#wishes .ww__field--wish textarea').fill('May your life together be as bright as a thousand diyas.');
     await dev(page, 'fail', { count: 1, status: 500 });
-    await page.locator('#wish-composer [data-submit]').tap();
-    await page.waitForFunction(() => !!document.querySelector('#wish-composer [data-form-status]')?.textContent, null, { polling: POLL });
+    await page.locator('#wishes [data-submit]').tap();
+    await page.waitForFunction(() => !!document.querySelector('#wishes [data-form-status]')?.textContent, null, { timeout: 15000, polling: POLL });
     const failed = await page.evaluate(() => ({
-      status: document.querySelector('#wish-composer [data-form-status]')!.textContent,
-      kept: (document.getElementById('wish-message') as HTMLTextAreaElement).value.length > 0,
-      done: !document.querySelector<HTMLElement>('#wish-composer [data-state-done]')!.hidden,
-      label: document.querySelector('#wish-composer [data-submit] .btn-label')!.textContent,
+      status: document.querySelector('#wishes [data-form-status]')!.textContent,
+      kept: (document.querySelector('#wishes textarea') as HTMLTextAreaElement).value.length > 0,
+      done: !!document.querySelector('#wishes [data-form-ok]')!.textContent,
+      label: document.querySelector('#wishes [data-submit] .btn-label')!.textContent,
+      hung: document.querySelectorAll('#wishes .ww__board.is-mine').length,
     }));
     const storedAfterFailure = (await admin(page, 'summary')).pendingWishes.length;
     // Double tap on Retry: only one blessing may be stored (AC-27).
@@ -935,16 +944,40 @@ async function main() {
       form.requestSubmit();
       form.requestSubmit();
     });
-    await page.waitForFunction(() => !document.querySelector<HTMLElement>('#wish-composer [data-state-done]')!.hidden, null, { timeout: 15000, polling: POLL });
+    await page.waitForFunction(() => !!document.querySelector('#wishes [data-form-ok]')?.textContent, null, { timeout: 15000, polling: POLL });
     const pending = (await admin(page, 'summary')).pendingWishes;
     check(
       'AC-23',
-      'Blessing: error keeps the text and offers Try again; success only after storage; hidden until approved',
-      /couldn't save/.test(failed.status ?? '') && failed.kept && !failed.done && failed.label === 'Try again' && storedAfterFailure === 0 && pending.length === 1 && (await publicWishes(page)) === 0,
+      'Blessing: error keeps the text and offers Try again; success only after storage; hidden from others until approved',
+      /couldn't save/.test(failed.status ?? '') && failed.kept && !failed.done && failed.label === 'Try again' && failed.hung === 0 && storedAfterFailure === 0 && pending.length === 1 && (await publicWishes(page)) === 0,
       JSON.stringify({ failed, storedAfterFailure, pending: pending.length }),
     );
 
-    /* AC-24 View All shows approved blessings only, 20 at a time, in an independent scroller with a close button */
+    /* AC-39 the new blessing is lowered on its own chain into the first place with the temple bell's ding, and the form is emptied */
+    await page.waitForTimeout(2300);
+    const hung = await page.evaluate(() => {
+      const boards = [...document.querySelectorAll<HTMLElement>('#wishes .ww__board')];
+      const first = boards.find((b) => b.classList.contains('is-mine'))!;
+      const r = first.getBoundingClientRect();
+      return {
+        boards: boards.length,
+        place: first.style.getPropertyValue('--x'),
+        text: first.querySelector('.ww__msg')!.textContent,
+        by: first.querySelector('.ww__by')!.textContent,
+        onScreen: r.left >= 0 && r.right <= innerWidth && r.top >= 0,
+        dings: (window as unknown as { __dings: number }).__dings,
+        emptied: (document.querySelector('#wishes textarea') as HTMLTextAreaElement).value === '' && (document.querySelector('#wishes .ww__field--name input') as HTMLInputElement).value === '',
+        placeholder: document.querySelectorAll('#wishes .ww__board [data-open-dialog]').length,
+      };
+    });
+    check(
+      'AC-39',
+      'A sent blessing hangs on the wall as a new board in the first place with its name, the bell dings once, and the form empties',
+      hung.boards >= 1 && hung.boards <= 4 && hung.place === '5' && hung.text === 'May your life together be as bright as a thousand diyas.' && hung.by === '— Meera Iyer' && hung.onScreen && hung.dings === 1 && hung.emptied,
+      JSON.stringify(hung),
+    );
+
+    /* AC-24 View All shows approved blessings only (with names and dates), 20 at a time, in an independent scroller with a close button */
     await page.request.post(`${BASE}api/admin/wishes/${pending[0].id}`, { headers: { Authorization: 'Bearer dev-admin' }, data: { status: 'approved' } });
     for (let i = 0; i < 24; i++)
       await page.request.post(`${BASE}api/wishes`, {
@@ -957,9 +990,7 @@ async function main() {
     });
     const toApprove = (await admin(page, 'summary')).pendingWishes.filter((w) => w.name !== 'Still Pending');
     for (const w of toApprove) await page.request.post(`${BASE}api/admin/wishes/${w.id}`, { headers: { Authorization: 'Bearer dev-admin' }, data: { status: 'approved' } });
-    await page.locator('#wish-composer .overlay__close').tap();
-    await page.waitForTimeout(450);
-    await page.getByRole('button', { name: 'View All Wishes' }).tap();
+    await page.getByRole('button', { name: 'View all wishes' }).tap();
     await page.waitForFunction(() => document.querySelectorAll('[data-wishes-list] li').length > 0, null, { polling: POLL });
     const firstPage = await page.evaluate(() => document.querySelectorAll('[data-wishes-list] li').length);
     await page.locator('[data-wishes-more]').tap();
@@ -967,26 +998,104 @@ async function main() {
     const all = await page.evaluate(() => {
       const body = document.querySelector<HTMLElement>('#wishes-all .overlay__body')!;
       const close = document.querySelector<HTMLElement>('#wishes-all .overlay__close')!.getBoundingClientRect();
+      const cards = [...document.querySelectorAll<HTMLElement>('[data-wishes-list] li')];
       return {
-        count: document.querySelectorAll('[data-wishes-list] li').length,
+        count: cards.length,
         label: document.querySelector('[data-wishes-count]')!.textContent,
         hasPending: document.querySelector('[data-wishes-list]')!.textContent!.includes('Still Pending'),
         moreHidden: document.querySelector<HTMLElement>('[data-wishes-more]')!.hidden,
         scrolls: getComputedStyle(body).overflowY === 'auto' && body.scrollHeight > body.clientHeight,
         closeOk: close.width >= 44 && close.height >= 44 && close.top >= 0,
+        named: cards.every((c) => /^— .+/.test(c.querySelector('.wishes-all__name')?.textContent ?? '')),
+        dated: cards.every((c) => /\d{1,2} \w{3} \d{4} · \d{1,2}:\d{2} [ap]m/.test(c.querySelector('time')?.textContent ?? '')),
+        distinct: new Set(cards.map((c) => c.dataset.wishId)).size === cards.length,
       };
     });
-    check('AC-24', 'View All: approved only, 20 then "Load more", count shown, scrolls independently, 44 px close', firstPage === 20 && all.count === 25 && all.label === '25 blessings' && !all.hasPending && all.moreHidden && all.scrolls && all.closeOk, JSON.stringify({ firstPage, ...all }));
+    check(
+      'AC-24',
+      'View All: approved only, each with a name and date and time, 20 then "Load more", count shown, scrolls independently, 44 px close',
+      firstPage === 20 && all.count === 25 && all.label === '25 blessings' && !all.hasPending && all.moreHidden && all.scrolls && all.closeOk && all.named && all.dated && all.distinct,
+      JSON.stringify({ firstPage, ...all }),
+    );
     await page.keyboard.press('Escape');
     await page.waitForTimeout(400);
-    await page.evaluate(() => (window as unknown as { __book: { goTo(i: number, s: string): void } }).__book.goTo(17, 'instant'));
+    await page.evaluate(() => (location.hash = 'rsvp'));
     await settle(page);
-    await page.evaluate(() => (window as unknown as { __book: { goTo(i: number, s: string): void } }).__book.goTo(16, 'instant'));
+    await page.waitForTimeout(1800); // the doors close once the page is out of sight
+    await page.evaluate(() => (location.hash = 'wishes'));
     await settle(page);
-    await page.waitForTimeout(1800);
-    const wall = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#wishes [data-wall-slot]')].filter((c) => !c.hidden && getComputedStyle(c).opacity === '1').length);
-    check('PH4-wall', 'The wall shows the five latest approved blessings, fully visible', wall === 5, String(wall));
+
+    /* AC-40 each visit begins with the golden doors shut and sliding open; then the heading, four boards, the card and the button are in view */
+    const shut = await page.evaluate(() => {
+      const doors = document.querySelector<HTMLElement>('#wishes .ww__doors')!;
+      const l = document.querySelector<HTMLElement>('#wishes .ww__door--l')!.getBoundingClientRect();
+      return { open: doors.classList.contains('is-open'), leftEdge: Math.round(l.right), vw: innerWidth };
+    });
+    await page.waitForFunction(() => document.querySelector('#wishes .ww__doors')?.classList.contains('is-open'), null, { timeout: 9000, polling: POLL });
+    await page.waitForTimeout(2600);
+    const view = await page.evaluate(() => {
+      const vis = (sel: string) => {
+        const el = document.querySelector<HTMLElement>(sel)!;
+        const r = el.getBoundingClientRect();
+        return Number(getComputedStyle(el).opacity) > 0.95 && r.width > 0 && r.left >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
+      };
+      const boards = [...document.querySelectorAll<HTMLElement>('#wishes .ww__board')];
+      return {
+        heading: vis('#wishes .ww__heading'),
+        card: vis('#wishes .ww__card'),
+        all: vis('#wishes .ww__all'),
+        boards: boards.length,
+        boardsIn: boards.every((b) => {
+          const r = b.getBoundingClientRect();
+          return r.left >= -1 && r.right <= innerWidth + 1;
+        }),
+        names: boards.map((b) => b.querySelector('.ww__by')!.textContent),
+        clear: (() => {
+          // the card never covers the heading or the lettering of a board
+          const card = document.querySelector<HTMLElement>('#wishes .ww__card')!.getBoundingClientRect();
+          const heading = document.querySelector<HTMLElement>('#wishes .ww__heading')!.getBoundingClientRect();
+          return heading.bottom <= card.top + 1 && boards.every((b) => b.querySelector('.ww__lines')!.getBoundingClientRect().bottom <= card.top + 1);
+        })(),
+      };
+    });
+    check(
+      'AC-40',
+      'Wishing Wall: the doors start shut and slide open; the heading, four hanging boards, the card and the View all button are then fully in view and clear of each other',
+      !shut.open && shut.leftEdge > shut.vw / 2 - 40 && view.heading && view.card && view.all && view.boards === 4 && view.boardsIn && view.clear,
+      JSON.stringify({ shut, view }),
+    );
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/phase4-wishing-wall.png` });
+    await ctx.close();
+  }
+
+  /* AC-41 with no blessings yet, one board invites the first; the wall holds up on a small phone too */
+  {
+    const ctx = await mobileContext(browser, 360, 640);
+    const page = await ctx.newPage();
+    await page.route('**/api/wishes?*', (route) => route.fulfill({ json: { items: [], nextCursor: null, total: 0 } }));
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.setItem('rdv:hint-seen', '1');
+    });
+    await page.goto(`${BASE}#wishes`);
+    await settle(page);
+    await page.waitForFunction(() => document.querySelector('#wishes .ww__doors')?.classList.contains('is-open'), null, { timeout: 9000, polling: POLL });
+    await page.waitForTimeout(2800);
+    const empty = await page.evaluate(() => {
+      const boards = [...document.querySelectorAll<HTMLElement>('#wishes .ww__board')];
+      const input = document.querySelector<HTMLElement>('#wishes .ww__field--name input')!.getBoundingClientRect();
+      const send = document.querySelector<HTMLElement>('#wishes [data-submit]')!.getBoundingClientRect();
+      const all = document.querySelector<HTMLElement>('#wishes .ww__all')!.getBoundingClientRect();
+      return {
+        boards: boards.length,
+        text: boards[0]?.querySelector('.ww__msg')?.textContent ?? '',
+        fieldsInView: input.top > 0 && send.bottom < innerHeight && all.bottom <= innerHeight,
+        sendBelowFields: send.top > input.bottom,
+        allBelowCard: all.top >= send.bottom,
+      };
+    });
+    check('AC-41', 'No blessings yet: one board invites the first; the fields, Send and View all fit a 360 × 640 phone', empty.boards === 1 && /^Be the first to bless Rahul/.test(empty.text) && empty.fieldsInView && empty.sendBelowFields && empty.allBelowCard, JSON.stringify(empty));
     await ctx.close();
   }
 

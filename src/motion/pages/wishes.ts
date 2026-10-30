@@ -1,38 +1,68 @@
-import { defineChoreo, gsap, isReducedMotion, timelineChoreo } from '../choreo';
-import { refreshWall } from '../../forms/wishes';
+import { defineChoreo, gsap, isReducedMotion } from '../choreo';
+import { createWall, setWall } from '../wishwall';
+import { prepareWall, refreshServerWall, wallWishes } from '../../forms/wishes';
 
 /**
- * Wishing Wall (PRD §6.15): the rod settles and each blessing card drops on its thread with a
- * small, damped pendulum swing. Blessings that arrive from the server later drop in the same way.
+ * Wishing Wall (PRD §6.15): the page turns to a closed golden double door. As soon as it is in view the
+ * doors slide apart on the temple hall behind them (which settles back from a slight close-up), the heading
+ * appears, the blessings are lowered one after another on their gold chains from the jasmine-garlanded rod, and
+ * the card and "View all wishes" follow. The doors close again once the page has been left, so each visit
+ * begins with them opening. Under reduced motion the doors are simply open.
  */
-// Each card's resting tilt (CSS --tilt); GSAP owns the transform, so it must also end on the tilt.
-const tilt = (_: number, el: HTMLElement) => parseFloat(getComputedStyle(el).getPropertyValue('--tilt')) || 0;
+defineChoreo('wishes', (page) => {
+  const q = <T extends HTMLElement>(sel: string) => page.querySelector<T>(sel)!;
+  const doors = q('[data-doors]');
+  const left = q('.ww__door--l');
+  const right = q('.ww__door--r');
+  const scene = q('.ww__bg');
+  const content = [q('.ww__heading'), q('.ww__card'), q('.ww__all')];
+  const wall = createWall(page);
+  setWall(wall);
+  let opening: gsap.core.Timeline | null = null;
+  let closeLater: gsap.core.Tween | null = null;
 
-// fromTo, not from: a second drop (blessings arriving mid-entry) must not freeze a card half-faded.
-const drop = (cards: HTMLElement[]) =>
-  gsap.fromTo(
-    cards,
-    { y: -20, rotation: (i: number, el: HTMLElement) => tilt(i, el) + (i % 2 ? 3 : -3), opacity: 0 },
-    { y: 0, rotation: tilt, opacity: 1, duration: 1.2, stagger: 0.12, ease: 'elastic.out(1, 0.45)', transformOrigin: '50% -20px', overwrite: 'auto' },
-  );
+  /** Doors shut, the hall a little closer, nothing on the wall yet */
+  const shut = () => {
+    opening?.kill();
+    closeLater?.kill();
+    wall.stop();
+    gsap.set([left, right], { xPercent: 0 });
+    gsap.set(scene, { scale: isReducedMotion() ? 1 : 1.07, transformOrigin: '50% 38%' });
+    gsap.set(content, { opacity: isReducedMotion() ? 1 : 0, y: isReducedMotion() ? 0 : 14 });
+    doors.classList.toggle('is-open', isReducedMotion());
+    wall.set(wallWishes());
+  };
+  shut();
 
-defineChoreo('wishes', (page) =>
-  timelineChoreo(
-    (tl, p) => {
-      const all = (sel: string) => [...p.querySelectorAll<HTMLElement>(sel)];
-      tl.from(all('.ww__title'), { opacity: 0, y: 8, duration: 0.6 }, 0.1)
-        .from(all('.ww__rod'), { opacity: 0, scaleX: 0.9, duration: 0.6 }, 0.2)
-        .add(() => {
-          const visible = all('.ww__card').filter((c) => !c.hidden);
-          if (!isReducedMotion()) drop(visible);
-        }, 0.4)
-        .from(all('.ww__actions, .ww__diya'), { opacity: 0, y: 8, duration: 0.5 }, 0.8);
+  return {
+    enter() {
+      shut();
+      prepareWall();
+      if (isReducedMotion()) {
+        wall.lower();
+        wall.start();
+        void refreshServerWall().then((changed) => changed && wall.set(wallWishes()));
+        return;
+      }
+      // Pick up the latest approved blessings while the doors begin to move (never holding them up for long)
+      const fresh = Promise.race([refreshServerWall(), new Promise<boolean>((r) => setTimeout(() => r(false), 700))]).then((changed) => changed && wall.set(wallWishes()));
+      opening = gsap
+        .timeline()
+        .to(left, { xPercent: -100, duration: 2.7, ease: 'power3.inOut' }, 0.5)
+        .to(right, { xPercent: 100, duration: 2.7, ease: 'power3.inOut' }, 0.5)
+        .to(scene, { scale: 1, duration: 3.6, ease: 'power2.out' }, 0.5)
+        .add(() => doors.classList.add('is-open'), 3.25)
+        .to(content[0], { opacity: 1, y: 0, duration: 1, ease: 'power2.out' }, 1.5)
+        .add(() => void fresh.then(() => wall.lower()), 1.65)
+        .to(content.slice(1), { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out', stagger: 0.18 }, 2.35)
+        .add(() => wall.start(), 3);
     },
-    {
-      enter: (p) =>
-        void refreshWall(p, (cards) => {
-          if (p.dataset.state === 'current' && !isReducedMotion()) drop(cards);
-        }),
+    leave() {
+      wall.stop();
+      // Shut the doors once the page is out of sight (the page turn takes about a second)
+      closeLater = gsap.delayedCall(1.6, () => {
+        if (page.dataset.state !== 'current') shut();
+      });
     },
-  )(page),
-);
+  };
+});
