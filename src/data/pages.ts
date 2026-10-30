@@ -1,6 +1,6 @@
 /**
- * Book structure (PRD §5.1): 15 sections on a cover plus 16 pages. The Grand Reception page and the RSVP form page
- * are no longer in the book (the client's request, 30 October 2026); the Wishing Wall follows the Ceremony as page 11.
+ * Book structure (PRD §5.1): 14 sections on a cover plus 14 pages. The Grand Reception page, the RSVP form page and the two
+ * Meet the Couple pages (Rahul, Divya) are no longer in the book (the client's requests, 30 October 2026).
  * `index` 0 is the cover; page numbers shown to guests equal the index.
  */
 export type PageTone = 'ivory' | 'jasmine' | 'sandal' | 'sandal-light' | 'evening' | 'golden';
@@ -19,19 +19,17 @@ export const bookPages: BookPage[] = [
   { id: 'welcome', section: 2, title: 'Welcome Invitation', contents: 'Welcome', tone: 'jasmine' },
   { id: 'save-the-date', section: 3, title: 'Save the Date', contents: 'Save the Date', tone: 'sandal' },
   { id: 'countdown', section: 4, title: 'Wedding Countdown', contents: 'Wedding Countdown', tone: 'ivory' },
-  { id: 'groom', section: 5, title: 'Meet the Couple: Rahul', contents: 'Meet the Couple', tone: 'ivory' },
-  { id: 'bride', section: 5, title: 'Meet the Couple: Divya', tone: 'jasmine' },
-  { id: 'family', section: 6, title: 'Parents and Family', contents: 'Parents and Family', tone: 'ivory' },
-  { id: 'love-story', section: 7, title: 'Our Love Story', contents: 'Our Love Story', tone: 'jasmine' },
-  { id: 'events', section: 8, title: 'Wedding Events: Mehndi and Haldi', contents: 'Wedding Events', tone: 'ivory' },
-  { id: 'events-wedding', section: 8, title: 'Wedding Events: Sangeet, Wedding and Reception', tone: 'ivory' },
-  { id: 'ceremony', section: 9, title: 'The Sacred Wedding Ceremony', contents: 'Wedding Ceremony', tone: 'ivory' },
-  { id: 'wishes', section: 10, title: 'Wishing Wall', contents: 'Wishing Wall', tone: 'ivory' },
-  { id: 'dress-code', section: 11, title: 'Dress Code', contents: 'Dress Code', tone: 'jasmine' },
-  { id: 'venues', section: 12, title: 'Venues and Directions', contents: 'Venues and Directions', tone: 'ivory' },
-  { id: 'travel', section: 13, title: 'Transportation and Accommodation', contents: 'Travel and Stay', tone: 'sandal-light' },
-  { id: 'help', section: 14, title: 'Need Help? Contact', contents: 'Need Help', tone: 'sandal-light' },
-  { id: 'thank-you', section: 15, title: 'Thank You', contents: 'Thank You', tone: 'golden' },
+  { id: 'family', section: 5, title: 'Parents and Family', contents: 'Parents and Family', tone: 'ivory' },
+  { id: 'love-story', section: 6, title: 'Our Love Story', contents: 'Our Love Story', tone: 'jasmine' },
+  { id: 'events', section: 7, title: 'Wedding Events: Mehndi and Haldi', contents: 'Wedding Events', tone: 'ivory' },
+  { id: 'events-wedding', section: 7, title: 'Wedding Events: Sangeet, Wedding and Reception', tone: 'ivory' },
+  { id: 'ceremony', section: 8, title: 'The Sacred Wedding Ceremony', contents: 'Wedding Ceremony', tone: 'ivory' },
+  { id: 'wishes', section: 9, title: 'Wishing Wall', contents: 'Wishing Wall', tone: 'ivory' },
+  { id: 'dress-code', section: 10, title: 'Dress Code', contents: 'Dress Code', tone: 'jasmine' },
+  { id: 'venues', section: 11, title: 'Venues and Directions', contents: 'Venues and Directions', tone: 'ivory' },
+  { id: 'travel', section: 12, title: 'Transportation and Accommodation', contents: 'Travel and Stay', tone: 'sandal-light' },
+  { id: 'help', section: 13, title: 'Need Help? Contact', contents: 'Need Help', tone: 'sandal-light' },
+  { id: 'thank-you', section: 14, title: 'Thank You', contents: 'Thank You', tone: 'golden' },
 ];
 
 export const lastPageIndex = bookPages.length - 1;

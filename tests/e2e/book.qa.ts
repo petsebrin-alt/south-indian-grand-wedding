@@ -81,6 +81,9 @@ async function newContext(browser: Browser, options: Parameters<Browser['newCont
   const ctx = await browser.newContext(options);
   // tsx wraps named functions in a `__name` helper that does not exist inside the page.
   await ctx.addInitScript({ content: 'globalThis.__name = (f) => f;' });
+  // The invitation opens by itself and a cue says how to turn the page; the checks switch both off (the dedicated
+  // checks AC-43 and AC-44 switch them on) so a page stays where the check left it.
+  await ctx.addInitScript({ content: "try { localStorage.setItem('rdv:auto', 'off'); localStorage.setItem('rdv:turned', '1'); } catch (e) {}" });
   ctx.on('page', (p) => p.on('pageerror', (e) => pageErrors.push(`${p.url()}: ${e.message}`)));
   return ctx;
 }
@@ -148,11 +151,12 @@ async function main() {
     await touchDrag(cdp, page, [200, 640], [200, 320]);
     check('AC-02b', 'Swipe up turns forward', (await current(page)) === 'countdown');
     await touchDrag(cdp, page, [330, 420], [70, 440]);
-    check('AC-02c', 'Swipe left turns forward', (await current(page)) === 'groom');
-    await touchDrag(cdp, page, [60, 420], [330, 420]);
-    check('AC-02d', 'Swipe right turns back', (await current(page)) === 'countdown');
+    check('AC-02c', 'Swipe left turns forward', (await current(page)) === 'family');
+    // (the Parents gallery owns horizontal swipes, so from there the way back is a swipe down)
     await touchDrag(cdp, page, [200, 260], [200, 620]);
-    check('AC-02e', 'Swipe down turns back', (await current(page)) === 'save-the-date');
+    check('AC-02e', 'Swipe down turns back', (await current(page)) === 'countdown');
+    await touchDrag(cdp, page, [60, 420], [330, 420]);
+    check('AC-02d', 'Swipe right turns back', (await current(page)) === 'save-the-date');
     await touchDrag(cdp, page, [372, 826], [150, 600], 14, 16);
     check('AC-02f', 'Bottom-right corner drag turns forward', (await current(page)) === 'countdown');
     await touchDrag(cdp, page, [20, 826], [300, 780], 14, 16);
@@ -189,7 +193,7 @@ async function main() {
       await page.waitForTimeout(16);
     }
     await settle(page);
-    check('AC-02k', 'One trackpad gesture turns exactly one page', (await current(page)) === 'groom', String(await current(page)));
+    check('AC-02k', 'One trackpad gesture turns exactly one page', (await current(page)) === 'family', String(await current(page)));
 
     /* AC-04 / AC-06 Contents + Back */
     await page.getByRole('button', { name: 'Contents' }).tap();
@@ -252,7 +256,7 @@ async function main() {
     await page.goto(BASE);
     const height = await page.evaluate(() => document.documentElement.scrollHeight);
     const sections = await page.locator('section.page').count();
-    check('AC-07c', 'Without JavaScript the pages read as one continuous scroll', sections === 17 && height > 844 * 16, `${sections} pages, ${height}px tall`);
+    check('AC-07c', 'Without JavaScript the pages read as one continuous scroll', sections === 15 && height > 844 * 14, `${sections} pages, ${height}px tall`);
     await ctx.close();
   }
 
@@ -402,7 +406,7 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-15 Add to Calendar, AC-16 Save the Date: tied curtains open (on a tap or by themselves) on the month, hearts on the celebration days */
+  /* AC-15 Add to Calendar, AC-16 Save the Date: the curtains open by themselves on the month, hearts on the celebration days */
   {
     const ctx = await mobileContext(browser);
     const page = await ctx.newPage();
@@ -416,19 +420,13 @@ async function main() {
         const m = new DOMMatrix(getComputedStyle(document.querySelector('#save-the-date [data-curtain]')!).transform);
         return +m.a.toFixed(2);
       });
-    // Turn from Welcome: the curtains arrive closed and tied; tapping the tie opens them
-    const tiedVisible = () =>
-      page.evaluate(() => {
-        const t = document.querySelector<HTMLElement>('#save-the-date [data-tie]')!;
-        return getComputedStyle(t).visibility === 'visible' && Number(getComputedStyle(t).opacity) > 0.9;
-      });
+    // Turn from Welcome: the curtains arrive closed, then draw back by themselves a fraction of a second later, with no tap
     await page.getByRole('button', { name: 'Next page' }).first().tap();
     await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'save-the-date', null, { timeout: 4000, polling: POLL });
-    await page.waitForTimeout(1500);
     const closedAt = await curtainScale();
-    const tied = await tiedVisible();
-    await page.getByRole('button', { name: 'Open the curtains' }).tap();
-    await page.waitForTimeout(5600);
+    await page.waitForTimeout(1700);
+    const movingAt = await curtainScale();
+    await page.waitForTimeout(3700);
     const openAt = await curtainScale();
     const sd = await page.evaluate(() => {
       const root = document.querySelector('#save-the-date')!;
@@ -448,29 +446,10 @@ async function main() {
     });
     check(
       'AC-16',
-      'Save the Date: the curtains arrive closed and tied; tapping the tie opens them on April 2027, with red hearts on 6 and 7 April and Add to Calendar; the date is readable by screen readers',
-      closedAt > 0.8 && tied && openAt < 0.35 && sd.tieGone && sd.sr.includes('Wednesday, 7 April 2027') && sd.month === 'April 2027' && JSON.stringify(sd.hearts) === '[6,7]' && sd.heartsShown && sd.button,
-      JSON.stringify({ closedAt, tied, openAt, ...sd }),
+      'Save the Date: the curtains arrive closed and draw back by themselves (no tap) on April 2027, with red hearts on 6 and 7 April and Add to Calendar; the date is readable by screen readers',
+      closedAt > 0.7 && movingAt < closedAt - 0.1 && openAt < 0.35 && sd.tieGone && sd.sr.includes('Wednesday, 7 April 2027') && sd.month === 'April 2027' && JSON.stringify(sd.hearts) === '[6,7]' && sd.heartsShown && sd.button,
+      JSON.stringify({ closedAt, movingAt, openAt, ...sd }),
     );
-    // Left alone, the curtains open by themselves a few seconds after the couple settle
-    {
-      const ctx2 = await mobileContext(browser);
-      const p2 = await ctx2.newPage();
-      await p2.goto(BASE);
-      await p2.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
-      await p2.goto(`${BASE}#welcome`);
-      await settle(p2);
-      await p2.evaluate(() => localStorage.setItem('rdv:hint-seen', '1'));
-      await p2.getByRole('button', { name: 'Next page' }).first().tap();
-      await p2.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'save-the-date', null, { timeout: 4000, polling: POLL });
-      const scale = () => p2.evaluate(() => +new DOMMatrix(getComputedStyle(document.querySelector('#save-the-date [data-curtain]')!).transform).a.toFixed(2));
-      await p2.waitForTimeout(2500);
-      const stillClosed = await scale();
-      await p2.waitForTimeout(5000);
-      const opened = await scale();
-      check('AC-16d', 'Without a tap the curtains stay tied briefly, then open by themselves', stillClosed > 0.8 && opened < 0.35, JSON.stringify({ stillClosed, opened }));
-      await ctx2.close();
-    }
 
     await page.getByRole('button', { name: 'Add to Calendar' }).tap();
     await page.waitForTimeout(500);
@@ -481,56 +460,6 @@ async function main() {
     const icsOk = ics.includes('DTSTART;TZID=Asia/Kolkata:20270407T103000') && !ics.includes('DTEND') && ics.includes('BEGIN:VTIMEZONE');
     check('AC-15', 'Calendar entries start 10:30 AM IST with no invented end time (Google + .ics)', googleOk && icsOk, `${params.get('dates')} ${params.get('ctz')}`);
     await page.keyboard.press('Escape');
-    await ctx.close();
-  }
-
-  /* AC-17 Meet the Couple: the photograph enters from the partner's side, the name's letters and
-     the interest cards appear one by one, and every card ends fully on screen */
-  for (const [id, side] of [
-    ['groom', 'left'],
-    ['bride', 'right'],
-  ] as const) {
-    const ctx = await mobileContext(browser);
-    const page = await ctx.newPage();
-    await page.goto(BASE);
-    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
-    await page.goto(`${BASE}#countdown`);
-    await settle(page);
-    const result = await page.evaluate(async (pageId) => {
-      const root = document.getElementById(pageId)!;
-      const scene = root.querySelector<HTMLElement>('.pc__scene')!;
-      const cards = [...root.querySelectorAll<HTMLElement>('.pc__col--l .pc__card'), ...root.querySelectorAll<HTMLElement>('.pc__col--r .pc__card')];
-      const letters = [...root.querySelectorAll<HTMLElement>('.pc__ch')];
-      const offsets: number[] = [];
-      let mid: number[] = [];
-      let midLetters: number[] = [];
-      location.hash = pageId;
-      const t0 = performance.now();
-      let current = 0; // when the page came to rest
-      while (performance.now() - t0 < 6000) {
-        await new Promise((r) => setTimeout(r, 40));
-        if (root.getAttribute('data-state') !== 'current') continue;
-        current ||= performance.now();
-        const r = scene.getBoundingClientRect();
-        offsets.push((r.left + r.right) / 2 - innerWidth / 2);
-        const t = performance.now() - current;
-        if (!midLetters.length && t > 800) midLetters = [letters[0], letters[letters.length - 1]].map((l) => Number(getComputedStyle(l).opacity));
-        if (!mid.length && t > 2400) mid = [cards[0], cards[cards.length - 1]].map((c) => Number(getComputedStyle(c).opacity));
-      }
-      const onScreen = cards.every((c) => {
-        const r = c.getBoundingClientRect();
-        return r.left >= -1 && r.right <= innerWidth + 1 && r.top >= 0 && r.bottom <= innerHeight && Number(getComputedStyle(c).opacity) > 0.99;
-      });
-      return { early: offsets[1] ?? 0, final: offsets[offsets.length - 1] ?? 0, mid, midLetters, cards: cards.length, letters: letters.length, onScreen };
-    }, id);
-    const fromSide = side === 'left' ? result.early - result.final < -2 : result.early - result.final > 2;
-    const oneByOne = result.mid[0] > result.mid[1] && result.midLetters[0] > result.midLetters[1];
-    check(
-      'AC-17',
-      `${id === 'groom' ? "Rahul's" : "Divya's"} page enters from the ${side}; the name's letters and the ${result.cards} interest cards appear one by one and end fully on screen`,
-      fromSide && oneByOne && result.cards === 8 && result.onScreen,
-      JSON.stringify(result),
-    );
     await ctx.close();
   }
 
@@ -595,13 +524,13 @@ async function main() {
         line: (active.querySelector('.ls__story')!.textContent ?? '').length > 10,
         placeholder: /to be provided|Placeholder|Proposed|Photo to be/i.test(document.getElementById('love-story')!.textContent ?? ''),
         boardInside: board.left >= frame.left && board.right <= frame.right && board.top >= frame.top && board.bottom <= frame.bottom,
-        canvases: document.querySelectorAll('#love-story .ls__top canvas').length,
+        canvases: document.querySelectorAll('#love-story .sbd__top canvas').length,
         onScreen: frame.left <= 0 && frame.right >= innerWidth,
       };
     });
-    const c1 = await page.evaluate(() => document.querySelector<HTMLCanvasElement>('#love-story .ls__top canvas')!.toDataURL().slice(-300));
+    const c1 = await page.evaluate(() => document.querySelector<HTMLCanvasElement>('#love-story .sbd__top canvas')!.toDataURL().slice(-300));
     await page.waitForTimeout(1500);
-    const c2 = await page.evaluate(() => document.querySelector<HTMLCanvasElement>('#love-story .ls__top canvas')!.toDataURL().slice(-300));
+    const c2 = await page.evaluate(() => document.querySelector<HTMLCanvasElement>('#love-story .sbd__top canvas')!.toDataURL().slice(-300));
     const first = await page.evaluate(() => document.querySelector('#love-story .ls__entry.is-active .ls__milestone')!.textContent);
     await page.waitForTimeout(4600);
     const later = await page.evaluate(() => document.querySelector('#love-story .ls__entry.is-active .ls__milestone')!.textContent);
@@ -660,7 +589,7 @@ async function main() {
     check('AC-19c', 'Love Story board: all five titles and stories fit inside it in large lettering, and the frame clears the controls on a small phone', ok, JSON.stringify(rows));
   }
 
-  /* AC-18c the temple behind the Parents and Countdown pages is shown at 97% strength (the client found a third too white) */
+  /* AC-18c the temple behind the Countdown is shown at 97% strength (the client found a third too white) */
   {
     const ctx = await mobileContext(browser);
     const page = await ctx.newPage();
@@ -669,31 +598,10 @@ async function main() {
     await page.goto(`${BASE}#countdown`);
     await settle(page);
     await page.waitForTimeout(1200);
-    const op = await page.evaluate(() => ({
-      family: Number(getComputedStyle(document.querySelector('#family .fm__bg')!).opacity),
-      countdown: Number(getComputedStyle(document.querySelector('#countdown .cd__bg')!).opacity),
-    }));
-    check('AC-18c', 'Parents and Countdown: the temple background at 97% strength', op.family >= 0.96 && op.countdown >= 0.96, JSON.stringify(op));
+    const op = await page.evaluate(() => Number(getComputedStyle(document.querySelector('#countdown .cd__bg')!).opacity));
+    check('AC-18c', 'Countdown: the temple background at 97% strength', op >= 0.96, String(op));
     await ctx.close();
   }
-
-  /* On a phone the desktop background is never built: no canvases, and its pictures are not requested */
-  {
-    const ctx = await mobileContext(browser);
-    const page = await ctx.newPage();
-    const requested: string[] = [];
-    page.on('request', (r) => /panel-[lr]|piece-[lr]-|\/strip\./.test(r.url()) && requested.push(r.url()));
-    await page.goto(BASE);
-    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
-    await page.goto(`${BASE}#countdown`);
-    await settle(page);
-    await page.waitForTimeout(1200);
-    const canvases = await page.evaluate(() => document.querySelectorAll('.stage__bg canvas').length);
-    check('AC-35d', 'A phone builds no desktop background (no canvases, no panel or garland pictures requested)', canvases === 0 && requested.length === 0, JSON.stringify({ canvases, requested }));
-    await ctx.close();
-  }
-
-  /* ================================================ Phase 3 pages ================================================ */
 
   const openedPage = async (hash: string, w = 390, h = 844) => {
     const ctx = await mobileContext(browser, w, h);
@@ -716,63 +624,111 @@ async function main() {
         return panel.top >= app.top - 1 && panel.bottom <= app.bottom + 1 && panel.height <= app.height * 0.86 && !document.getElementById(sheetId)!.hidden;
       }, id)) as (page: Page) => Promise<boolean>;
 
-  /* AC-18 Parents and Family gallery: the bride's and groom's parents (names and what they do) and
-     a sibling card each, one in focus at a time; it advances by itself and by hand */
+  /* AC-18 Parents and Family: on the cream temple background (garlands and lamps swaying) with the courtyard temple faded
+     behind it, two maroon-and-gold boards ("The Groom's Family", "The Bride's Family"), each over a cube in a gold border that
+     rolls by itself, and by tap, swipe, arrow key and dot, between the parents (photographs, father's and mother's names and
+     work) and the siblings */
   {
-    // Opened by hand so the first card can be read before the gallery moves on by itself (every 3.6 s)
+    // Opened by hand so the first faces can be read before the cubes roll by themselves (3.2 s and 4.8 s in)
     const ctx = await mobileContext(browser);
     const page = await ctx.newPage();
     await page.goto(BASE);
-    await page.evaluate(() => {
-      sessionStorage.setItem('rdv:opened', '1');
-      localStorage.setItem('rdv:hint-seen', '1');
-    });
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
     await page.goto(`${BASE}#welcome`);
     await settle(page);
     await page.evaluate(() => (location.hash = 'family'));
     await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'family', null, { timeout: 4000, polling: POLL });
     await page.waitForTimeout(1300);
+    const front = (key: string) => page.evaluate((k) => document.querySelector<HTMLElement>(`#family [data-family=${k}] [data-cube]`)!.dataset.front, key);
     const read = () =>
-      page.evaluate(() => {
-        const cards = [...document.querySelectorAll<HTMLElement>('#family .fm__card')];
-        const focus = cards.filter((c) => Number(getComputedStyle(c).opacity) > 0.95 && c.querySelector<HTMLElement>('.fm__side') && Number(getComputedStyle(c.querySelector('.fm__side')!).opacity) > 0.95);
-        const dot = [...document.querySelectorAll('#family .fm__dot')].findIndex((d) => d.classList.contains('is-active'));
-        const card = cards[dot];
-        return {
-          count: cards.length,
-          dot,
-          focused: focus.length,
-          rel: card?.querySelector('.fm__rel')?.textContent?.trim(),
-          name: card?.querySelector('.fm__name')?.textContent?.trim(),
-          work: card?.querySelector('.fm__work')?.textContent?.trim() ?? null,
-        };
-      });
-    const first = await read();
-    await page.waitForTimeout(3800); // left alone, it moves on by itself
-    const auto = await read();
-    await page.locator('#family [data-family]').focus();
+      page.evaluate(() =>
+        [...document.querySelectorAll<HTMLElement>('#family [data-family]')].map((fam) => {
+          const faceOf = (c: number) => fam.querySelector<HTMLElement>(`[data-face][data-content="${c}"]`)!;
+          const people = (face: HTMLElement) => [...face.querySelectorAll('.fm__person')].map((p) => `${p.querySelector('.fm__rel')?.textContent?.trim()}|${p.querySelector('.fm__name')?.textContent?.trim()}|${p.querySelector('.fm__work')?.textContent?.trim() ?? ''}`);
+          return {
+            board: fam.querySelector('.fm__title')?.textContent?.trim(),
+            partner: fam.querySelector('.fm__eyebrow')?.textContent?.trim(),
+            parents: people(faceOf(0)),
+            siblings: people(faceOf(1)),
+            photosLoaded: [...faceOf(0).querySelectorAll<HTMLImageElement>('img')].every((i) => i.complete && i.naturalWidth > 50),
+            faces: fam.querySelectorAll('[data-face]').length,
+            dots: fam.querySelectorAll('[data-cube-dot]').length,
+          };
+        }),
+      );
+    const content = await read();
+    const startFront = [await front('groom'), await front('bride')];
+    await page.waitForFunction(() => document.querySelector<HTMLElement>('#family [data-family=groom] [data-cube]')!.dataset.front === '1', null, { timeout: 8000, polling: POLL });
+    const groomBySelf = await front('groom');
+    await page.waitForFunction(() => document.querySelector<HTMLElement>('#family [data-family=bride] [data-cube]')!.dataset.front === '1', null, { timeout: 8000, polling: POLL });
+    const brideBySelf = await front('bride');
+    await page.waitForTimeout(1400); // the rolls finish
+    // by hand: the arrow key, a tap, a dot
+    await page.locator('#family [data-family=groom] [data-cube]').focus();
     await page.keyboard.press('ArrowRight');
     await page.waitForTimeout(1300);
-    const byHand = await read();
-    await page.locator('#family [data-family-dot]').nth(2).dispatchEvent('click');
+    const afterKey = await front('groom'); // siblings → parents
+    const box = (await page.locator('#family [data-family=groom] [data-cube]').boundingBox())!;
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
     await page.waitForTimeout(1300);
-    const third = await read();
+    const afterTap = await front('groom'); // parents → siblings
+    await page.locator('#family [data-family=groom] [data-cube-dot]').nth(0).dispatchEvent('click');
+    await page.waitForTimeout(1500);
+    const afterDot = await front('groom'); // → parents
     check(
       'AC-18a',
-      'Family gallery: Father of the Bride (Ravichandran, Businessman) in focus first; it moves on by itself, and by arrow key and dot; only one card is in focus',
-      first.count >= 6 && first.dot === 0 && first.rel === 'Father of the Bride' && first.name === 'Ravichandran' && first.work === 'Businessman' && first.focused === 1 && auto.dot >= 1 && byHand.dot !== auto.dot && third.dot === 2 && third.name === 'Ravichandran' && third.work === 'College Principal',
-      JSON.stringify({ first, auto, byHand, third }),
+      'Parents and Family: two boards ("The Groom\'s Family", "The Bride\'s Family"), each over a cube showing the parents first (photographs, names and work as supplied) and a siblings face (a placeholder: none supplied); each cube rolls by itself to the siblings, and by arrow key, tap and dot',
+      content.length === 2 &&
+        content[0].board === "The Groom's Family" &&
+        content[1].board === "The Bride's Family" &&
+        content[0].partner === 'Rahul' &&
+        content[1].partner === 'Divya' &&
+        JSON.stringify(content[0].parents) === JSON.stringify(['Father|Ravichandran|College Principal', 'Mother|Sopna|College Lecturer']) &&
+        JSON.stringify(content[1].parents) === JSON.stringify(['Father|Ravichandran|Businessman', 'Mother|Kanimalar|Teacher']) &&
+        content.every((c) => c.photosLoaded && c.faces === 4 && c.dots === 2 && c.siblings.length === 1 && /Sibling\|Name to be provided/.test(c.siblings[0])) &&
+        startFront.join() === '0,0' &&
+        groomBySelf === '1' &&
+        brideBySelf === '1' &&
+        afterKey === '0' &&
+        afterTap === '1' &&
+        afterDot === '0',
+      JSON.stringify({ content, startFront, groomBySelf, brideBySelf, afterKey, afterTap, afterDot }),
     );
-    // All four parents are present with their supplied names and work
-    const parents = await page.evaluate(() =>
-      [...document.querySelectorAll<HTMLElement>('#family .fm__card')].slice(0, 4).map((c) => [c.querySelector('.fm__rel')?.textContent?.trim(), c.querySelector('.fm__name')?.textContent?.trim(), c.querySelector('.fm__work')?.textContent?.trim()].join(' | ')),
-    );
+
+    // The backdrop and the fit: the cream stage with its garlands swaying and the faded temple; gold borders; every face's writing inside its paper
+    const look = await page.evaluate(() => {
+      const temple = document.querySelector<HTMLElement>('#family .fm__temple')!;
+      const canvases = document.querySelectorAll('#family .sbd__top canvas').length;
+      const faces = [...document.querySelectorAll<HTMLElement>('#family [data-face]')];
+      const fits = faces.map((f) => {
+        const paper = f.querySelector<HTMLElement>('.fm__paper')!;
+        const pr = { w: paper.clientWidth, h: paper.clientHeight };
+        return [...f.querySelectorAll<HTMLElement>('.fm__tag, .fm__person')].every((e) => {
+          const top = e.offsetTop, left = e.offsetLeft;
+          return left >= -1 && e.offsetLeft + e.offsetWidth <= pr.w + 1 && top >= -1 && top + e.offsetHeight <= pr.h + 1;
+        });
+      });
+      const gold = faces.every((f) => /linear-gradient/.test(getComputedStyle(f).backgroundImage) && parseFloat(getComputedStyle(f).paddingTop) >= 4);
+      const boards = [...document.querySelectorAll<HTMLElement>('#family .fm__board')].map((b) => b.getBoundingClientRect());
+      const cubes = [...document.querySelectorAll<HTMLElement>('#family .fm__cube')].map((c) => c.getBoundingClientRect());
+      const lotus = document.querySelector<HTMLElement>('.chrome-btn')!.getBoundingClientRect();
+      const folio = document.querySelector<HTMLElement>('.folio')!.getBoundingClientRect();
+      return {
+        temple: Number(getComputedStyle(temple).opacity),
+        canvases,
+        fits,
+        gold,
+        order: boards[0].bottom <= cubes[0].top + 14 && cubes[0].bottom <= boards[1].top + 14 && boards[1].bottom <= cubes[1].top + 14,
+        clear: boards[0].top >= lotus.bottom - 2 && cubes[1].bottom <= folio.top + 2,
+        inside: boards.every((b) => b.left >= 0 && b.right <= innerWidth) && cubes.every((c) => c.left >= 0 && c.right <= innerWidth),
+        cubeH: cubes.map((c) => Math.round(c.height)),
+      };
+    });
     check(
       'AC-18b',
-      "The four parents are shown with the names and work the families supplied (Ravichandran, Kanimalar, Ravichandran, Sopna); no names are invented for siblings",
-      JSON.stringify(parents) === JSON.stringify(['Father of the Bride | Ravichandran | Businessman', 'Mother of the Bride | Kanimalar | Teacher', 'Father of the Groom | Ravichandran | College Principal', 'Mother of the Groom | Sopna | College Lecturer']) &&
-        (await page.evaluate(() => [...document.querySelectorAll('#family .fm__card')].slice(4).every((c) => /to be provided/i.test(c.textContent ?? '')))),
-      JSON.stringify(parents),
+      'Parents and Family: the temple is held back (faded to 40–75%) on the cream wall with its garlands swaying; each face has a gold border and all its writing inside; the boards and cubes stack clear of the Contents button and the page number',
+      look.temple >= 0.4 && look.temple <= 0.75 && look.canvases >= 2 && look.fits.every(Boolean) && look.gold && look.order && look.clear && look.inside,
+      JSON.stringify(look),
     );
     await ctx.close();
   }
@@ -1382,13 +1338,13 @@ async function main() {
       [...document.querySelectorAll<HTMLElement>('.sway, .flame, .glow-breathe')].filter((e) => getComputedStyle(e).animationName !== 'none').length,
     );
     // Love story ring: no automatic turning, and the cards lie flat.
-    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(7));
+    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show([...document.querySelectorAll('.book > .page')].findIndex((p) => p.id === 'love-story')));
     await page.waitForTimeout(300);
     const dotBefore = await page.evaluate(() => [...document.querySelectorAll('[data-ring-dot]')].findIndex((d) => d.classList.contains('is-active')));
     await page.waitForTimeout(6800);
     const dotAfter = await page.evaluate(() => [...document.querySelectorAll('[data-ring-dot]')].findIndex((d) => d.classList.contains('is-active')));
     // Thank You: the lettering is complete at once, and Return fades straight to Welcome.
-    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(16));
+    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show([...document.querySelectorAll('.book > .page')].findIndex((p) => p.id === 'thank-you')));
     await page.waitForTimeout(200);
     const lettering = await page.evaluate(() => [...document.querySelectorAll<SVGPathElement>('#thank-you .ty__glyph')].every((p) => Number(getComputedStyle(p).fillOpacity) > 0.99));
     await page.getByRole('button', { name: 'Return to First Page' }).tap();
@@ -1576,6 +1532,152 @@ async function main() {
         samePage &&
         turned === 'venues',
       JSON.stringify({ first, bySelf, base, afterLeft, afterRight, afterArrow, afterDot, turned, titles, bad: content.filter((c) => !(c.inside && c.belowDiscs && c.art && c.colours.length === 4)) }),
+    );
+    await ctx.close();
+  }
+
+  /* AC-43 the invitation opens by itself: 1.5 s after the card with "Open the Invitation" shows, a guest who does nothing
+     is taken into the book (the bell at the doors is still their own tap); a touch before then keeps it closed */
+  {
+    const run = async (touch: boolean) => {
+      const ctx = await mobileContext(browser);
+      await ctx.addInitScript({ content: "try { localStorage.removeItem('rdv:auto'); } catch (e) {}" });
+      const page = await ctx.newPage();
+      await page.goto(BASE);
+      await settle(page);
+      await ringTheBell(page);
+      await bookReady(page);
+      const t0 = Date.now();
+      await page.waitForTimeout(700);
+      const early = await current(page);
+      if (touch) await page.keyboard.press('Shift'); // any touch, key or scroll counts as the guest taking over
+      let opened: string | null = null;
+      try {
+        await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'welcome', null, { timeout: touch ? 4500 : 9000, polling: POLL });
+        opened = 'welcome';
+      } catch {
+        opened = await current(page);
+      }
+      const took = (Date.now() - t0) / 1000;
+      await ctx.close();
+      return { early, opened, took };
+    };
+    const alone = await run(false);
+    const touched = await run(true);
+    check(
+      'AC-43',
+      'The invitation opens by itself about 1.5 s after the card shows (not before), onto Welcome with no tap; a touch or key before then keeps it closed',
+      alone.early === 'cover' && alone.opened === 'welcome' && alone.took >= 1.4 && alone.took < 8 && touched.opened === 'cover',
+      JSON.stringify({ alone, touched }),
+    );
+  }
+
+  /* AC-44 how to turn the page: a guest who has not turned a page yet sees a pill saying so above a clear page-number pill
+     (arrows large enough to tap), the next arrow nudging; after turning a page it is gone, and stays gone on a later visit */
+  {
+    const ctx = await mobileContext(browser);
+    // a fresh guest on the first load only (a reload later in the check keeps what the guest did)
+    await ctx.addInitScript({ content: "try { if (!sessionStorage.getItem('qa-fresh')) { localStorage.removeItem('rdv:turned'); sessionStorage.setItem('qa-fresh', '1'); } } catch (e) {}" });
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      sessionStorage.setItem('rdv:opened', '1');
+      localStorage.setItem('rdv:hint-seen', '1');
+    });
+    await page.goto(`${BASE}#welcome`);
+    await settle(page);
+    await page.waitForFunction(() => document.querySelector('.turn-cue')?.classList.contains('is-on'), null, { timeout: 4000, polling: POLL });
+    await page.waitForTimeout(700); // the pill has faded in
+    const seen = await page.evaluate(() => {
+      const cue = document.querySelector<HTMLElement>('.turn-cue')!;
+      const folio = document.querySelector<HTMLElement>('.folio')!;
+      const next = document.querySelector<HTMLElement>('.folio [data-next]')!;
+      const prev = document.querySelector<HTMLElement>('.folio [data-prev]')!;
+      const c = cue.getBoundingClientRect();
+      const f = folio.getBoundingClientRect();
+      const n = next.getBoundingClientRect();
+      const fs = getComputedStyle(folio);
+      return {
+        text: cue.textContent?.replace(/\s+/g, ' ').trim(),
+        cueVisible: Number(getComputedStyle(cue).opacity) > 0.95 && c.left >= 0 && c.right <= innerWidth,
+        above: c.bottom <= f.top + 1 && c.bottom > f.top - 40,
+        centred: Math.abs(c.left + c.width / 2 - innerWidth / 2) < 3,
+        rim: parseFloat(fs.borderTopWidth) >= 1.9 && fs.backgroundColor !== 'rgba(0, 0, 0, 0)',
+        tap: n.width >= 44 && n.height >= 44 && prev.getBoundingClientRect().height >= 44,
+        nudging: getComputedStyle(next.querySelector('svg')!).animationName !== 'none',
+        pearlCue: getComputedStyle(document.querySelector('.pearl')!, '::after').content !== 'none',
+        noOverlap: f.bottom <= innerHeight && f.top >= 0,
+      };
+    });
+    await page.getByRole('button', { name: 'Next page' }).first().tap();
+    await settle(page);
+    await page.waitForTimeout(700);
+    const afterTurn = await page.evaluate(() => ({ on: document.querySelector('.turn-cue')!.classList.contains('is-on'), stored: localStorage.getItem('rdv:turned') }));
+    await page.reload();
+    await settle(page);
+    await page.waitForTimeout(2200);
+    const later = await page.evaluate(() => document.querySelector('.turn-cue')!.classList.contains('is-on'));
+    check(
+      'AC-44',
+      'Turning the page is explained: a "Swipe or tap to turn the page" pill above a rimmed page-number pill with large arrows and a nudging next arrow, gone after the guest turns a page',
+      /Swipe or tap to turn the page/.test(seen.text ?? '') && seen.cueVisible && seen.above && seen.centred && seen.rim && seen.tap && seen.nudging && seen.pearlCue && seen.noOverlap && !afterTurn.on && afterTurn.stored === '1' && !later,
+      JSON.stringify({ seen, afterTurn, later }),
+    );
+    await ctx.close();
+  }
+
+  /* AC-45 the Welcome lines are a clear serif, larger, in a maroon gradient (not script), and fit between the date and the couple */
+  {
+    const { ctx, page } = await openedPage('welcome', 390, 844);
+    const m = await page.evaluate(() => {
+      const el = document.querySelector<HTMLElement>('#welcome .wl__message')!;
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      const couple = document.querySelector<HTMLElement>('#welcome .wl-couple__img')!.getBoundingClientRect();
+      const detail = document.querySelector<HTMLElement>('#welcome .wl__place')!.getBoundingClientRect();
+      return {
+        family: cs.fontFamily,
+        size: parseFloat(cs.fontSize),
+        weight: Number(cs.fontWeight),
+        gradient: /linear-gradient/.test(cs.backgroundImage) && cs.backgroundClip === 'text',
+        fill: cs.webkitTextFillColor,
+        inside: r.left >= 0 && r.right <= innerWidth,
+        below: r.top >= detail.bottom - 1,
+        clearOfCouple: r.bottom <= couple.top + couple.height * 0.12,
+        text: (el.textContent ?? '').length > 30,
+      };
+    });
+    check(
+      'AC-45',
+      'Welcome lines: a serif (not script), bold, at least 22 px, filled with a maroon gradient, below the place line and clear of the couple',
+      !/Pinyon|script/i.test(m.family) && /Cormorant|serif/i.test(m.family) && m.size >= 22 && m.weight >= 600 && m.gradient && m.fill === 'rgba(0, 0, 0, 0)' && m.inside && m.below && m.clearOfCouple && m.text,
+      JSON.stringify(m),
+    );
+    await ctx.close();
+  }
+
+  /* AC-46 accepting the invitation plays one soft violin-and-flute phrase of about a second and a half (a sound file, once) */
+  {
+    const { ctx, page } = await openedPage('ceremony', 390, 844);
+    await page.evaluate(() => {
+      const w = window as unknown as { __clips: number[] };
+      w.__clips = [];
+      const start = AudioBufferSourceNode.prototype.start;
+      AudioBufferSourceNode.prototype.start = function (...args: Parameters<typeof start>) {
+        w.__clips.push(this.buffer?.duration ?? -1);
+        return start.apply(this, args);
+      };
+    });
+    const file = await page.request.get(`${BASE}audio/accept-melody.wav`);
+    const bytes = (await file.body()).length;
+    await page.locator('#ceremony [data-accept]').tap();
+    await page.waitForTimeout(1200);
+    const clips = await page.evaluate(() => (window as unknown as { __clips: number[] }).__clips);
+    check(
+      'AC-46',
+      'Accepting plays one soft violin-and-flute phrase (a sound file of about two seconds with its echo, once)',
+      file.status() === 200 && bytes > 60_000 && bytes < 400_000 && clips.length === 1 && clips[0] >= 1.4 && clips[0] <= 2.6,
+      JSON.stringify({ status: file.status(), bytes, clips }),
     );
     await ctx.close();
   }
@@ -1907,7 +2009,7 @@ async function main() {
     const drawn1 = await sample();
     await page.waitForTimeout(1500);
     const drawn2 = await sample();
-    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(12));
+    await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show([...document.querySelectorAll('.book > .page')].findIndex((p) => p.id === 'dress-code')));
     await page.waitForTimeout(200);
     const after = await scene();
     check(

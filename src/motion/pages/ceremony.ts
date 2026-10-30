@@ -1,5 +1,6 @@
 import { defineChoreo, gsap, isReducedMotion, timelineChoreo } from '../choreo';
 import { startCelebration } from '../celebrate';
+import { prefetchAcceptMelody } from '../../lib/accept-melody';
 
 /**
  * Wedding Ceremony (PRD §6.10), on the client's real mandapam picture: over a soft glow of the hall,
@@ -133,6 +134,7 @@ defineChoreo('ceremony', (page) => {
   return {
     enter(animate) {
       choreo.enter(animate);
+      prefetchAcceptMelody(); // the soft melody, ready for the guest's tap (no sound until then)
     },
     leave() {
       celebration?.stop();

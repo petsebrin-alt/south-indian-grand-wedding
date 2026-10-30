@@ -1,24 +1,21 @@
 ---
 /**
- * Page 6 — Parents and Family (PRD §6.7), after the client's reference video: on the events
- * picture's temple background (signboard taken out; src/assets/family/), a focus gallery that slides
- * through the family one at a time. The person in focus has their photograph in a grand gold frame
- on one side and their relation, name and what they do on
- * the other; the people before and after wait above and below as small frames.
- * The frame is the client's ornate gold oval frame (src/assets/family/, npm run family:assets) with
- * the portrait in its opening and a red border just inside the gold.
- * Parents first (the bride's, then the groom's), then the siblings. Sibling cards appear in preview
- * builds as placeholders until their names are supplied. Motion: src/motion/pages/family.ts
+ * Page 4 — Parents and Family (PRD §6.7), after the client's reference video of a 3D cube carousel: on the cream temple
+ * background of the desktop screen (golden pillars, a paisley wall, swaying garlands and lamps; src/components/StageBackdrop.astro)
+ * with the courtyard temple faded behind it (src/assets/family/), two maroon-and-gold boards, "The Groom's Family" and "The
+ * Bride's Family", each over a cube in a gold border that rolls over by itself to show its other face: the parents
+ * (photographs with father's and mother's names and what they do) and the siblings (photographs and names; none
+ * supplied yet, so a preview shows a placeholder and a production build leaves the siblings face out). A tap, a
+ * swipe, the arrow keys or the dots roll it by hand. Behaviour: src/motion/pages/family.ts
  */
 import PageShell from '../PageShell.astro';
+import StageBackdrop from '../StageBackdrop.astro';
 import ScenePhoto from '../ScenePhoto.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
 import { siteMode } from '../../lib/site-mode';
-import background from '../../assets/family/background.webp';
-import backgroundAvif from '../../assets/family/background.avif';
-import frame from '../../assets/family/frame.webp';
-import frameMeta from '../../assets/family/frame.json';
+import temple from '../../assets/family/background.webp';
+import templeAvif from '../../assets/family/background.avif';
 
 interface Props {
   page: BookPage;
@@ -26,80 +23,112 @@ interface Props {
 }
 
 const { page, index } = Astro.props;
-const [ox, oy, ow, oh] = frameMeta.opening;
-const { groom, bride } = wedding.family;
-type Member = { relation: string; name: string | null; work: string | null; photo: { src: string; alt: string } | null; key: string };
-const parents: Member[] = [
-  { key: 'bride-father', relation: 'Father of the Bride', name: bride.father, work: bride.fatherWork, photo: bride.fatherPhoto },
-  { key: 'bride-mother', relation: 'Mother of the Bride', name: bride.mother, work: bride.motherWork, photo: bride.motherPhoto },
-  { key: 'groom-father', relation: 'Father of the Groom', name: groom.father, work: groom.fatherWork, photo: groom.fatherPhoto },
-  { key: 'groom-mother', relation: 'Mother of the Groom', name: groom.mother, work: groom.motherWork, photo: groom.motherPhoto },
-];
-const siblings = (side: typeof groom, of: 'Groom' | 'Bride'): Member[] =>
-  side.siblings.length
-    ? side.siblings.map((s, i) => ({ key: `${of.toLowerCase()}-sibling-${i}`, relation: `${s.relation} of the ${of}`, name: s.name, work: null, photo: s.photo }))
+type Person = { relation: string; name: string | null; work: string | null; photo: { src: string; alt: string } | null };
+type Face = { label: string; people: Person[] };
+
+const build = (key: 'groom' | 'bride', of: 'Groom' | 'Bride') => {
+  const data = wedding.family[key];
+  const parents: Person[] = [
+    { relation: `Father of the ${of}`, name: data.father, work: data.fatherWork, photo: data.fatherPhoto },
+    { relation: `Mother of the ${of}`, name: data.mother, work: data.motherWork, photo: data.motherPhoto },
+  ].filter((p) => p.name || siteMode === 'preview');
+  const siblings: Person[] = data.siblings.length
+    ? data.siblings.map((s) => ({ relation: `${s.relation} of the ${of}`, name: s.name, work: null, photo: s.photo }))
     : siteMode === 'preview'
-      ? [{ key: `${of.toLowerCase()}-sibling`, relation: `Sibling of the ${of}`, name: null, work: null, photo: null }]
+      ? [{ relation: `Sibling of the ${of}`, name: null, work: null, photo: null }]
       : [];
-const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...siblings(groom, 'Groom'), ...siblings(bride, 'Bride')];
+  // Three to a face; more than six are not shown
+  const content: Face[] = [{ label: 'Parents', people: parents }, ...[siblings.slice(0, 3), siblings.slice(3, 6)].filter((f) => f.length).map((people) => ({ label: 'Siblings', people }))];
+  // The cube's four sides: the faces repeat, so it can roll on the same way for ever (one face alone does not roll)
+  const sides = content.length === 1 ? [0] : content.length === 2 ? [0, 1, 0, 1] : [0, 1, 0, 2];
+  return { key, of, content, sides };
+};
+
+const families = [
+  { ...build('groom', 'Groom'), title: "The Groom's Family", partner: wedding.couple.groom.name },
+  { ...build('bride', 'Bride'), title: "The Bride's Family", partner: wedding.couple.bride.name },
+];
+// What shows on a card: the relation without "of the Groom" (the board already says whose family it is)
+const shortRelation = (relation: string) => relation.split(' of the ')[0];
 ---
 
 <PageShell page={page} index={index} watermark={false} class="fm">
   <Fragment slot="architecture">
-    <div class="layer layer--architecture fm__scene" aria-hidden="true">
-      <ScenePhoto class="fm__bg" avif={backgroundAvif} webp={background} defer />
-    </div>
+    <StageBackdrop class="fm__scene">
+      <ScenePhoto class="fm__temple" avif={templeAvif} webp={temple} defer />
+    </StageBackdrop>
   </Fragment>
 
-  <div class="fm__head">
-    <p class="fm__eyebrow">Parents &amp; Family</p>
-    <h2 class="fm__title" tabindex="-1" data-page-heading>With the blessings of our beloved parents</h2>
-  </div>
+  <div class="fm__stack">
+    <h2 class="sr-only" tabindex="-1" data-page-heading>Parents and Family, with the blessings of our beloved parents</h2>
+    {
+      families.map((f) => (
+        <section class="fm__family" data-family={f.key} aria-label={f.title}>
+          <header class="fm__board">
+            <p class="fm__eyebrow">{f.partner}</p>
+            <h3 class="fm__title">{f.title}</h3>
+          </header>
 
-  <div
-    class="fm__gallery"
-    data-family
-    data-gesture="x"
-    tabindex="0"
-    role="group"
-    aria-roledescription="carousel"
-    aria-label="The family, one at a time. Use the arrow keys to move between them."
-    style={`--ox:${ox}%;--oy:${oy}%;--ow:${ow}%;--oh:${oh}%;--frame-ratio:${frameMeta.width} / ${frameMeta.height}`}
-  >
-    <ol class="fm__list">
-      {
-        members.map((m, i) => (
-          <li class="fm__card" data-member={i} aria-label={`${m.relation}: ${m.name ?? 'name to be provided'}${m.work ? `, ${m.work}` : ''}`}>
-            <div class="fm__frame" aria-hidden="true">
-              <div class="fm__mat">
-                {m.photo ? (
-                  <>
-                    <img class="fm__photo" data-src={m.photo.src} alt="" decoding="async" />
-                    <noscript><img class="fm__photo" src={m.photo.src} alt="" decoding="async" /></noscript>
-                  </>
-                ) : (
-                  <span class="fm__ph">
-                    <span class="fm__ph-mono">R·D</span>
-                    <span class="fm__ph-note preview-only">Photo to be provided</span>
-                  </span>
-                )}
+          <div
+            class="fm__cube"
+            data-cube
+            data-gesture="x"
+            tabindex="0"
+            role="group"
+            aria-roledescription="carousel"
+            aria-label={`${f.title}: ${f.content.map((c) => c.label.toLowerCase()).join(' and ')}. ${f.content.length > 1 ? 'The cube rolls over by itself; use the arrow keys to roll it.' : ''}`}
+          >
+            <div class="fm__rig">
+              <div class="fm__box" data-cube-box>
+                {
+                  f.sides.map((c, side) => {
+                    const face = f.content[c];
+                    return (
+                      <div class="fm__face" data-face data-content={c} role="group" aria-roledescription="slide" aria-label={`${face.label} of the ${f.of}: ${face.people.map((p) => p.name ?? 'name to be provided').join(' and ')}`} aria-hidden={side === 0 ? 'false' : 'true'}>
+                        <div class="fm__paper">
+                          <p class="fm__tag">{face.label}</p>
+                          <div class="fm__people" style={`--n:${face.people.length}`}>
+                            {face.people.map((p) => (
+                              <figure class="fm__person">
+                                <div class="fm__ring">
+                                  {p.photo ? (
+                                    <>
+                                      <img class="fm__photo" data-src={p.photo.src} alt={p.photo.alt} decoding="async" draggable="false" />
+                                      <noscript>
+                                        <img class="fm__photo" src={p.photo.src} alt={p.photo.alt} decoding="async" />
+                                      </noscript>
+                                    </>
+                                  ) : (
+                                    <span class="fm__ph">
+                                      <span class="fm__ph-mono">R·D</span>
+                                      <span class="fm__ph-note preview-only">Photo to be provided</span>
+                                    </span>
+                                  )}
+                                </div>
+                                <figcaption class="fm__cap">
+                                  <span class="fm__rel">{shortRelation(p.relation)}</span>
+                                  <span class="fm__name">{p.name ?? <span class="fm__tbp">Name to be provided</span>}</span>
+                                  {p.work && <span class="fm__work">{p.work}</span>}
+                                </figcaption>
+                              </figure>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                }
               </div>
-              <img class="fm__gold" data-src={frame.src} width={frame.width} height={frame.height} alt="" decoding="async" />
-              <noscript><img class="fm__gold" src={frame.src} width={frame.width} height={frame.height} alt="" decoding="async" /></noscript>
             </div>
-            <div class="fm__side" aria-hidden="true">
-              <span class="fm__rel">{m.relation}</span>
-              <span class="fm__name">{m.name ?? <span class="fm__tbp">Name to be provided</span>}</span>
-              {m.work && <span class="fm__work">{m.work}</span>}
-            </div>
-          </li>
-        ))
-      }
-    </ol>
-    <div class="fm__dots" aria-hidden="true">
-      {members.map((_, i) => <button class="fm__dot" type="button" tabindex="-1" data-family-dot={i} />)}
-    </div>
-    <p class="sr-only" aria-live="polite" data-family-live></p>
+          </div>
+
+          <div class="fm__dots" data-cube-dots>
+            {f.content.length > 1 && f.content.map((c, j) => <button class:list={['fm__dot', j === 0 && 'is-active']} type="button" data-cube-dot={j} aria-label={`Show the ${c.label.toLowerCase()} of the ${f.of}`} />)}
+          </div>
+          <p class="sr-only" aria-live="polite" data-cube-live></p>
+        </section>
+      ))
+    }
   </div>
 </PageShell>
 
@@ -108,43 +137,53 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     display: none;
   }
 
-  /* The temple is shown at 97% of its strength (the client found it too white at a third), the maroon
-     boards and gold frames standing out clearly against it */
-  .fm__scene {
-    inset: 0;
-    overflow: hidden;
-    background: #f8eedb;
-  }
-
-  .fm__bg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.97;
-  }
-
   .fm .page__content {
     inset: 0;
     display: block;
   }
 
-  /* The boards: deep maroon velvet in a grand gold frame (a thick gold band, a thin maroon rule and a fine
-     gold line inside, with gold studs at the corners), so they stand out clearly from the temple and echo
-     the invitation card */
-  .fm__head {
+  /* The courtyard temple, faded and held back over the cream wall (a little less than full strength: 58%), its top and foot
+     melting into the wall so no edge shows */
+  .fm__temple {
     position: absolute;
-    left: 6cqw;
-    right: 6cqw;
-    top: calc(var(--safe-top) + 6cqh);
-    padding: 1.9cqh 4cqw 2.1cqh;
-    text-align: center;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 62% 30%;
+    opacity: 0.58;
+    mask-image: linear-gradient(to bottom, transparent 0, #000 16%, #000 78%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16%, #000 78%, transparent 100%);
   }
 
-  .fm__head,
-  .fm__side {
+  /* ---------------------------------------------------------------- the two families, one above the other */
+  .fm__stack {
+    position: absolute;
+    left: 5cqw;
+    right: 5cqw;
+    top: calc(var(--safe-top) + 62px);
+    bottom: calc(var(--safe-bottom) + 62px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .fm__family {
+    flex: 1 1 0;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    row-gap: 9px;
+  }
+
+  /* The boards: deep maroon velvet in a grand gold frame (a thick gold band, a thin maroon rule and a fine gold line
+     inside, with gold studs at the corners), as on the invitation card */
+  .fm__board {
+    position: relative;
+    margin-inline: 1.6cqw;
+    padding: 7px 4cqw 8px;
     border-radius: 14px;
+    text-align: center;
     background:
       radial-gradient(ellipse 90% 120% at 50% 0%, rgba(150, 30, 48, 0.55), rgba(150, 30, 48, 0) 70%),
       linear-gradient(180deg, #70101f, #4d0913);
@@ -153,25 +192,22 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
       0 0 0 4.5px #7a1020,
       0 0 0 7px #c99a43,
       0 0 0 8px rgba(255, 233, 170, 0.75),
-      0 10px 22px rgba(40, 8, 8, 0.5),
+      0 8px 18px rgba(40, 8, 8, 0.45),
       inset 0 0 0 1.5px rgba(240, 205, 125, 0.85),
       inset 0 0 14px rgba(20, 0, 4, 0.55);
     color: #f7e4ae;
   }
 
-  /* A fine gold line inside the maroon, and a gold stud at each corner */
-  .fm__head::before,
-  .fm__side::before {
+  .fm__board::before {
     content: '';
     position: absolute;
-    inset: 5px;
+    inset: 4px;
     border: 1px dotted rgba(240, 205, 125, 0.7);
     border-radius: 10px;
     pointer-events: none;
   }
 
-  .fm__head::after,
-  .fm__side::after {
+  .fm__board::after {
     content: '';
     position: absolute;
     inset: -3px;
@@ -185,205 +221,253 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
   }
 
   .fm__eyebrow {
-    font: 700 clamp(11px, 3.2cqw, 13px) / 1.3 var(--font-royal);
-    letter-spacing: 0.2em;
+    font: 700 clamp(9px, 2.6cqw, 11.5px) / 1.2 var(--font-royal);
+    letter-spacing: 0.26em;
+    text-indent: 0.26em;
     text-transform: uppercase;
     color: #efc86e;
   }
 
   .fm__title {
-    margin-top: 0.6cqh;
-    font: 400 clamp(26px, 8.4cqw, 36px) / 1.12 var(--font-script);
-    color: #fbe9b7;
-    -webkit-text-stroke: 0.3px currentColor;
-    text-shadow: 0 1px 2px rgba(20, 0, 4, 0.6);
-    text-wrap: balance;
-  }
-
-  /* The gallery: the card in focus in the middle, the others above and below it */
-  .fm__gallery {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(var(--safe-top) + 24cqh);
-    bottom: calc(var(--safe-bottom) + 6cqh);
-    outline: none;
-  }
-
-  .fm__list {
-    position: absolute;
-    inset: 0 0 4cqh;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  /* The photograph on the left, the words on the right; the waiting frames line up with it */
-  .fm__card {
-    --fw: min(42cqw, 26cqh);
-    --pad: 7cqw;
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    display: grid;
-    grid-template-columns: var(--fw) 1fr;
-    align-items: center;
-    gap: 5cqw;
-    padding-inline: var(--pad) 5cqw;
-    translate: 0 -50%;
-    transform-origin: calc(var(--pad) + var(--fw) / 2) 50%;
-    will-change: transform, opacity;
-  }
-
-  .fm__side {
-    position: relative;
-    display: grid;
-    justify-items: start;
-    gap: 1.2cqh;
-    padding: 2.2cqh 3.6cqw 2.4cqh;
-    margin-right: 4.6cqw;
-    text-align: left;
-  }
-
-  .fm__rel {
-    font: 700 clamp(9px, 2.8cqw, 12px) / 1.3 var(--font-royal);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #efc86e;
-  }
-
-  .fm__name {
-    font: 400 clamp(22px, 6.8cqw, 31px) / 1.05 var(--font-script);
+    margin-top: 1px;
+    font: 400 clamp(23px, 7cqw, 31px) / 1.1 var(--font-script);
     color: #fbe9b7;
     -webkit-text-stroke: 0.3px currentColor;
     text-shadow: 0 1px 2px rgba(20, 0, 4, 0.6);
   }
 
-  .fm__tbp {
-    font: 500 12px / 1.3 var(--font-body);
-    color: #e9cf95;
-    -webkit-text-stroke: 0;
-  }
-
-  .fm__work {
-    font: 600 clamp(15px, 4.6cqw, 19px) / 1.25 var(--font-display);
-    color: #f4dba0;
-  }
-
-  .fm__work::before {
-    content: '';
-    display: block;
-    width: 34px;
-    height: 1px;
-    margin-bottom: 1cqh;
-    background: linear-gradient(90deg, #e9c46a, transparent);
-  }
-
-  /* The client's gold oval frame, with the portrait in its opening under a red border */
-  .fm__frame {
+  /* ---------------------------------------------------------------- the cube: four faces round a horizontal axis, rolled by
+     GSAP (src/motion/pages/family.ts). Its depth is its own height (cqh is the cube's), so the front face lies flat on the page. */
+  .fm__cube {
     position: relative;
-    width: var(--fw);
-    aspect-ratio: var(--frame-ratio);
-    filter: drop-shadow(0 9px 12px rgba(50, 20, 5, 0.38)) drop-shadow(0 1px 2px rgba(50, 20, 5, 0.3));
+    min-height: 0;
+    container-type: size;
+    perspective: 1500px;
+    touch-action: pan-y pinch-zoom;
+    outline-offset: 8px;
+    cursor: pointer;
   }
 
-  /* The oval picture, a little larger than the opening so its edge lies under the gold */
-  .fm__mat {
-    position: absolute;
-    left: calc(var(--ox) - 1%);
-    top: calc(var(--oy) - 0.8%);
-    width: calc(var(--ow) + 2%);
-    height: calc(var(--oh) + 1.6%);
-    box-sizing: border-box;
-    overflow: hidden;
-    border: calc(var(--fw) * 0.034) solid #8c1023;
-    border-radius: 50%;
-    background: radial-gradient(ellipse at 50% 40%, #fbf3e3, #ead9b8);
-    box-shadow: inset 0 2px 5px rgba(40, 0, 8, 0.45);
-  }
-
-  .fm__gold {
+  .fm__rig {
     position: absolute;
     inset: 0;
+    transform-style: preserve-3d;
+    transform: translateZ(-50cqh);
+  }
+
+  .fm__box {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+  }
+
+  /* Each face has a gold border (a metal gradient band) round its ivory paper */
+  .fm__face {
+    position: absolute;
+    inset: 0;
+    padding: 5px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #f6e3a3 0%, #c9993f 30%, #f8ebb8 52%, #a8741f 100%);
+    box-shadow:
+      0 0 0 1px #7a5718,
+      0 10px 18px rgba(50, 25, 5, 0.38);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .fm__face:nth-child(1) {
+    transform: translateZ(50cqh);
+  }
+
+  .fm__face:nth-child(2) {
+    transform: rotateX(-90deg) translateZ(50cqh);
+  }
+
+  .fm__face:nth-child(3) {
+    transform: rotateX(-180deg) translateZ(50cqh);
+  }
+
+  .fm__face:nth-child(4) {
+    transform: rotateX(-270deg) translateZ(50cqh);
+  }
+
+  .fm__paper {
+    position: relative;
     width: 100%;
     height: 100%;
+    container-type: size;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: 5cqh 4cqw 4cqh;
+    overflow: hidden;
+    border-radius: 8px;
+    background-color: #fff8e8;
+    background-image: var(--paper-texture);
+    background-blend-mode: multiply;
+    box-shadow:
+      inset 0 0 0 1.5px rgba(122, 16, 32, 0.6),
+      inset 0 0 0 4px #fff8e8,
+      inset 0 0 0 5px rgba(201, 162, 74, 0.65);
+  }
+
+  /* The face turning away darkens (set while it rolls) */
+  .fm__paper::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #2a0c06;
+    opacity: var(--shade, 0);
+    pointer-events: none;
+  }
+
+  .fm__tag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3cqw;
+    padding-top: 1cqh;
+    font: 700 max(9px, min(5.2cqh, 3.1cqw)) / 1 var(--font-royal);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #8a6420;
+  }
+
+  .fm__tag::before,
+  .fm__tag::after {
+    content: '';
+    flex: 0 1 17cqw;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #c9a24a);
+  }
+
+  .fm__tag::after {
+    transform: scaleX(-1);
+  }
+
+  .fm__people {
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    column-gap: 2cqw;
+    align-content: center;
+    justify-items: center;
+  }
+
+  .fm__person {
+    margin: 0;
+    min-width: 0;
+    display: grid;
+    justify-items: center;
+    gap: 1.6cqh;
+    text-align: center;
+  }
+
+  /* A gold oval ring round a maroon line round the photograph */
+  .fm__ring {
+    position: relative;
+    height: min(46cqh, 30cqw);
+    aspect-ratio: 4 / 5;
+    padding: max(2px, 1.1cqh);
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f6e3a3 0%, #c9993f 38%, #f8ebb8 55%, #a8741f 100%);
+    box-shadow: 0 3px 8px rgba(60, 30, 5, 0.35);
+  }
+
+  .fm__ring::before {
+    content: '';
+    position: absolute;
+    inset: max(2px, 1.1cqh);
+    border-radius: 50%;
+    border: max(1.5px, 0.7cqh) solid #8c1023;
+    z-index: 1;
     pointer-events: none;
   }
 
   .fm__photo {
+    display: block;
     width: 100%;
     height: 100%;
+    border-radius: 50%;
     object-fit: cover;
     object-position: 50% 22%;
+    pointer-events: none;
+    background: #e9d9b7;
   }
 
   .fm__ph {
     position: absolute;
-    inset: 0;
+    inset: max(2px, 1.1cqh);
     display: grid;
     place-content: center;
-    gap: 6px;
+    gap: 4px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 40%, #fbf3e3, #ead9b8);
     text-align: center;
   }
 
   .fm__ph-mono {
-    font: 600 calc(var(--fw) * 0.2) / 1 var(--font-display);
-    color: #b08a45;
+    font: 400 max(15px, 8cqh) / 1 var(--font-script);
+    color: #8c1023;
   }
 
   .fm__ph-note {
-    font: 500 10px / 1.25 var(--font-body);
-    color: #85540f;
-    padding-inline: 8px;
+    padding-inline: 8%;
+    font: 500 max(7px, 3.4cqh) / 1.2 var(--font-body);
+    color: #85735f;
   }
 
-  /* Without scripts the family is a plain list down the page (the frame and portraits are loaded by
-     src/motion/pages/cover.ts after the door photograph, so they stay out of the first load) */
-  html:not(.js) .fm .page__content {
-    position: relative;
-    inset: auto;
-    padding-block: calc(var(--safe-top) + 7cqh) 8cqh;
-  }
-
-  html:not(.js) .fm__head {
-    position: static;
-    margin-bottom: 4cqh;
-  }
-
-  html:not(.js) .fm__gallery,
-  html:not(.js) .fm__list {
-    position: static;
-  }
-
-  html:not(.js) .fm__list {
+  .fm__cap {
     display: grid;
-    gap: 4cqh;
+    justify-items: center;
+    gap: 0.6cqh;
+    min-width: 0;
   }
 
-  html:not(.js) .fm__card {
-    position: relative;
-    top: auto;
-    translate: none;
+  .fm__rel {
+    font: 700 max(9px, min(4.6cqh, 2.9cqw)) / 1.2 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8a6420;
   }
 
-  html:not(.js) .fm__dots {
-    display: none;
+  .fm__name {
+    max-width: 100%;
+    font: 400 max(17px, min(10.5cqh, 6.6cqw)) / 1.05 var(--font-script);
+    color: #6a0f1f;
+    -webkit-text-stroke: 0.3px currentColor;
+    overflow-wrap: anywhere;
   }
 
+  .fm__tbp {
+    font: 500 max(11px, 4.6cqh) / 1.2 var(--font-body);
+    color: #85735f;
+    -webkit-text-stroke: 0;
+  }
+
+  .fm__work {
+    font: 700 max(11px, min(5.6cqh, 3.6cqw)) / 1.2 var(--font-display);
+    color: #4a3126;
+  }
+
+  /* Three to a face: slimmer ovals and smaller names */
+  .fm__people[style*='--n:3'] .fm__ring {
+    height: min(40cqh, 21cqw);
+  }
+
+  .fm__people[style*='--n:3'] .fm__name {
+    font-size: max(15px, min(8.6cqh, 5cqw));
+  }
+
+  /* ---------------------------------------------------------------- the dots, one for each face */
   .fm__dots {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
     display: flex;
     justify-content: center;
     gap: 6px;
+    min-height: 22px;
   }
 
   .fm__dot {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 22px;
     padding: 0;
     border: 0;
     background: none;
@@ -394,17 +478,25 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
   .fm__dot::before {
     content: '';
     display: block;
-    width: 7px;
-    height: 7px;
+    width: 9px;
+    height: 9px;
     margin: auto;
     border-radius: 50%;
-    background: rgba(133, 84, 15, 0.55);
-    box-shadow: 0 0 0 1.5px rgba(255, 249, 238, 0.9), 0 0 6px 1px rgba(255, 249, 238, 0.8);
-    transition: background-color 0.3s, transform 0.3s;
+    background: rgba(106, 15, 31, 0.28);
+    box-shadow: 0 0 0 1.5px rgba(255, 249, 238, 0.9);
+    transition:
+      background-color 0.3s,
+      transform 0.3s;
   }
 
   .fm__dot.is-active::before {
-    background: #85540f;
-    transform: scale(1.35);
+    background: #8a1426;
+    transform: scale(1.3);
+  }
+
+  /* Without scripts the cube cannot roll: the parents face shows alone */
+  html:not(.js) .fm__face:not(:first-child),
+  html:not(.js) .fm__dots {
+    display: none;
   }
 </style>

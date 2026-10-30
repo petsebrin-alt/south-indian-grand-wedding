@@ -108,8 +108,7 @@ const names = lettering([`${groom.name} & ${bride.name}`]);
   }
 
   /* Deep maroon and temple green, each with a soft ivory glow at its edges */
-  .wl__details,
-  .wl__message {
+  .wl__details {
     text-shadow:
       0 0 2px rgba(255, 249, 238, 0.95),
       0 0 10px rgba(255, 249, 238, 0.9);
@@ -137,13 +136,20 @@ const names = lettering([`${groom.name} & ${bride.name}`]);
     color: #6a0f1f;
   }
 
-  /* The welcome lines in calligraphy, like the names */
+  /* The welcome lines in a clear, bold serif (not script), larger, in a maroon-to-ruby gradient with a soft ivory glow so
+     they read plainly over the photograph (the glow is a drop-shadow, which follows the gradient-filled letters) */
   .wl__message {
-    max-width: 18em;
-    margin-top: 0.4cqh;
-    font: 400 clamp(20px, 5.9cqw, 25px) / 1.2 var(--font-script);
-    color: #6a0f1f;
-    -webkit-text-stroke: 0.3px currentColor; /* the script's fine strokes, a touch fuller */
+    max-width: 16.5em;
+    margin-top: 0.6cqh;
+    font: 700 clamp(22px, 6.4cqw, 28px) / 1.26 var(--font-display);
+    letter-spacing: 0.005em;
+    background: linear-gradient(104deg, #5e0e1c 0%, #a3142e 36%, #cf2d45 62%, #7a1226 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: #8a1426; /* where gradient text is not supported */
+    filter: drop-shadow(0 0 2px rgba(255, 249, 238, 0.95)) drop-shadow(0 0 9px rgba(255, 249, 238, 0.9));
+    text-wrap: balance;
   }
 
   /* The couple, standing at the front of the courtyard */
@@ -192,7 +198,7 @@ const names = lettering([`${groom.name} & ${bride.name}`]);
     }
 
     .wl__message {
-      font-size: 19px;
+      font-size: 21px;
     }
 
     .wl-couple {

@@ -3,14 +3,14 @@ import { courtyardLife } from '../courtyard';
 
 /**
  * Save the Date (PRD §6.4), as the client asked: the couple step forward holding their gold board,
- * whose curtains are closed with a blinking tap hand on them. Tapping it (or waiting AUTO_OPEN_MS
- * after the couple settle) draws the curtains gently open; "Save the Date" is written
+ * whose curtains are closed. A fraction of a second after the page arrives (AUTO_OPEN_MS) the curtains draw
+ * gently open by themselves, with no tap needed; "Save the Date" is written
  * in script letter by letter, the month appears, red hearts pop onto the celebration days and Add
  * to Calendar follows. The courtyard stirs in the breeze and rose petals drift down. Revisits and
  * reduced motion show the finished page (curtains open); reduced motion has no breeze, petals,
  * glow or beat.
  */
-const AUTO_OPEN_MS = 3000;
+const AUTO_OPEN_MS = 600;
 const WRITE_S = 1.4;
 const LETTER_S = 0.28;
 
@@ -27,8 +27,9 @@ defineChoreo('save-the-date', (page) => {
   const arrive = gsap
     .timeline({ paused: true })
     .fromTo($('[data-courtyard]'), { scale: 1.04 }, { scale: 1, duration: 2.4, ease: 'sine.out' }, 0)
-    .from($('.sd__scene'), { y: 18, scale: 0.97, transformOrigin: '50% 100%', duration: 1.2, ease: 'power2.out' }, 0)
-    .from(tie, { autoAlpha: 0, y: -8, duration: 0.6, ease: 'sine.out' }, 0.5);
+    .from($('.sd__scene'), { y: 18, scale: 0.97, transformOrigin: '50% 100%', duration: 1.2, ease: 'power2.out' }, 0);
+  // The curtains open by themselves, so the blinking tap hand is not shown
+  gsap.set(tie, { autoAlpha: 0 });
 
   const write = 1.3;
   const reveal = gsap
@@ -55,9 +56,6 @@ defineChoreo('save-the-date', (page) => {
     reveal.play();
   };
   tie.addEventListener('click', open);
-  arrive.eventCallback('onComplete', () => {
-    if (!opened) timer = window.setTimeout(open, AUTO_OPEN_MS);
-  });
 
   return {
     enter(animate) {
@@ -66,6 +64,7 @@ defineChoreo('save-the-date', (page) => {
         opened = false;
         reveal.pause(0);
         arrive.restart();
+        timer = window.setTimeout(open, AUTO_OPEN_MS);
       } else {
         opened = true;
         arrive.progress(1).pause();

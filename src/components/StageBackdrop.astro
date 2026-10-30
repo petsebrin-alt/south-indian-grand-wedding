@@ -1,0 +1,112 @@
+---
+/**
+ * The cream temple background of the desktop screen as a phone page's backdrop (the client's picture: golden pillars at the
+ * edges, a paisley wall, and its hanging garlands, lamps and bells swaying; src/assets/stage/, npm run stage:assets), in
+ * three parts that fit any page height: the top, where the garlands hang; the foot, with the vases, petals and marble;
+ * and between them a plain blend of the cream wall that stretches. Used by the Love Story and Parents pages. Sway: src/motion/sway.ts.
+ * Anything in the default slot (the Parents page's faded temple) lies over the wall and under the swaying pieces.
+ */
+import ScenePhoto from './ScenePhoto.astro';
+import sceneTop from '../assets/stage/page-top.webp';
+import sceneFoot from '../assets/stage/page-bottom.webp';
+import sceneGap from '../assets/stage/page-gap.webp';
+import { STAGE_PAGE, stagePagePieces } from '../lib/stage-pieces';
+
+interface Props {
+  /** classes for the page's own styles (the root also carries layer layer--architecture) */
+  class?: string;
+  /** how strongly the picture shows (the Love Story page fades it a little so its board stands out) */
+  opacity?: number;
+}
+
+const { class: className, opacity = 1 } = Astro.props;
+const { width: COMP_W, top: TOP_H, bottom: FOOT_H } = STAGE_PAGE;
+const pieces = stagePagePieces();
+---
+
+<div class:list={['layer layer--architecture sbd', className]} aria-hidden="true" style={`--top:${TOP_H / COMP_W};--foot:${FOOT_H / COMP_W};opacity:${opacity}`}>
+  <div class="sbd__gap" data-vars={`background-image:url("${sceneGap.src}")`}></div>
+  <div class="sbd__top" style={`aspect-ratio:${COMP_W} / ${TOP_H}`}>
+    <ScenePhoto class="sbd__bg" webp={sceneTop} defer />
+    {
+      pieces.map((p) => (
+        <span
+          class="sway"
+          data-sway={p.src}
+          data-amp={p.amp}
+          data-period={p.period}
+          data-lag={p.lag}
+          data-phase={p.phase}
+          style={`left:${p.left}%;top:${p.top}%;width:${p.width}%;height:${p.height}%`}
+        />
+      ))
+    }
+  </div>
+  <div class="sbd__foot" style={`aspect-ratio:${COMP_W} / ${FOOT_H}`}>
+    <ScenePhoto class="sbd__bg" webp={sceneFoot} defer />
+  </div>
+  <div class="sbd__over"><slot /></div>
+</div>
+
+<style is:global>
+  .sbd {
+    inset: 0;
+    overflow: hidden;
+    isolation: isolate;
+    background: #f1e2c6;
+  }
+
+  .sbd__top,
+  .sbd__foot {
+    position: absolute;
+    left: 0;
+    width: 100%;
+  }
+
+  .sbd__top {
+    top: 0;
+  }
+
+  .sbd__foot {
+    bottom: 0;
+  }
+
+  .sbd__gap {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    top: calc(100cqw * var(--top) - 26px);
+    bottom: calc(100cqw * var(--foot) - 26px);
+    background: #f1e2c6 center / 100% 100% no-repeat;
+  }
+
+  .sbd__bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Each part's edge by the blend fades into it, so no seam shows */
+  .sbd__top .sbd__bg {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+  }
+
+  .sbd__foot .sbd__bg {
+    mask-image: linear-gradient(to bottom, transparent, #000 24px);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
+  }
+
+  /* what the page lays over the wall (under the garlands and lamps) */
+  .sbd__over {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .sbd .sway {
+    z-index: 2;
+  }
+</style>

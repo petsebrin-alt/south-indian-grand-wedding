@@ -3,7 +3,6 @@ import './cover';
 import './welcome';
 import './save-the-date';
 import './countdown';
-import './couple';
 import './family';
 import './love-story';
 import './events';

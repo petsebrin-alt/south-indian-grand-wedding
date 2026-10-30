@@ -55,47 +55,50 @@ html:not(.mode-scroll) .chrome-book-view {
   display: none;
 }
 
-/* Folio group "‹ — 7 — ›" */
+/* Folio group "‹ — 7 — ›": a pill with a maroon rim, so the page number and the arrows show clearly over any page and
+   a guest can see how to move on */
 .folio {
   position: absolute;
   z-index: var(--z-chrome);
   left: 50%;
-  bottom: calc(var(--safe-bottom) + 4px);
+  bottom: calc(var(--safe-bottom) + 5px);
   transform: translateX(-50%);
   display: flex;
   align-items: center;
+  padding: 0 2px;
+  border: 2px solid #8a1426;
+  border-radius: 999px;
+  background: rgba(255, 252, 245, 0.95);
+  box-shadow: 0 2px 8px rgba(60, 20, 10, 0.3);
 }
 
 .folio button {
-  width: 44px;
+  width: 46px;
   height: 44px;
   display: grid;
   place-items: center;
   border: 0;
   background: none;
-  color: var(--gold-text);
+  color: #8a1426;
   padding: 0;
 }
 
 .folio button svg {
-  width: 20px;
-  height: 20px;
-  /* a soft ivory halo, so the arrows read clearly on busy photographs as well as pale pages */
-  filter: drop-shadow(0 0 2px rgba(255, 249, 238, 0.95)) drop-shadow(0 0 5px rgba(255, 249, 238, 0.85));
+  width: 26px;
+  height: 26px;
 }
 
 .folio button:disabled {
-  opacity: 0.3;
+  opacity: 0.28;
   cursor: default;
 }
 
 .folio__number {
-  min-width: 64px;
+  min-width: 56px;
   text-align: center;
-  font: 500 var(--t-folio) / 1 var(--font-royal);
-  letter-spacing: 0.2em;
-  color: var(--gold-text);
-  text-shadow: 0 0 2px rgba(255, 249, 238, 0.95), 0 0 6px rgba(255, 249, 238, 0.9), 0 0 12px rgba(255, 249, 238, 0.7);
+  font: 700 15px / 1 var(--font-royal);
+  letter-spacing: 0.14em;
+  color: #6a0f1f;
 }
 
 .folio__number::before {
@@ -104,6 +107,97 @@ html:not(.mode-scroll) .chrome-book-view {
 
 .folio__number::after {
   content: ' —';
+}
+
+/* Until the guest has turned a page themselves, the next arrow nudges forward and a pill says what to do */
+.turn-hint .folio [data-next]:not(:disabled) svg {
+  animation: next-nudge 1.2s ease-in-out infinite;
+}
+
+@keyframes next-nudge {
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+.turn-cue {
+  position: absolute;
+  z-index: var(--z-chrome);
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 62px);
+  width: max-content;
+  max-width: 94%;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 12px 9px 18px;
+  border: 1.5px solid #d9b062;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #8a1426, #5e0e1c);
+  box-shadow: 0 4px 14px rgba(40, 8, 8, 0.45);
+  color: #fbe9b9;
+  font: 600 12.5px / 1.1 var(--font-body);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 10px);
+  transition:
+    opacity 0.5s var(--ease-silk),
+    transform 0.5s var(--ease-silk),
+    visibility 0s linear 0.5s;
+}
+
+.turn-cue.is-on {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  transition:
+    opacity 0.5s var(--ease-silk),
+    transform 0.5s var(--ease-silk);
+}
+
+.turn-cue__arrows {
+  display: inline-flex;
+  align-items: center;
+}
+
+.turn-cue__arrows svg {
+  width: 16px;
+  height: 16px;
+  margin-left: -5px;
+  opacity: 0.3;
+  animation: cue-chevron 1.3s ease-in-out infinite;
+}
+
+.turn-cue__arrows svg:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.turn-cue__arrows svg:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes cue-chevron {
+  50% {
+    opacity: 1;
+    transform: translateX(3px);
+  }
+}
+
+.on-cover .turn-cue,
+.mode-scroll .turn-cue {
+  display: none;
+}
+
+.reduce-motion .turn-cue__arrows svg,
+.reduce-motion .turn-hint .folio [data-next] svg {
+  animation: none;
+}
+
+.reduce-motion .turn-cue__arrows svg {
+  opacity: 1;
 }
 
 /* Pearl page-turn handle (reference video) */
@@ -130,8 +224,26 @@ html:not(.mode-scroll) .chrome-book-view {
   opacity: 0.8;
 }
 
+/* A small chevron on the pearl says it turns the page */
+.pearl::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid #8a1426;
+  border-right: 2px solid #8a1426;
+  transform: translate(-72%, -50%) rotate(45deg);
+  opacity: 0.8;
+}
+
 .pearl-hint .pearl::before {
   animation: pearl-pulse 1.6s ease-in-out 3;
+}
+
+.turn-hint .pearl::before {
+  animation: pearl-pulse 1.6s ease-in-out infinite;
 }
 
 @keyframes pearl-pulse {

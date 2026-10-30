@@ -97,44 +97,74 @@ export function ringBell(recording: string | null, strikes = 2) {
   }
 }
 
-/* ------------------------------------------------------------------ the Wishing Wall's ding */
+/* ------------------------------------------------------------------ short sound files */
 
-// A soft temple-bell blessing (scripts/wishes/bell.py): a short, lilting phrase of five gentle strokes on a
-// pentatonic scale, the last one held, played whenever a new blessing is hung on the wall. Fetched ahead of time
-// (no sound), decoded and played from the guest's own action; each time it is a hair different in pitch.
-const DING_URL = `${import.meta.env.BASE_URL}audio/temple-ding.wav`;
-let dingBytes: Promise<ArrayBuffer | null> | null = null;
-let dingBuffer: AudioBuffer | null = null;
+const clipBytes = new Map<string, Promise<ArrayBuffer | null>>();
+const clipBuffers = new Map<string, AudioBuffer>();
 
-export function prefetchDing() {
-  dingBytes ??= fetch(DING_URL)
-    .then((r) => (r.ok ? r.arrayBuffer() : null))
-    .catch(() => null);
+/** Fetch a short sound file ahead of time (nothing is decoded or played, so no sound context is needed), once. */
+export function prefetchClip(url: string): Promise<ArrayBuffer | null> {
+  let bytes = clipBytes.get(url);
+  if (!bytes) {
+    bytes = fetch(url)
+      .then((r) => (r.ok ? r.arrayBuffer() : null))
+      .catch(() => null);
+    clipBytes.set(url, bytes);
+  }
+  return bytes;
 }
 
-export async function ringDing() {
-  if (!soundOn()) return;
+async function decoded(url: string, ac: AudioContext): Promise<AudioBuffer | null> {
+  const hit = clipBuffers.get(url);
+  if (hit) return hit;
+  const bytes = await prefetchClip(url);
+  if (!bytes) return null;
+  const buffer = await ac.decodeAudioData(bytes.slice(0));
+  clipBuffers.set(url, buffer);
+  return buffer;
+}
+
+/**
+ * Play a short sound file (only from the guest's own action, and only if the sound switch is on). Resolves with a function
+ * that fades it out, or null if the file could not be played. A hair of difference in speed each time (`variance`), as a
+ * real bell is never struck twice alike.
+ */
+export async function playClip(url: string, { gain = 0.9, variance = 0 } = {}): Promise<(() => void) | null> {
+  if (!soundOn()) return () => {};
   try {
     ctx ??= new AudioContext();
     if (ctx.state === 'suspended') await ctx.resume();
-    if (!dingBuffer) {
-      prefetchDing();
-      const bytes = await dingBytes;
-      if (bytes) dingBuffer = await ctx.decodeAudioData(bytes.slice(0));
-    }
-    if (dingBuffer) {
-      const src = ctx.createBufferSource();
-      src.buffer = dingBuffer;
-      src.playbackRate.value = 0.995 + Math.random() * 0.01;
-      const gain = ctx.createGain();
-      gain.gain.value = 0.85;
-      src.connect(gain).connect(ctx.destination);
-      src.start();
-      return;
-    }
+    const ac = ctx;
+    const buffer = await decoded(url, ac);
+    if (!buffer) return null;
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = 1 + (Math.random() - 0.5) * variance;
+    const g = ac.createGain();
+    g.gain.value = gain;
+    src.connect(g).connect(ac.destination);
+    src.start();
+    return () => {
+      g.gain.setTargetAtTime(0, ac.currentTime, 0.04);
+      src.stop(ac.currentTime + 0.25);
+    };
   } catch {
-    /* fall through to the synthesised bell */
+    return null;
   }
+}
+
+/* ------------------------------------------------------------------ the Wishing Wall's blessing */
+
+// A soft temple-bell blessing (scripts/wishes/bell.py): a short, lilting phrase of five gentle strokes on a
+// pentatonic scale, the last one held, played whenever a new blessing is hung on the wall. Fetched ahead of time
+// (no sound); each time it is a hair different in pitch.
+const DING_URL = `${import.meta.env.BASE_URL}audio/temple-ding.wav`;
+
+export const prefetchDing = () => void prefetchClip(DING_URL);
+
+export async function ringDing() {
+  if (!soundOn()) return;
+  if (await playClip(DING_URL, { gain: 0.85, variance: 0.01 })) return;
   try {
     synthesise(880);
   } catch {

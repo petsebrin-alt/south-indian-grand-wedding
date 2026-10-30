@@ -14,5 +14,10 @@ import Icon from './Icon.astro';
   <span class="folio__number" aria-hidden="true"><span data-folio-number>0</span></span>
   <button type="button" data-next aria-label="Next page"><Icon name="chevron-right" /></button>
 </nav>
+<!-- Until the guest has turned a page themselves: what to do next, in words, above the page number -->
+<div class="turn-cue js-only" data-chrome data-turn-cue aria-hidden="true">
+  <span class="turn-cue__text">Swipe or tap to turn the page</span>
+  <span class="turn-cue__arrows"><Icon name="chevron-right" /><Icon name="chevron-right" /><Icon name="chevron-right" /></span>
+</div>
 <div class="toast" data-toast role="status"></div>
 <div class="sr-only" data-live aria-live="polite"></div>

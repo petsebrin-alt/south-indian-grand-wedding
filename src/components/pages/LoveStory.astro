@@ -1,7 +1,7 @@
 ---
 /**
- * Page 7 — Our Love Story (PRD §6.8), on the same cream temple background as the desktop screen (the
- * client's picture: golden pillars and its hanging garlands and bells swaying, petals on marble below; src/assets/stage/, npm run stage:assets). The couple's photographs ride a card carousel
+ * Page 5 — Our Love Story (PRD §6.8), on the same cream temple background as the desktop screen (the
+ * client's picture: golden pillars and its hanging garlands and bells swaying, petals on marble below; src/components/StageBackdrop.astro). The couple's photographs ride a card carousel
  * inside the big ring of the client's red-and-gold peacock frame (src/assets/story/, npm run
  * story:assets), each in a simple gold frame; on the frame's board below, each milestone's title and
  * a line of its story. Ring behaviour: src/motion/ring.ts; sway: src/motion/sway.ts.
@@ -14,10 +14,7 @@ import { wedding } from '../../data/wedding';
 import frame from '../../assets/story/frame.webp';
 import opening from '../../assets/story/opening.webp';
 import meta from '../../assets/story/frame.json';
-import sceneTop from '../../assets/stage/page-top.webp';
-import sceneFoot from '../../assets/stage/page-bottom.webp';
-import sceneGap from '../../assets/stage/page-gap.webp';
-import stage from '../../assets/stage/stage.json';
+import StageBackdrop from '../StageBackdrop.astro';
 
 interface Props {
   page: BookPage;
@@ -35,54 +32,12 @@ const lines = [
   'A promise softly asked and happily answered.',
   'Hand in hand, today and every sunset to come.',
 ];
-
-// The garlands and bells on this page's background: the left side's, and the right side's mirrored
-const pieceImages = import.meta.glob<{ default: ImageMetadata }>('../../assets/stage/piece-*.webp', { eager: true });
-const pieceSrc = (file: string) => pieceImages[`../../assets/stage/${file}.webp`].default.src;
-const PANEL_W = stage.panel.width, PANEL_H = stage.panel.height, COMP_W = stage.page.width, TOP_H = stage.page.top, FOOT_H = stage.page.bottom;
-const pageHalf = COMP_W / 2;
-const pagePieces = (stage.pieces as { id: string; side: string; file: string; box: number[]; amp: number; period: number; lag: number; phase: number }[])
-  .filter((p) => (stage.page.pieces as string[]).includes(p.id))
-  .map((p) => {
-    const px = (p.box[0] / 100) * PANEL_W;
-    // The page shows the left side's first pageHalf columns and, mirrored, the same for the right: the
-    // right side's last pageHalf columns (panel columns PANEL_W - pageHalf and on) fill its right half
-    const x = p.side === 'l' ? px : px - (PANEL_W - pageHalf) + pageHalf;
-    return {
-      ...p,
-      left: (x / COMP_W) * 100,
-      width: (((p.box[2] / 100) * PANEL_W) / COMP_W) * 100,
-      top: (((p.box[1] / 100) * PANEL_H) / TOP_H) * 100,
-      height: (((p.box[3] / 100) * PANEL_H) / TOP_H) * 100,
-    };
-  })
-  .filter((p) => p.left > -20 && p.left < 100);
 ---
 
 <PageShell page={page} index={index} watermark={false} class="ls">
   <Fragment slot="architecture">
-    <div class="layer layer--architecture ls__scene" aria-hidden="true" style={`--top:${TOP_H / COMP_W};--foot:${FOOT_H / COMP_W}`}>
-      <div class="ls__gap" data-vars={`background-image:url("${sceneGap.src}")`}></div>
-      <div class="ls__top" style={`aspect-ratio:${COMP_W} / ${TOP_H}`}>
-        <ScenePhoto class="ls__bg" webp={sceneTop} defer />
-        {
-          pagePieces.map((p) => (
-            <span
-              class="sway"
-              data-sway={pieceSrc(p.file)}
-              data-amp={p.amp}
-              data-period={p.period}
-              data-lag={p.lag}
-              data-phase={p.phase}
-              style={`left:${p.left}%;top:${p.top}%;width:${p.width}%;height:${p.height}%`}
-            />
-          ))
-        }
-      </div>
-      <div class="ls__foot" style={`aspect-ratio:${COMP_W} / ${FOOT_H}`}>
-        <ScenePhoto class="ls__bg" webp={sceneFoot} defer />
-      </div>
-    </div>
+    <!-- a little faded (90%), so the photographs, the frame and the board stand out clearly -->
+    <StageBackdrop class="ls__scene" opacity={0.9} />
   </Fragment>
 
   <div class="ls__main">
@@ -146,59 +101,6 @@ const pagePieces = (stage.pieces as { id: string; side: string; file: string; bo
   .ls .page__content {
     inset: 0;
     display: block;
-  }
-
-  /* The cream temple picture, in three parts that fit any page height: the top, where the garlands hang;
-     the foot, with the vases, petals and marble; and between them a plain blend of the cream wall that
-     stretches (the peacock frame lies over most of it). The picture is shown at about 70% of its size. */
-  .ls__scene {
-    inset: 0;
-    overflow: hidden;
-    background: #f1e2c6;
-    /* a little faded (90%), so the photographs, the frame and the board stand out clearly */
-    opacity: 0.9;
-  }
-
-  .ls__top,
-  .ls__foot {
-    position: absolute;
-    left: 0;
-    width: 100%;
-  }
-
-  .ls__top {
-    top: 0;
-  }
-
-  .ls__foot {
-    bottom: 0;
-  }
-
-  .ls__gap {
-    position: absolute;
-    left: 0;
-    width: 100%;
-    top: calc(100cqw * var(--top) - 26px);
-    bottom: calc(100cqw * var(--foot) - 26px);
-    background: #f1e2c6 center / 100% 100% no-repeat;
-  }
-
-  .ls__bg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  /* Each part's edge by the blend fades into it, so no seam shows */
-  .ls__top .ls__bg {
-    mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
-    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
-  }
-
-  .ls__foot .ls__bg {
-    mask-image: linear-gradient(to bottom, transparent, #000 24px);
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px);
   }
 
   .ls__main {

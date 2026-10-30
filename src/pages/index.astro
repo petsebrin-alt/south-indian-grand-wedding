@@ -36,7 +36,6 @@ import Cover from '../components/pages/Cover.astro';
 import Welcome from '../components/pages/Welcome.astro';
 import SaveTheDate from '../components/pages/SaveTheDate.astro';
 import Countdown from '../components/pages/Countdown.astro';
-import Partner from '../components/pages/Partner.astro';
 import Family from '../components/pages/Family.astro';
 import LoveStory from '../components/pages/LoveStory.astro';
 import Events from '../components/pages/Events.astro';
@@ -101,8 +100,6 @@ const p = (id: string) => {
           <Welcome {...p('welcome')} />
           <SaveTheDate {...p('save-the-date')} />
           <Countdown {...p('countdown')} />
-          <Partner {...p('groom')} role="groom" />
-          <Partner {...p('bride')} role="bride" />
           <Family {...p('family')} />
           <LoveStory {...p('love-story')} />
           <Events {...p('events')} part={1} />

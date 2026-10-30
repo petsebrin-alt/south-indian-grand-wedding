@@ -88,18 +88,16 @@ describe('launch check', () => {
 });
 
 describe('book structure (PRD §5.1)', () => {
-  it('has a cover plus 16 pages covering all 15 sections (Divine Blessings, the Reception page and the RSVP page removed at the client\'s request)', () => {
-    expect(bookPages).toHaveLength(17);
-    expect(new Set(bookPages.map((p) => p.section)).size).toBe(15);
-    expect(bookPages.filter((p) => p.contents)).toHaveLength(15);
+  it('has a cover plus 14 pages covering all 14 sections (Divine Blessings, the Reception page, the RSVP page and the two Meet the Couple pages removed at the client\'s request)', () => {
+    expect(bookPages).toHaveLength(15);
+    expect(new Set(bookPages.map((p) => p.section)).size).toBe(14);
+    expect(bookPages.filter((p) => p.contents)).toHaveLength(14);
   });
 
-  it('puts the Wishing Wall at page 11, straight after the Ceremony, and ends Dress Code, Venues, Travel, Need Help, Thank You', () => {
+  it('runs Welcome, Save the Date, Countdown, Parents, Love Story, Events, Ceremony, Wishing Wall, Dress Code, Venues, Travel, Need Help, Thank You', () => {
     const ids = bookPages.map((p) => p.id);
-    expect(ids[10]).toBe('ceremony');
-    expect(ids[11]).toBe('wishes');
-    expect(ids.slice(12)).toEqual(['dress-code', 'venues', 'travel', 'help', 'thank-you']);
-    expect(ids).not.toContain('reception');
-    expect(ids).not.toContain('rsvp');
+    expect(ids).toEqual(['cover', 'welcome', 'save-the-date', 'countdown', 'family', 'love-story', 'events', 'events-wedding', 'ceremony', 'wishes', 'dress-code', 'venues', 'travel', 'help', 'thank-you']);
+    for (const gone of ['groom', 'bride', 'reception', 'rsvp']) expect(ids).not.toContain(gone);
   });
 });
+

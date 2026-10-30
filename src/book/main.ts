@@ -106,6 +106,24 @@ const dialogs = new DialogManager([book, ...$$('[data-chrome]')], (open) => {
   controller.enabled = !open && mode === 'book';
 });
 
+/**
+ * Until the guest has turned a page themselves, a pill above the page number says "Swipe or tap to turn the page", the
+ * next arrow nudges forward and the pearl pulses (the client's guests did not know what to do next on a phone).
+ * It shows a moment after a page arrives and goes for good once the guest turns a page.
+ */
+const turnCue = $('[data-turn-cue]');
+let cueTimer = 0;
+function setTurnCue(on: boolean) {
+  turnCue?.classList.toggle('is-on', on);
+  html.classList.toggle('turn-hint', on);
+}
+function syncTurnCue(index: number) {
+  window.clearTimeout(cueTimer);
+  const wanted = mode === 'book' && index >= 1 && index < lastIndex && store.get('rdv:turned') !== '1';
+  if (!wanted) return setTurnCue(false);
+  cueTimer = window.setTimeout(() => setTurnCue(controller.index === index && !dialogs.isOpen && mode === 'book' && store.get('rdv:turned') !== '1'), 900);
+}
+
 const controller = new BookController({
   root: book,
   pages,
@@ -121,12 +139,15 @@ const controller = new BookController({
     }
     if (via !== 'init') pages[index].querySelector<HTMLElement>('[data-page-heading]')?.focus({ preventScroll: true });
     html.classList.toggle('pearl-hint', index === 1 || index === 2);
+    // The guest's own turn (swipe, arrow, key, wheel) means they know how: the cue is not shown again
+    if (index !== _prev && (via === 'gesture' || via === 'button' || via === 'keyboard' || via === 'wheel')) {
+      store.set('rdv:turned', '1');
+    }
+    syncTurnCue(index);
     if (index === 1 && !store.get('rdv:hint-seen') && mode === 'book') {
       store.set('rdv:hint-seen', '1');
       window.setTimeout(() => {
-        if (controller.index !== 1) return;
-        toast('Swipe or tap › to turn the page');
-        void controller.peek();
+        if (controller.index === 1) void controller.peek();
       }, 1400);
     }
   },
@@ -171,6 +192,7 @@ function setMode(next: 'book' | 'scroll') {
   controller.enabled = next === 'book' && !dialogs.isOpen;
   store.set('rdv:view', next);
   $$<HTMLInputElement>('[data-toggle-scroll]').forEach((t) => (t.checked = next === 'scroll'));
+  syncTurnCue(controller.index);
 
   if (next === 'scroll') {
     pages.forEach((p) => {
@@ -288,6 +310,7 @@ async function enterTemple_(bell: HTMLElement | null) {
   } finally {
     controller.enabled = mode === 'book' && !dialogs.isOpen;
   }
+  armAutoOpen();
 }
 
 let opening = false;
@@ -295,6 +318,8 @@ async function openBook() {
   if (opening || controller.isBusy || controller.index !== 0) return;
   if (coverStage(cover) === 'doors') return void enterTemple_(null);
   opening = true;
+  autoSpent = true;
+  disarmAutoOpen();
   controller.enabled = false;
   app.classList.add('is-opening');
   try {
@@ -305,6 +330,43 @@ async function openBook() {
     app.classList.remove('is-opening');
     controller.enabled = mode === 'book' && !dialogs.isOpen;
   }
+}
+
+/**
+ * The invitation opens by itself (the client's request): once the card with "Open the Invitation" is showing, a guest
+ * who does nothing sees it open after AUTO_OPEN_MS. Any touch, key press or scroll before then cancels it (the guest
+ * is in charge), and it happens once per page load, so going back to the card later waits for a tap. The first step
+ * (ringing the bell at the closed doors) is still the guest's own tap, as the browser only lets sound start from one.
+ * localStorage 'rdv:auto' = 'off' turns it off (the automated checks do).
+ */
+const AUTO_OPEN_MS = 1500;
+let autoTimer = 0;
+let autoSpent = false;
+const interactions = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const;
+function disarmAutoOpen() {
+  window.clearTimeout(autoTimer);
+  autoTimer = 0;
+  interactions.forEach((t) => window.removeEventListener(t, cancelAutoOpen, true));
+}
+function cancelAutoOpen() {
+  autoSpent = true; // the guest took over
+  disarmAutoOpen();
+}
+function armAutoOpen() {
+  disarmAutoOpen();
+  if (autoSpent || mode !== 'book' || store.get('rdv:auto') === 'off' || coverStage(cover) !== 'book' || controller.index !== 0) return;
+  interactions.forEach((t) => window.addEventListener(t, cancelAutoOpen, true));
+  autoTimer = window.setTimeout(function fire() {
+    autoTimer = 0;
+    if (document.hidden) {
+      // Wait until the guest is looking at the page
+      document.addEventListener('visibilitychange', () => armAutoOpen(), { once: true });
+      return;
+    }
+    if (autoSpent || dialogs.isOpen || controller.isBusy || controller.index !== 0 || coverStage(cover) !== 'book') return disarmAutoOpen();
+    disarmAutoOpen();
+    void openBook();
+  }, AUTO_OPEN_MS);
 }
 
 $$<HTMLInputElement>('[data-toggle-scroll]').forEach((t) =>
@@ -411,6 +473,7 @@ if (linked > 0 && session.get('rdv:opened')) {
 book.classList.add('is-ready');
 html.classList.add('mode-book');
 if (store.get('rdv:view') === 'scroll') setMode('scroll');
+else if (controller.index === 0) armAutoOpen();
 
 // Exposed for manual QA in the browser console during development only.
 if (import.meta.env.DEV) (window as unknown as { __book: BookController }).__book = controller;

@@ -1,12 +1,12 @@
 import { isReducedMotion } from './choreo';
 import { dropPetals } from './petals';
-import { playCelebration } from '../lib/fanfare';
+import { playCelebration } from '../lib/accept-melody';
 
 /**
  * The celebration when a guest accepts the invitation (Wedding Ceremony page): a shower of rose petals over
  * the whole page, the two cone crackers on the floor throwing golden sparks upward (a fountain of fine
  * sparks that rise, arc over and fall, brightest at the start and dying away), and music
- * (src/lib/fanfare.ts). Visuals are skipped under reduced motion; the music follows the sound switch.
+ * (src/lib/accept-melody.ts: a soft violin and flute phrase of about a second and a half). Visuals are skipped under reduced motion; the music follows the sound switch.
  */
 const DURATION_MS = 7600;
 
