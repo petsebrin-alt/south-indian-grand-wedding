@@ -19,6 +19,7 @@
 import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
+import { growBand } from './grow.ts';
 
 const dir = join(process.cwd(), 'src/assets/story');
 const photos = join(process.cwd(), 'public/photos/story');
@@ -198,13 +199,29 @@ const mask = Buffer.alloc(fw * fh * 4, 255);
 let ox0 = W, ox1 = 0, oy0 = H, oy1 = 0;
 for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) if (mask[(y * fw + x) * 4 + 3] > 128) (ox0 = Math.min(ox0, x)), (ox1 = Math.max(ox1, x)), (oy0 = Math.min(oy0, y)), (oy1 = Math.max(oy1, y));
 
-const trimmed = Buffer.alloc(fw * fh * 4);
-for (let y = 0; y < fh; y++) rgba.copy(trimmed, y * fw * 4, ((y0 + y) * W + x0) * 4, ((y0 + y) * W + x0 + fw) * 4);
+const cut = Buffer.alloc(fw * fh * 4);
+for (let y = 0; y < fh; y++) rgba.copy(cut, y * fw * 4, ((y0 + y) * W + x0) * 4, ((y0 + y) * W + x0 + fw) * 4);
+
+// The board is made taller (the client found its lettering too small): seams of plain pixels inside the
+// cream plaque are repeated (grow.ts), so the cream, the velvet and the straight gold lines grow and the
+// gems and curls keep their shape. Sizes are in pixels of the 1000-wide result. The ring and its pendants
+// lie above the plaque, the bells and drops hang below it and move down with its foot.
+const BOARD = { grow: 75, margin: 4 };
+const toSrc = (v: number) => Math.round((v / 1000) * fw);
+const bandTop = py0 - y0 + toSrc(BOARD.margin), bandBottom = py1 - y0 - toSrc(BOARD.margin);
+const extra = toSrc(BOARD.grow);
+const trimmed = growBand(cut, fw, fh, bandTop, bandBottom, extra);
+const fh2 = fh + extra;
+// The photographs' mask stops above the plaque, so it just gains transparent rows at its foot
+for (let y = bandTop; y < fh; y++) for (let x = 0; x < fw; x++) if (mask[(y * fw + x) * 4 + 3] > 0) throw new Error('the ring opening reaches the board');
+const maskTall = Buffer.alloc(fw * fh2 * 4, 255);
+for (let y = 0; y < fh2; y++) for (let x = 0; x < fw; x++) maskTall[(y * fw + x) * 4 + 3] = y < fh ? mask[(y * fw + x) * 4 + 3] : 0;
+
 const OUT_W = 1000;
-const outH = Math.round((fh / fw) * OUT_W);
-const frameBuf = await sharp(trimmed, { raw: { width: fw, height: fh, channels: 4 } }).resize(OUT_W, outH, { kernel: 'lanczos3' }).webp({ quality: 88, alphaQuality: 95, effort: 6 }).toBuffer();
+const outH = Math.round((fh2 / fw) * OUT_W);
+const frameBuf = await sharp(trimmed, { raw: { width: fw, height: fh2, channels: 4 } }).resize(OUT_W, outH, { kernel: 'lanczos3' }).webp({ quality: 88, alphaQuality: 95, effort: 6 }).toBuffer();
 writeFileSync(join(dir, 'frame.webp'), frameBuf);
-const maskBuf = await sharp(mask, { raw: { width: fw, height: fh, channels: 4 } }).resize(Math.round(OUT_W / 2), Math.round(outH / 2)).blur(1.2).webp({ quality: 80, alphaQuality: 90 }).toBuffer();
+const maskBuf = await sharp(maskTall, { raw: { width: fw, height: fh2, channels: 4 } }).resize(Math.round(OUT_W / 2), Math.round(outH / 2)).blur(1.2).webp({ quality: 80, alphaQuality: 90 }).toBuffer();
 writeFileSync(join(dir, 'opening.webp'), maskBuf);
 const pct = (v: number, total: number) => +((v / total) * 100).toFixed(3);
 writeFileSync(
@@ -213,9 +230,9 @@ writeFileSync(
     {
       width: OUT_W,
       height: outH,
-      ring: { cx: pct(cx - x0, fw), cy: pct(cy - y0, fh), r: pct(ring, fw) },
-      opening: { x: pct(ox0, fw), y: pct(oy0, fh), w: pct(ox1 - ox0 + 1, fw), h: pct(oy1 - oy0 + 1, fh) },
-      board: { x: pct(px0 - x0, fw), y: pct(py0 - y0, fh), w: pct(px1 - px0 + 1, fw), h: pct(py1 - py0 + 1, fh) },
+      ring: { cx: pct(cx - x0, fw), cy: pct(cy - y0, fh2), r: pct(ring, fw) },
+      opening: { x: pct(ox0, fw), y: pct(oy0, fh2), w: pct(ox1 - ox0 + 1, fw), h: pct(oy1 - oy0 + 1, fh2) },
+      board: { x: pct(px0 - x0, fw), y: pct(py0 - y0, fh2), w: pct(px1 - px0 + 1, fw), h: pct(py1 - py0 + 1 + extra, fh2) },
     },
     null,
     2,

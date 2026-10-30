@@ -108,8 +108,8 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     display: none;
   }
 
-  /* The temple is shown at about a third of its strength over ivory, so the frames and lettering stand
-     out clearly against it */
+  /* The temple is shown at 97% of its strength (the client found it too white at a third), the maroon
+     boards and gold frames standing out clearly against it */
   .fm__scene {
     inset: 0;
     overflow: hidden;
@@ -122,7 +122,7 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.36;
+    opacity: 0.97;
   }
 
   .fm .page__content {
@@ -398,7 +398,8 @@ const members = [...parents.filter((m) => m.name || siteMode === 'preview'), ...
     height: 7px;
     margin: auto;
     border-radius: 50%;
-    background: rgba(133, 84, 15, 0.35);
+    background: rgba(133, 84, 15, 0.55);
+    box-shadow: 0 0 0 1.5px rgba(255, 249, 238, 0.9), 0 0 6px 1px rgba(255, 249, 238, 0.8);
     transition: background-color 0.3s, transform 0.3s;
   }
 

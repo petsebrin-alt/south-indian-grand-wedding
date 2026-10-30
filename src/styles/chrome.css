@@ -80,6 +80,8 @@ html:not(.mode-scroll) .chrome-book-view {
 .folio button svg {
   width: 20px;
   height: 20px;
+  /* a soft ivory halo, so the arrows read clearly on busy photographs as well as pale pages */
+  filter: drop-shadow(0 0 2px rgba(255, 249, 238, 0.95)) drop-shadow(0 0 5px rgba(255, 249, 238, 0.85));
 }
 
 .folio button:disabled {
@@ -93,6 +95,7 @@ html:not(.mode-scroll) .chrome-book-view {
   font: 500 var(--t-folio) / 1 var(--font-royal);
   letter-spacing: 0.2em;
   color: var(--gold-text);
+  text-shadow: 0 0 2px rgba(255, 249, 238, 0.95), 0 0 6px rgba(255, 249, 238, 0.9), 0 0 12px rgba(255, 249, 238, 0.7);
 }
 
 .folio__number::before {

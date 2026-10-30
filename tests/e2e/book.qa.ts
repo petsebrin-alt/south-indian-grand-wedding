@@ -614,6 +614,69 @@ async function main() {
     await ctx.close();
   }
 
+  /* AC-19c the Love Story board is tall and wide enough for large lettering: every milestone's title and story
+     fit inside it (nothing clipped, nothing running into the gold curls at its ends), the title is at least 28px
+     and the story at least 16.5px on a phone, and the frame still clears the dots and arrows on a small phone */
+  {
+    const rows: Record<string, unknown>[] = [];
+    let ok = true;
+    for (const [w, h] of [[390, 844], [360, 640]] as const) {
+      const ctx = await mobileContext(browser, w, h);
+      const page = await ctx.newPage();
+      await page.goto(BASE);
+      await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+      await page.goto(`${BASE}#love-story`);
+      await settle(page);
+      await page.waitForTimeout(1500);
+      const r = await page.evaluate(() => {
+        const board = document.querySelector<HTMLElement>('#love-story .ls__board')!;
+        const b = board.getBoundingClientRect();
+        const cs = getComputedStyle(board);
+        const entries = [...board.querySelectorAll<HTMLElement>('.ls__entry')];
+        // Show each entry in turn, without waiting for the fade, and measure its lettering against the cream's inner box
+        const saved = entries.map((e) => e.className);
+        const fits = entries.map((e) => {
+          entries.forEach((o) => o.classList.toggle('is-active', o === e));
+          const t = e.querySelector<HTMLElement>('.ls__milestone')!.getBoundingClientRect();
+          const st = e.querySelector<HTMLElement>('.ls__story')!.getBoundingClientRect();
+          const side = parseFloat(cs.paddingLeft);
+          return t.top >= b.top && st.bottom <= b.bottom && t.left >= b.left + side - 1 && t.right <= b.right - side + 1 && st.left >= b.left + side - 1 && st.right <= b.right - side + 1;
+        });
+        entries.forEach((e, i) => (e.className = saved[i]));
+        const f = document.querySelector<HTMLElement>('#love-story .ls__frame')!.getBoundingClientRect();
+        const c = document.querySelector<HTMLElement>('#love-story .ls__controls')!.getBoundingClientRect();
+        return {
+          boardH: Math.round(b.height),
+          title: parseFloat(getComputedStyle(entries[0].querySelector('.ls__milestone')!).fontSize),
+          story: parseFloat(getComputedStyle(entries[0].querySelector('.ls__story')!).fontSize),
+          fits,
+          clears: f.bottom <= c.top + 1,
+        };
+      });
+      rows.push({ w, h, ...r });
+      if (!(r.fits.every(Boolean) && r.title >= (w === 390 ? 30 : 28) && r.story >= 16.5 && r.clears)) ok = false;
+      await ctx.close();
+    }
+    check('AC-19c', 'Love Story board: all five titles and stories fit inside it in large lettering, and the frame clears the controls on a small phone', ok, JSON.stringify(rows));
+  }
+
+  /* AC-18c the temple behind the Parents and Countdown pages is shown at 97% strength (the client found a third too white) */
+  {
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#countdown`);
+    await settle(page);
+    await page.waitForTimeout(1200);
+    const op = await page.evaluate(() => ({
+      family: Number(getComputedStyle(document.querySelector('#family .fm__bg')!).opacity),
+      countdown: Number(getComputedStyle(document.querySelector('#countdown .cd__bg')!).opacity),
+    }));
+    check('AC-18c', 'Parents and Countdown: the temple background at 97% strength', op.family >= 0.96 && op.countdown >= 0.96, JSON.stringify(op));
+    await ctx.close();
+  }
+
   /* On a phone the desktop background is never built: no canvases, and its pictures are not requested */
   {
     const ctx = await mobileContext(browser);

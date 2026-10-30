@@ -281,12 +281,14 @@ const pagePieces = (stage.pieces as { id: string; side: string; file: string; bo
     background: #e9d9b7;
   }
 
-  /* The board: each milestone's title and a line of its story, on the frame's cream plaque */
+  /* The board: each milestone's title and a line or two of its story, on the frame's cream plaque (made
+     taller in the frame art so the lettering can be large and plain to read; the side margins keep the
+     lettering clear of the gold curls at the plaque's ends) */
   .ls__board {
     position: absolute;
     container-type: inline-size;
     display: grid;
-    padding: 1.2cqw 3cqw;
+    padding: 0.6cqw 7cqw;
     text-align: center;
   }
 
@@ -309,15 +311,15 @@ const pagePieces = (stage.pieces as { id: string; side: string; file: string; bo
   }
 
   .ls__milestone {
-    font: 400 7.4cqw / 1 var(--font-script);
+    font: 400 11.4cqw / 1 var(--font-script);
     color: #8a1426;
-    -webkit-text-stroke: 0.2px currentColor;
+    -webkit-text-stroke: 0.3px currentColor;
   }
 
   .ls__story {
-    margin-top: 0.8cqw;
-    font: italic 600 4.1cqw / 1.2 var(--font-display);
-    color: #4a2418;
+    margin-top: 1.4cqw;
+    font: italic 700 6.6cqw / 1.14 var(--font-display);
+    color: #3e1a10;
     text-wrap: balance;
   }
 

@@ -811,3 +811,18 @@ The client looked at the pages with the courtyard panels' people and said they l
 
 - `npm run qa:book`: 74/74 checks pass. `npx vitest run`: 58 pass. `npx astro check`: 0 errors.
 
+
+## 30 October 2026 — A taller, larger Love Story board; clearer Parents and Countdown backgrounds
+
+The client said the Love Story board's lettering was too small to read (the title and the story line under it), and asked for a wider or taller board and larger letters; and that the temple behind the Parents and Countdown pages was too white, asking for 97–98%.
+
+### Decisions
+
+1. **A taller board, in the frame's own art.** The cream plaque of the red-and-gold peacock frame is now 1.5 times as tall (the frame picture grew from 1000 × 893 to 1000 × 968). Plain seams inside the plaque (cream, velvet, the straight gold lines) are repeated, so the board grows and the gems, curls and bells keep their shape and sharpness (`scripts/story/grow.ts`, run by `npm run story:assets`; the size is `BOARD.grow` in `scripts/story/derive.ts`). The ring, the photographs and the peacocks are unchanged; the bells and drops under the plaque moved down with its foot. The frame is already as wide as it can be without cutting the gold at its ends (138% of the page), so the board gained height, not width.
+2. **Larger lettering.** The milestone title is about 35 px on a 430 px-wide phone (it was 24 px) and the story line about 20 px (it was 15 px), the story in bold italic and a darker brown. A line that is too long wraps to two lines, evenly balanced; all five fit inside the board with room left, also on a small 360 × 640 phone, where the frame still clears the dots and arrows.
+3. **Parents and Countdown backgrounds at 97%.** The temple picture was shown at 36% over ivory (the earlier "90–95% see-through" request, read the wrong way round); it is now 97%. The maroon boards and gold frames still stand out. Because the page-number group, its arrows and the Parents dots were hard to see on the sharper floor, they now have a soft ivory halo (all pages; on pale pages it is not noticeable). The ivory veil behind the Countdown heading is unchanged.
+4. **Countdown heading never wraps.** On a slightly wider phone the first line ("Counting down to the") wrapped and its second line ran into the first palanquin (seen in the client's screenshot). Its size now follows the page's width, so it always fits on one line, clear of the Contents button.
+
+### Results
+
+- `npm run qa:book`: 76/76 checks pass (new AC-19c: the board's lettering fits and is large at 390 × 844 and 360 × 640; AC-18c: the Parents and Countdown backgrounds are at 97%). `npx vitest run`: 58 pass. `npx astro check`: 0 errors.
