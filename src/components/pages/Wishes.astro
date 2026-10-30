@@ -334,6 +334,16 @@ const t = meta.board.text;
     color: #6d5a49;
   }
 
+  /* an empty board, waiting for a blessing */
+  .ww__board.is-blank .ww__lines {
+    display: none;
+  }
+
+  .ww__board.is-blank .ww__pendant {
+    pointer-events: none;
+    cursor: default;
+  }
+
   .ww__board.is-mine .ww__by {
     color: #8a1426;
   }

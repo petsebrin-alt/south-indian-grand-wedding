@@ -25,7 +25,7 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
-from imgtools import bleed, fill_with_grain, harmonic_fill, k, rgba, seam_extend, smooth, unsharp  # noqa: E402,F401
+from imgtools import bleed, fill_with_grain, harmonic_fill, k, mirror_fill, reflect_rows_fill, rgba, seam_extend, smooth, unsharp  # noqa: E402,F401
 
 root = Path(__file__).resolve().parents[2]
 src = root / "src/assets/wishes"
@@ -218,7 +218,15 @@ def clean_hall(sil):
     card = cv2.dilate(sil, k(8))
     card[cfg["card"]["region"][3] + 10:] = 0
     hole |= card
-    filled = fill_with_grain(wall, hole > 0, 7, 80, 0.9)
+    hole_b = hole > 0
+    # 1. a smooth fill for everything (it gives the blends below their colours)
+    base = fill_with_grain(wall, hole_b, 7, 80, 0.9)
+    # 2. the floor under the card: the real floor below it, reflected upwards (its streaks of light and tile lines run on)
+    base = reflect_rows_fill(base, card > 0, cfg["card"]["region"][3] + 16, H)
+    # 3. the walls, pillars and plants behind the boards: the real picture from the other side of the hall (it is nearly
+    #    the same either side of the door), blended in
+    filled, _ = mirror_fill(wall, base, hole_b, cfg["scene"]["axis"])
+    cv2.imwrite(str(out / "filled.png"), filled)
     trim = cfg["scene"]["trim"]
     img = filled[:, trim:W - trim]
     tw, th = cfg["scene"]["target"]
@@ -226,7 +234,12 @@ def clean_hall(sil):
     extra = target_h - img.shape[0]
     print(f"scene: {img.shape[1]} × {img.shape[0]} → {img.shape[1]} × {target_h} (+{extra} rows)")
     tall = seam_extend(img, cfg["scene"]["band"][0], cfg["scene"]["band"][1], extra)
-    tall = unsharp(tall, 1.2, 0.35)
+    # larger, crisper and with more local contrast, so the carvings and panels read as structure and not as haze
+    up = cfg["scene"]["upscale"]
+    tall = cv2.resize(tall, None, fx=up, fy=up, interpolation=cv2.INTER_LANCZOS4)
+    tall = unsharp(tall, 1.0, 0.6)
+    f = tall.astype(np.float32)
+    tall = np.clip(f + 0.22 * (f - cv2.GaussianBlur(f, (0, 0), 9)), 0, 255).astype(np.uint8)
     meta["scene"] = {"width": tall.shape[1], "height": tall.shape[0]}
     cv2.imwrite(str(out / "scene.png"), tall)
 

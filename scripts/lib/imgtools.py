@@ -172,3 +172,50 @@ def vertical_fill(img, hole, spread=14, probe=8):
     # across columns, so the stretches of neighbouring columns blend; only inside the hole
     soft = cv2.GaussianBlur(out, (0, 0), spread)
     return np.where(hole[..., None], soft, f)
+
+
+def mirror_fill(img, base, hole, axis, min_area=300):
+    """Fill what a cut-out left behind with the real picture, not a smooth guess: a hall is nearly the same on both
+    sides of its middle, so every part of `hole` (bool) whose mirror image about the vertical line x = `axis` is picture
+    that is really there is filled with that mirror image, blended in so no seam shows (Poisson blending). `base` is
+    the picture with the hole already filled smoothly (what lies round each part gives the blend its colours).
+    Returns the filled picture and the part of the hole that could not be reached (its mirror is a hole too)."""
+    h, w = hole.shape
+    xs = np.arange(w, dtype=np.float32)
+    map_x = np.tile(2 * axis - xs, (h, 1))
+    map_y = np.tile(np.arange(h, dtype=np.float32)[:, None], (1, w))
+    mirror = cv2.remap(img, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0))
+    known = cv2.remap((~hole).astype(np.uint8) * 255, map_x, map_y, cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT, borderValue=0) > 0
+    valid = cv2.erode(known.astype(np.uint8), k(4)) > 0
+    region = cv2.morphologyEx((hole & valid).astype(np.uint8), cv2.MORPH_OPEN, k(2))
+    n, lab, st, _ = cv2.connectedComponentsWithStats(region)
+    out = base.copy()
+    for i in range(1, n):
+        if st[i, cv2.CC_STAT_AREA] < min_area:
+            region[lab == i] = 0
+            continue
+        x, y, bw, bh = st[i, cv2.CC_STAT_LEFT], st[i, cv2.CC_STAT_TOP], st[i, cv2.CC_STAT_WIDTH], st[i, cv2.CC_STAT_HEIGHT]
+        if x < 2 or y < 2 or x + bw > w - 2 or y + bh > h - 2:
+            continue  # Poisson blending needs the part to lie inside the picture
+        mask = (lab == i).astype(np.uint8) * 255
+        out = cv2.seamlessClone(mirror, out, mask, (x + bw // 2, y + bh // 2), cv2.NORMAL_CLONE)
+    return out, hole & (region == 0)
+
+
+def reflect_rows_fill(base, hole, strip_top, strip_bottom, rows_from_bottom=True):
+    """Fill `hole` (bool) with a strip of real picture reflected over and over (a floor strip below it reflected upwards
+    keeps its streaks of light and its tile lines running on), blended in with Poisson blending. The strip is rows
+    strip_top..strip_bottom-1; the hole must lie above it (its bottom edge touches the strip's top)."""
+    h, w = hole.shape
+    ys, xs = np.where(hole)
+    y0, y1 = ys.min(), ys.max() + 1
+    strip = base[strip_top:strip_bottom]
+    sh = strip.shape[0]
+    src = base.copy()
+    for y in range(y0, y1):
+        d = (y1 - 1 - y) % (2 * sh)
+        row = d if d < sh else 2 * sh - 1 - d
+        src[y] = strip[row]
+    mask = hole.astype(np.uint8) * 255
+    x, y, bw, bh = cv2.boundingRect(mask)
+    return cv2.seamlessClone(src, base, mask, (x + bw // 2, y + bh // 2), cv2.NORMAL_CLONE)

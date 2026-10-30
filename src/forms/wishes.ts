@@ -57,8 +57,14 @@ export function wallWishes(): WallWish[] {
   const all: WallWish[] = [...mine.map((m) => ({ ...m, mine: true })), ...serverWall.map((w) => ({ ...w, mine: mineIds.has(w.id) }))]
     .sort(byNewest)
     .filter((w) => (seen.has(w.id) ? false : (seen.add(w.id), true)));
-  if (all.length) return all.slice(0, WALL_SIZE);
-  return [{ id: 'placeholder', name: '', message: `Be the first to bless ${wishesRoot()?.querySelector('.ww__t3')?.textContent?.replace(/\s+/g, ' ').trim() ?? 'the couple'}`, created_at: '', placeholder: true }];
+  // The wall always holds a full set of boards: empty ones wait for blessings to hang in their place
+  const blanks = (n: number): WallWish[] => Array.from({ length: n }, (_, i) => ({ id: `blank-${i}`, name: '', message: '', created_at: '', blank: true }));
+  if (all.length) {
+    const real = all.slice(0, WALL_SIZE);
+    return [...real, ...blanks(WALL_SIZE - real.length)];
+  }
+  const names = wishesRoot()?.querySelector('.ww__t3')?.textContent?.replace(/\s+/g, ' ').trim() ?? 'the couple';
+  return [{ id: 'placeholder', name: '', message: `Be the first to bless ${names}`, created_at: '', placeholder: true }, ...blanks(WALL_SIZE - 1)];
 }
 
 /** Keep the ding ready for the first blessing (no sound until the guest writes one). */

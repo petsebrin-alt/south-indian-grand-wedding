@@ -876,3 +876,17 @@ The client sent the page they want (a garden of jasmine garlands and temple bell
 ### Results
 
 - `npm run qa:book` (AC-42: five cards turn by themselves and by swipe, arrow and dot; titles, four shades and wording are real and fit; a vertical swipe turns the page) and `npx vitest run` (every card has a title, mood, guidance and one to four valid shades).
+
+## 30 October 2026 — A sharp, structured hall behind the Wishing Wall
+
+The client looked at the live Wishing Wall and said the background was blurred: they want the real, neat look of their picture, with its structure. The empty places where the picture's boards, chains, heading and card had been were filled smoothly, so smooth hazy patches showed on the walls and the floor, most plainly while no blessings hung.
+
+### Decisions
+
+1. **The hall is filled with the real picture, not a smooth guess.** `scripts/wishes/cut.py` now fills each place that was covered in two ways. The floor under the card is the real floor strip below it, reflected upwards and blended in, so its streaks of lamplight, tile lines and jasmine petals run on. The walls, pillars and plants behind the boards are taken from the other side of the hall (the hall is nearly the same either side of its door), mirrored and blended in with Poisson blending, so the carvings, panels and pillars are real. Only a few places whose mirror image was also covered (the two inner walls beside the heading) keep a soft fill, and boards now hang over most of those.
+2. **Sharper.** The hall picture is made 1.6 times larger with Lanczos resizing, then sharpened and given more local contrast, so carvings and panels read as structure. The page loads about 120 KB more (211 KB in AVIF).
+3. **A full set of boards at all times.** The wall always shows four boards: with no blessings yet one says "Be the first to bless Rahul & Divya" and three hang empty (cream boards with their gold ornaments), and each blessing takes the place of an empty board as it arrives (the others move along; the last one leaves). This is the look of the client's picture even before anyone has written.
+
+### Results
+
+- `npm run qa:book` (AC-41 now expects the invitation board and three empty ones) and `npx vitest run`.

@@ -1096,7 +1096,7 @@ async function main() {
         allBelowCard: all.top >= send.bottom,
       };
     });
-    check('AC-41', 'No blessings yet: one board invites the first; the fields, Send and View all fit a 360 × 640 phone', empty.boards === 1 && /^Be the first to bless Rahul/.test(empty.text) && empty.fieldsInView && empty.sendBelowFields && empty.allBelowCard, JSON.stringify(empty));
+    check('AC-41', 'No blessings yet: one board invites the first and three empty boards wait; the fields, Send and View all fit a 360 × 640 phone', empty.boards === 4 && /^Be the first to bless Rahul/.test(empty.text) && empty.fieldsInView && empty.sendBelowFields && empty.allBelowCard, JSON.stringify(empty));
     await ctx.close();
   }
 

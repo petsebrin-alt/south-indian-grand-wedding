@@ -1,5 +1,5 @@
 {
-  "_note": "Coordinates, in pixels of the client's two pictures (source/wall.webp 977 × 1609, source/door.webp 977 × 1609), for scripts/wishes/cut.py. boards: where each of the picture's five hanging boards is, as an offset from board 2 (the one cut out as the sprite). unit.crop is the sprite's box (the medallion, the board, its clasp, the jasmine and the bell) and unit.text the lettering on it that is rubbed out. title.top and title.bottom are the two gold flourishes round the heading (the heading's lettering itself is real text on the page). chain is a straight run of the long gold chain at the right, tiled to any length. card.region holds the 'Write a Blessing' card, card.erase is the lettering and fields on it that are rubbed out, and card.layout where the title, subtitle, fields and button were (the page puts real ones there). scene: the picture is trimmed by `trim` pixels each side, then made taller to the phone's shape (target w × h) by repeating plain seams of the hall between rows band[0] and band[1].",
+  "_note": "Coordinates, in pixels of the client's two pictures (source/wall.webp 977 × 1609, source/door.webp 977 × 1609), for scripts/wishes/cut.py. boards: where each of the picture's five hanging boards is, as an offset from board 2 (the one cut out as the sprite). unit.crop is the sprite's box (the medallion, the board, its clasp, the jasmine and the bell) and unit.text the lettering on it that is rubbed out. title.top and title.bottom are the two gold flourishes round the heading (the heading's lettering itself is real text on the page). chain is a straight run of the long gold chain at the right, tiled to any length. card.region holds the 'Write a Blessing' card, card.erase is the lettering and fields on it that are rubbed out, and card.layout where the title, subtitle, fields and button were (the page puts real ones there). scene: `axis` is the hall's line of symmetry (the door's middle), used to fill what the boards covered from the other side; the picture is trimmed by `trim` pixels each side, then made taller to the phone's shape (target w × h) by repeating plain seams of the hall between rows band[0] and band[1].",
   "boards": [[0, 0], [493, -1], [-93, 279], [598, 201], [-145, -66]],
   "unit": {
     "crop": [186, 236, 344, 636],
@@ -28,7 +28,9 @@
   "scene": {
     "trim": 30,
     "target": [430, 932],
-    "band": [250, 1560]
+    "band": [250, 1560],
+    "axis": 520,
+    "upscale": 1.6
   },
   "door": {
     "target": [430, 932],

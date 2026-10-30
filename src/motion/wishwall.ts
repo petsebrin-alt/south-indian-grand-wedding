@@ -13,6 +13,8 @@ export interface WallWish extends PublicWish {
   mine?: boolean;
   /** the invitation to be the first, when nothing hangs yet */
   placeholder?: boolean;
+  /** an empty board waiting for a blessing (the wall always holds a full set of boards) */
+  blank?: boolean;
 }
 
 /** [left, chain length]: where the 1st, 2nd, 3rd and 4th newest hang. The lower pair's chains run clear of the bells above. */
@@ -65,8 +67,15 @@ export function createWall(page: HTMLElement): Wall {
     el.querySelector('.ww__msg')!.textContent = wish.message;
     el.querySelector('.ww__by')!.textContent = wish.placeholder ? '' : `— ${wish.name}`;
     el.classList.toggle('is-mine', !!wish.mine);
+    el.classList.toggle('is-blank', !!wish.blank);
     el.dataset.wishId = wish.id;
-    if (wish.placeholder) {
+    if (wish.blank) {
+      // an empty board: decoration until a blessing hangs in its place
+      el.setAttribute('aria-hidden', 'true');
+      pendant.tabIndex = -1;
+      pendant.removeAttribute('data-open-dialog');
+      pendant.removeAttribute('aria-haspopup');
+    } else if (wish.placeholder) {
       pendant.removeAttribute('data-open-dialog');
       pendant.removeAttribute('aria-haspopup');
       pendant.setAttribute('aria-label', 'Be the first to bless the couple. Write your blessing below.');
