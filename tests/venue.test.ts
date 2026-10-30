@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Venue } from '../src/data/schema';
 import { directionsUrl, hasLocation, locationUnavailableMessage, venueFallback } from '../src/lib/venue';
-import { swatch } from '../src/lib/swatches';
 import { whatsappLink } from '../src/lib/travel';
 import { wedding } from '../src/data/wedding';
 
@@ -34,8 +33,19 @@ describe('venue directions (PRD §6.9, §6.13)', () => {
 });
 
 describe('dress code and contact helpers', () => {
-  it('maps every palette name in the data to a colour', () => {
-    for (const d of wedding.dressCode) for (const name of d.palette) expect(swatch(name)).toMatch(/^#[0-9a-f]{6}$/);
+  it('gives every dress-code card a title, a mood, a line of guidance and one to four named shades', () => {
+    expect(wedding.dressCode.map((d) => d.eventId)).toEqual(wedding.events.map((e) => e.id));
+    for (const d of wedding.dressCode) {
+      expect(d.title.length).toBeGreaterThan(0);
+      expect(d.tagline.length).toBeGreaterThan(0);
+      expect(d.suggestion.length).toBeGreaterThan(0);
+      expect(d.palette.length).toBeGreaterThanOrEqual(1);
+      expect(d.palette.length).toBeLessThanOrEqual(4);
+      for (const shade of d.palette) {
+        expect(shade.name.length).toBeGreaterThan(0);
+        expect(shade.color).toMatch(/^#[0-9a-fA-F]{6}$/);
+      }
+    }
   });
 
   it('builds a WhatsApp link with only digits and a friendly message', () => {

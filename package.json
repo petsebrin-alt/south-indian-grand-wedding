@@ -35,6 +35,7 @@
     "story:assets": "tsx scripts/story/derive.ts",
     "wishes:assets": "tsx scripts/wishes/derive.ts",
     "wishes:bell": "python3 scripts/wishes/bell.py",
+    "dresscode:assets": "tsx scripts/dresscode/derive.ts",
     "ceremony:assets": "tsx scripts/ceremony/derive.ts"
   },
   "dependencies": {

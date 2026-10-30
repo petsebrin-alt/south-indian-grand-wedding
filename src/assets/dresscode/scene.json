@@ -1,0 +1,20 @@
+{
+  "_note": "Coordinates, in pixels of the client's two pictures (source/cards.webp 1536 × 1024: the five finished dress-code cards; source/garden.webp 1024 × 1536: the page, a jasmine-and-bells garden with a stack of cards), for scripts/dresscode/cut.py. cards: each card's box in cards.webp (id: [left, top, right, bottom]); its card, banner, couple, garlands and lamps are kept as the client drew them, and only the writing and the four colour discs are rubbed out (the page writes them as real text and real colours from src/data/wedding.ts dressCode, so they can be changed). title / label / text give where each kind of lettering is searched for, as fractions of the card. garden.holes are the places in the garden picture that are filled in smoothly (the heading, the stack of cards, the arrows and dots); garden.ornament is the gold lotus and rules over the heading, kept as a picture. scene: the garden is trimmed by `trim` pixels each side, then made taller to the phone's shape (target w × h) by repeating plain seams of it between rows band[0] and band[1].",
+  "cards": {
+    "haldi": [14, 10, 501, 510],
+    "mehndi": [526, 10, 1015, 509],
+    "sangeet": [1040, 12, 1527, 510],
+    "wedding": [159, 527, 753, 1013],
+    "reception": [783, 527, 1377, 1013]
+  },
+  "search": {
+    "title": [0.16, 0.13, 0.84, 0.275],
+    "column": [0.6, 0.38, 0.95, 0.9]
+  },
+  "garden": {
+    "holes": [[296, 122, 732, 392], [188, 392, 872, 1204], [248, 1214, 776, 1322]],
+    "ornament": [330, 122, 700, 198]
+  },
+  "scene": { "trim": 40, "target": [430, 932], "band": [400, 1330] },
+  "upscale": { "card": 1.5, "ornament": 2 }
+}

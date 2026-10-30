@@ -78,12 +78,70 @@ const data: WeddingData = {
     { title: 'Forever Begins', titleStatus: 'proposed', text: null, photo: { src: '/photos/story/story-5.webp', alt: 'Rahul and Divya walking hand in hand at sunset, their shadows growing old together' } },
   ],
 
+  // The Dress Code cards, one per celebration. Each card shows its title and mood, a line of guidance and up to four
+  // shades (a name and a colour, #rrggbb). Change any of it and the card follows; the couple's outfits and the
+  // decoration on each card are the pictures src/assets/dresscode/card-<event>.webp (npm run dresscode:assets).
   dressCode: [
-    { eventId: 'mehndi', suggestion: 'Colourful festive ethnic wear', palette: ['Leaf green', 'Rose pink', 'Marigold'] },
-    { eventId: 'haldi', suggestion: 'Yellow or ivory traditional clothing', palette: ['Turmeric yellow', 'Ivory', 'Soft green'] },
-    { eventId: 'sangeet', suggestion: 'Elegant festive attire', palette: ['Emerald', 'Ruby', 'Sapphire'] },
-    { eventId: 'wedding', suggestion: 'Traditional South Indian silk sarees, veshti (pancha), kurta or ethnic formal wear', palette: ['Temple maroon', 'Antique gold', 'Ivory'] },
-    { eventId: 'reception', suggestion: 'Elegant traditional or formal clothing', palette: ['Ivory', 'Champagne gold', 'Blush'] },
+    {
+      eventId: 'mehndi',
+      title: 'Mehendi',
+      tagline: 'Fresh • Elegant • Festive',
+      suggestion: 'Graceful and comfortable festive attire.',
+      palette: [
+        { name: 'Olive green', color: '#666531' },
+        { name: 'Sage', color: '#a09e73' },
+        { name: 'Blush pink', color: '#dca694' },
+        { name: 'Cream', color: '#e5d2b0' },
+      ],
+    },
+    {
+      eventId: 'haldi',
+      title: 'Haldi',
+      tagline: 'Bright • Cheerful • Traditional',
+      suggestion: 'Light, vibrant and joyful traditional attire.',
+      palette: [
+        { name: 'Turmeric yellow', color: '#f3bc20' },
+        { name: 'Marigold', color: '#e5a306' },
+        { name: 'Sand', color: '#e3cda7' },
+        { name: 'Leaf green', color: '#4f621d' },
+      ],
+    },
+    {
+      eventId: 'sangeet',
+      title: 'Sangeet Night',
+      tagline: 'Glamorous • Colourful • Fun',
+      suggestion: 'Elegant festive attire with a touch of glamour.',
+      palette: [
+        { name: 'Maroon', color: '#720c20' },
+        { name: 'Navy', color: '#253e72' },
+        { name: 'Emerald', color: '#09453c' },
+        { name: 'Mauve', color: '#af868b' },
+      ],
+    },
+    {
+      eventId: 'wedding',
+      title: 'Wedding',
+      tagline: 'Traditional • Grand • Elegant',
+      suggestion: 'Classic South Indian traditional attire.',
+      palette: [
+        { name: 'Temple red', color: '#9c1c20' },
+        { name: 'Antique gold', color: '#d6a34b' },
+        { name: 'Ivory', color: '#ede0c2' },
+        { name: 'Leaf green', color: '#4a5e1c' },
+      ],
+    },
+    {
+      eventId: 'reception',
+      title: 'Reception',
+      tagline: 'Elegant • Modern • Festive',
+      suggestion: 'Elegant and stylish attire for a grand evening.',
+      palette: [
+        { name: 'Plum', color: '#90515f' },
+        { name: 'Midnight navy', color: '#18243b' },
+        { name: 'Steel grey', color: '#81878c' },
+        { name: 'Champagne', color: '#ecdfc1' },
+      ],
+    },
   ],
 
   travel: {

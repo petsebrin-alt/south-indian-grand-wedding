@@ -1505,25 +1505,77 @@ async function main() {
     await ctx.close();
   }
 
-  /* Dress-code deck */
+  /* AC-42 the Dress Code page: five finished cards over the garden turn by themselves with no tap, and by arrow, dot or
+     swipe; each card's title, mood, "Suggested Colours", four shades and line of guidance are real text and real colours
+     from the data, and fit their card; a vertical swipe still turns the page */
   {
     const { ctx, page, cdp } = await openedPage('dress-code');
     const front = () => page.evaluate(() => [...document.querySelectorAll('[data-deck-dot]')].findIndex((d) => d.classList.contains('is-active')));
+    await page.waitForTimeout(1200);
+    const first = await front();
+    // by itself (a card stays about five seconds)
+    await page.waitForFunction((was) => [...document.querySelectorAll('[data-deck-dot]')].findIndex((d) => d.classList.contains('is-active')) !== was, first, { timeout: 12000, polling: POLL });
+    const bySelf = await front();
+    const content = await page.evaluate(() => {
+      const slots = [...document.querySelectorAll<HTMLElement>('#dress-code .dc__slot')];
+      const half = (el: HTMLElement) => ({ l: el.offsetLeft - el.offsetWidth / 2, r: el.offsetLeft + el.offsetWidth / 2, t: el.offsetTop - el.offsetHeight / 2, b: el.offsetTop + el.offsetHeight / 2 });
+      return slots.map((s) => {
+        const card = s.querySelector<HTMLElement>('.dc__card')!;
+        const inside = ['.dc__t', '.dc__tag', '.dc__label', '.dc__desc'].every((sel) => {
+          const e = half(card.querySelector<HTMLElement>(sel)!);
+          return e.l >= -1 && e.r <= card.offsetWidth + 1 && e.t >= -1 && e.b <= card.offsetHeight + 1;
+        });
+        const discs = [...card.querySelectorAll<HTMLElement>('.dc__disc')];
+        const lowestDisc = Math.max(...discs.map((d) => d.offsetTop + d.offsetWidth / 2));
+        const desc = half(card.querySelector<HTMLElement>('.dc__desc')!);
+        return {
+          title: card.querySelector('.dc__t')!.textContent,
+          tagline: (card.querySelector('.dc__tag')!.textContent ?? '').length > 10,
+          desc: (card.querySelector('.dc__desc')!.textContent ?? '').length > 10,
+          colours: discs.map((d) => getComputedStyle(d).backgroundColor),
+          inside,
+          belowDiscs: desc.t >= lowestDisc,
+          art: (card.querySelector('.dc__art') as HTMLImageElement).complete,
+        };
+      });
+    });
+    const titles = content.map((c) => c.title);
+    const sangeet = content.find((c) => c.title === 'Sangeet Night');
+    // by hand: a swipe each way, the arrow, the dot (the cards then wait before going on by themselves again)
     const box = (await page.locator('.dc__deck').boundingBox())!;
     const y = box.y + box.height / 2;
+    const n = content.length;
+    const base = await front();
     await touchDrag(cdp, page, [box.x + box.width * 0.8, y], [box.x - 40, y], 12, 18);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(900);
     const afterLeft = await front();
     await touchDrag(cdp, page, [box.x + box.width * 0.2, y], [box.x + box.width + 40, y], 12, 18);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(900);
     const afterRight = await front();
-    await page.locator('.dc__deck').tap();
-    await page.waitForTimeout(700);
-    const flipped = await page.evaluate(() => document.querySelectorAll('.dc__card.is-flipped').length === 1);
+    await page.locator('#dress-code [data-deck-next]').tap();
+    await page.waitForTimeout(1000);
+    const afterArrow = await front();
+    await page.locator('#dress-code [data-deck-dot]').nth(0).tap();
+    await page.waitForTimeout(800);
+    const afterDot = await front();
     const samePage = (await current(page)) === 'dress-code';
     await touchDrag(cdp, page, [box.x + box.width / 2, box.y + box.height - 20], [box.x + box.width / 2, box.y - 200], 10, 14);
     const turned = await current(page);
-    check('PH3-deck', 'Dress-code deck: swipe moves one card each way, tap turns it over, vertical swipe turns the page', afterLeft === 1 && afterRight === 0 && flipped && samePage && turned === 'venues', JSON.stringify({ afterLeft, afterRight, flipped, turned }));
+    check(
+      'AC-42',
+      'Dress Code: five cards (Mehendi, Haldi, Sangeet Night, Wedding, Reception) turn by themselves, and by swipe, arrow and dot; their lettering and four shades each are real and fit; a vertical swipe turns the page',
+      bySelf !== first &&
+        titles.join('|') === 'Mehendi|Haldi|Sangeet Night|Wedding|Reception' &&
+        content.every((c) => c.tagline && c.desc && c.colours.length === 4 && c.inside && c.belowDiscs && c.art) &&
+        sangeet?.colours.join('|') === 'rgb(114, 12, 32)|rgb(37, 62, 114)|rgb(9, 69, 60)|rgb(175, 134, 139)' &&
+        afterLeft === (base + 1) % n &&
+        afterRight === base &&
+        afterArrow === (base + 1) % n &&
+        afterDot === 0 &&
+        samePage &&
+        turned === 'venues',
+      JSON.stringify({ first, bySelf, base, afterLeft, afterRight, afterArrow, afterDot, turned, titles, bad: content.filter((c) => !(c.inside && c.belowDiscs && c.art && c.colours.length === 4)) }),
+    );
     await ctx.close();
   }
 

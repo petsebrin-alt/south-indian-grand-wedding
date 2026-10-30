@@ -860,3 +860,19 @@ The client said the Wishing Wall belongs on page 11 (not 15), the Grand Receptio
 ### Results
 
 - `npm run qa:book`: 75/75 (the RSVP-form checks go with the page; the admin page, email and CSV check, AC-26, now posts the response straight to the server). `npx vitest run`: 59 pass (new: page order). `npx astro check`: 0 errors.
+
+## 30 October 2026 — The Dress Code page: five finished cards turning by themselves over the garden
+
+The client sent the page they want (a garden of jasmine garlands and temple bells with the heading and a stack of cards), the five finished cards (Haldi, Mehendi, Sangeet Night, Wedding, Reception, each with its couple, a title banner, four colour discs and a line of guidance) and asked for page 12 to be replaced by this: the cards showing one after another by themselves with no tapping (with the option of moving them by hand), every card with its colours and details, and the shades and wording editable so the template can be published for other people.
+
+### Decisions
+
+1. **Built from the client's pictures.** `scripts/dresscode/cut.py` (run through `npm run dresscode:assets`) cuts each of the five cards out of the sheet, keeping the couple, the garlands, bells, lamps and pots exactly as drawn, and rubs out only the writing (the title and its mood line, "Suggested Colours", the guidance) and the four colour discs, filling the cream paper in smoothly with its own grain. It also cleans the garden picture of its heading, stack of cards and arrows (filled from the sky above to the marble below, its edges melting into the garden) and makes it phone-shaped (trimmed 4% each side and taller by 510 rows of plain sky), and cuts the gold lotus over the heading.
+2. **Editable.** All the writing and colour on a card is real text and a real colour taken from `dressCode` in `src/data/wedding.ts`: `title`, `tagline` (the three-word mood), `suggestion` (the line of guidance, which the event details sheet also uses) and `palette`: up to four shades, each a name and a #rrggbb colour. Change them and the card follows, in the same place and size as the picture had them. The starting shades are those sampled from the client's discs; the shade names (Turmeric yellow, Sage, Maroon and so on) are mine. A longer line of guidance still fits up to about three lines. The couple's outfits, garlands and lamps are the picture `src/assets/dresscode/card-<event>.webp`: to change them, replace that picture with one of the same shape (or replace `source/cards.webp` and run `npm run dresscode:assets`).
+3. **Turning by itself.** After the heading and the cards arrive, the front card slides away and tucks to the back every five seconds, the next coming forward; the order is the event order, Mehendi, Haldi, Sangeet Night, Wedding, Reception, and it starts from the first on each visit. The arrows, the dots, a swipe or the arrow keys move it by hand and it then waits nine seconds before going on again. The old flip-over back of the card ("Tap to turn") is gone. Under reduced motion the cards do not turn by themselves.
+4. **Not exact in two ways, to know:** the five cards are the client's sheet as it is, so the top row's cards are nearly square and the Wedding and Reception cards are wider and shorter (they are centred in the stack); and the middle of the garden behind the stack is a clean soft haze, since the original was hidden behind the cards.
+5. **Removed:** the drawn silhouette figures, the silk bands, the jasmine stand-ins and the "Placeholder art" note on this page.
+
+### Results
+
+- `npm run qa:book` (AC-42: five cards turn by themselves and by swipe, arrow and dot; titles, four shades and wording are real and fit; a vertical swipe turns the page) and `npx vitest run` (every card has a title, mood, guidance and one to four valid shades).

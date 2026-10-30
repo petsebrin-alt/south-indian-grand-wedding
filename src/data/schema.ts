@@ -115,7 +115,17 @@ export const weddingSchema = z.object({
       photo,
     }),
   ),
-  dressCode: z.array(z.object({ eventId: z.enum(eventIds), suggestion: text, palette: z.array(text) })),
+  // One card per celebration on the Dress Code page: its title and three-word mood, the line of guidance, and up to four
+  // shades (a name and a #rrggbb colour each) shown as colour discs. All of it can be changed here.
+  dressCode: z.array(
+    z.object({
+      eventId: z.enum(eventIds),
+      title: text,
+      tagline: text,
+      suggestion: text,
+      palette: z.array(z.object({ name: text, color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'a colour like #7a2635') })).min(1).max(4),
+    }),
+  ),
   travel: z.object({
     airport: travelItem,
     railway: travelItem,

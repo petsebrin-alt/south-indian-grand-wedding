@@ -1,15 +1,21 @@
 ---
-/** Page 12 — Dress Code (PRD §6.12, THEME §13 P13). Deck behaviour: src/motion/deck.ts */
+/**
+ * Page 12 — Dress Code (PRD §6.12), after the client's picture: a garden of jasmine garlands and temple bells
+ * (src/assets/dresscode/, cut from the client's two pictures; npm run dresscode:assets), the heading over it, and a stack
+ * of the five finished cards (Mehendi, Haldi, Sangeet Night, Wedding, Reception) that turn by themselves, one after
+ * another, and by arrow, dot or swipe. Each card is the client's picture with its couple, garlands and lamps; its
+ * title, mood, "Suggested Colours", the four colour discs and the line of guidance are real text and real colours
+ * from `dressCode` in src/data/wedding.ts, so they can be changed. Behaviour: src/motion/deck.ts
+ */
 import PageShell from '../PageShell.astro';
-import Decor from '../Decor.astro';
-import Emblem from '../Emblem.astro';
+import ScenePhoto from '../ScenePhoto.astro';
 import Icon from '../Icon.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
-import { formatDateShort, formatTime } from '../../lib/format';
-import { swatch } from '../../lib/swatches';
-import womanMask from '../../assets/placeholders/attire-woman.svg?url';
-import manMask from '../../assets/placeholders/attire-man.svg?url';
+import meta from '../../assets/dresscode/dresscode.json';
+import scene from '../../assets/dresscode/scene.webp';
+import sceneAvif from '../../assets/dresscode/scene.avif';
+import ornament from '../../assets/dresscode/ornament.webp';
 
 interface Props {
   page: BookPage;
@@ -17,68 +23,58 @@ interface Props {
 }
 
 const { page, index } = Astro.props;
+const images = import.meta.glob<{ default: ImageMetadata }>('../../assets/dresscode/card-*.webp', { eager: true });
+type CardMeta = (typeof meta.cards)[keyof typeof meta.cards];
 const cards = wedding.dressCode.map((d) => {
   const event = wedding.events.find((e) => e.id === d.eventId)!;
-  const colours = d.palette.map((name) => ({ name, value: swatch(name) }));
-  return { ...d, event, colours };
+  const m = (meta.cards as Record<string, CardMeta>)[d.eventId];
+  const img = images[`../../assets/dresscode/card-${d.eventId}.webp`].default;
+  return { ...d, event, m, img };
 });
+const first = cards[0].m;
 ---
 
-<PageShell page={page} index={index} watermark={false} class="dc" note="Placeholder art: S-20 attire silhouettes (fashion sketches to be commissioned), D-16 silk bands, D-03 jasmine. Suggestions, not requirements.">
-  <div class="stack-xs dc__head">
-    <h2 class="page-title" tabindex="-1" data-page-heading>Dress Code</h2>
-    <p class="caption">Suggestions to celebrate in colour <span class="badge badge--suggested">Suggested</span></p>
+<PageShell page={page} index={index} watermark={false} class="dc">
+  <Fragment slot="architecture">
+    <div class="layer layer--architecture dc__scene" aria-hidden="true">
+      <ScenePhoto class="dc__bg" avif={sceneAvif} webp={scene} defer />
+    </div>
+  </Fragment>
+
+  <div class="dc__head">
+    <img class="dc__orn" data-src={ornament.src} width={meta.ornament.width} height={meta.ornament.height} alt="" decoding="async" />
+    <h2 class="dc__title" tabindex="-1" data-page-heading>Dress Code</h2>
+    <p class="dc__sub">Suggestions to celebrate in colour</p>
+    <span class="dc__pill">Suggested</span>
   </div>
 
-  <div class="dc__deck" data-deck data-gesture="x" tabindex="0" role="group" aria-roledescription="carousel" aria-label="Dress code suggestions. Use the arrow keys to move between cards; press Enter to turn a card over.">
+  <div
+    class="dc__deck"
+    data-deck
+    data-gesture="x"
+    tabindex="0"
+    role="group"
+    aria-roledescription="carousel"
+    aria-label="Dress code suggestions for each celebration. They turn by themselves; use the arrow keys to move between them."
+    style={`--deck-ratio:${first.width} / ${first.height}`}
+  >
     {
       cards.map((c, i) => (
-        <article
-          class="dc__card"
-          data-card={i}
-          aria-roledescription="slide"
-          aria-label={`${i + 1} of ${cards.length}: ${c.event.name}`}
-          style={`--c1:${c.colours[0].value};--c2:${c.colours[1]?.value ?? c.colours[0].value};--c3:${c.colours[2]?.value ?? c.colours[0].value};--mask-w:url("${womanMask}");--mask-m:url("${manMask}")`}
-        >
-          <div class="dc__inner">
-            <div class="dc__face dc__face--front">
-              <div class="dc__band" aria-hidden="true" />
-              <div class="dc__figures" aria-hidden="true">
-                <span class="dc__figure dc__figure--woman" />
-                <span class="dc__figure dc__figure--man" />
-              </div>
-              <Emblem name={c.eventId} class="dc__emblem" />
-              <h3 class="dc__event">{c.event.name}</h3>
-              <p class="dc__suggestion">{c.suggestion}</p>
-              <div class="dc__swatches">
-                {c.colours.map((col) => (
-                  <span class="dc__swatch" style={`--sw:${col.value}`} title={col.name} />
-                ))}
-              </div>
-              <p class="dc__colours">{c.colours.map((col) => col.name).join(' · ')}</p>
-              <span class="dc__hint" aria-hidden="true">
-                Tap to turn
-              </span>
-            </div>
-            <div class="dc__face dc__face--back" aria-hidden="true">
-              <h3 class="dc__event">{c.event.name}</h3>
-              <p class="dc__when">
-                {formatDateShort(c.event.startISO)} · {formatTime(c.event.startISO)} IST
-                {c.event.timeStatus === 'proposed' && <span class="badge badge--proposed">Proposed</span>}
-              </p>
-              <p class="dc__back-label">Suggested colours</p>
-              <ul class="dc__big-swatches">
-                {c.colours.map((col) => (
-                  <li>
-                    <span class="dc__swatch dc__swatch--big" style={`--sw:${col.value}`} />
-                    {col.name}
-                  </li>
-                ))}
-              </ul>
-              <p class="dc__note">These are gentle suggestions, not requirements. Wear what lets you celebrate comfortably.</p>
-            </div>
-          </div>
-        </article>
+        <div class="dc__slot" data-card={i} role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${cards.length}: ${c.title}. ${c.suggestion} Suggested colours: ${c.palette.map((p) => p.name).join(', ')}.`}>
+          <article class="dc__card" style={`--ar:${c.m.width} / ${c.m.height};--s:${(487 / c.m.srcWidth).toFixed(4)}`}>
+            <img class="dc__art" data-src={c.img.src} width={c.m.width} height={c.m.height} alt="" decoding="async" />
+            <noscript><img class="dc__art" src={c.img.src} width={c.m.width} height={c.m.height} alt="" decoding="async" /></noscript>
+            <h3 class="dc__t" style={`left:${c.m.title.cx}%;top:${c.m.title.cy}%;--cap:${c.m.title.cap}`}>{c.title}</h3>
+            <p class="dc__tag" style={`left:${c.m.tagline.cx}%;top:${c.m.tagline.cy}%;--h:${c.m.tagline.h}`}>{c.tagline}</p>
+            <p class="dc__label" style={`left:${c.m.label.cx}%;top:${c.m.label.cy}%;--h:${c.m.label.h}`}>Suggested Colours</p>
+            <ul class="dc__discs" aria-hidden="true">
+              {c.palette.map((p, j) => (
+                <li class="dc__disc" title={p.name} style={`left:${c.m.discs[j].cx}%;top:${c.m.discs[j].cy}%;--d:${c.m.disc};--sw:${p.color}`} />
+              ))}
+            </ul>
+            <p class="dc__desc" style={`left:${c.m.desc.cx}%;top:${c.m.desc.cy}%;--w:${c.m.desc.w}`}>{c.suggestion}</p>
+          </article>
+        </div>
       ))
     }
   </div>
@@ -86,222 +82,208 @@ const cards = wedding.dressCode.map((d) => {
   <div class="dc__nav">
     <button class="ls__arrow" type="button" data-deck-prev aria-label="Previous card"><Icon name="chevron-left" /></button>
     <div class="dc__dots">
-      {cards.map((c, i) => <button class:list={['ls__dot', i === 0 && 'is-active']} type="button" data-deck-dot={i} aria-label={`Show ${c.event.name}`} />)}
+      {cards.map((c, i) => <button class:list={['ls__dot', i === 0 && 'is-active']} type="button" data-deck-dot={i} aria-label={`Show ${c.title}`} />)}
     </div>
     <button class="ls__arrow" type="button" data-deck-next aria-label="Next card"><Icon name="chevron-right" /></button>
+    <p class="sr-only" aria-live="polite" data-deck-live></p>
   </div>
-  <p class="sr-only" aria-live="polite" data-deck-live></p>
-
-  <Fragment slot="foreground">
-    <Decor name="jasmine-cluster" asset="D-03" class="layer layer--foreground dc__jasmine dc__jasmine--l" />
-    <Decor name="jasmine-cluster" asset="D-03" class="layer layer--foreground dc__jasmine dc__jasmine--r" />
-  </Fragment>
 </PageShell>
 
 <style is:global>
-  .dc__deck {
-    position: relative;
-    width: min(70cqw, 40cqh);
-    aspect-ratio: 1 / 1.42;
-    perspective: 1200px;
-    touch-action: pan-y pinch-zoom;
-    outline-offset: 6px;
+  /* One design unit (--u) is a pixel of a 430 × 932 phone, scaled to the page, so the layout keeps its shape on any phone. */
+  .dc {
+    --u: min(0.2326cqw, 0.1073cqh);
   }
 
-  .dc__card {
+  .dc .page__frame {
+    display: none;
+  }
+
+  .dc .page__content {
+    inset: 0;
+    display: block;
+  }
+
+  /* ---------------------------------------------------------------- the garden */
+  .dc__scene {
+    inset: 0;
+    overflow: hidden;
+    background: #cfe0ee;
+  }
+
+  .dc__bg {
     position: absolute;
     inset: 0;
-    cursor: grab;
-    will-change: transform;
-  }
-
-  .dc__inner {
-    position: relative;
     width: 100%;
     height: 100%;
-    transform-style: preserve-3d;
-    transition: transform 600ms var(--ease-silk);
+    object-fit: cover;
+    object-position: 50% 0;
   }
 
-  .dc__card.is-flipped .dc__inner {
-    transform: rotateY(180deg);
-  }
-
-  .reduce-motion .dc__inner {
-    transition: none;
-  }
-
-  .dc__face {
+  /* ---------------------------------------------------------------- the heading */
+  .dc__head {
     position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.8cqh;
-    padding: 0 6% 5%;
-    overflow: hidden;
-    backface-visibility: hidden;
-    background-color: var(--jasmine);
-    background-image: var(--paper-texture);
-    background-blend-mode: multiply;
-    border-radius: 6px;
-    box-shadow:
-      inset 0 0 0 1px var(--gold),
-      inset 0 0 0 4px var(--jasmine),
-      inset 0 0 0 5px var(--hairline),
-      0 12px 26px rgba(75, 48, 38, 0.22);
+    left: 50%;
+    top: calc(var(--u) * 48);
+    width: calc(var(--u) * 232);
+    translate: -50% 0;
+    display: grid;
+    justify-items: center;
     text-align: center;
   }
 
-  .dc__face--back {
-    transform: rotateY(180deg);
-    justify-content: center;
-    padding-top: 6%;
+  .dc__orn {
+    display: block;
+    width: calc(var(--u) * 170);
+    max-width: none;
+    height: auto;
   }
 
-  /* Silk band in the event's colours with a zari edge */
-  .dc__band {
-    flex: none;
-    width: calc(100% + 12%);
-    height: 12%;
-    margin: 0 -6%;
-    background:
-      url('../../assets/placeholders/zari-band.svg') bottom / auto 30% repeat-x,
-      linear-gradient(120deg, var(--c1), var(--c2) 55%, var(--c3));
-  }
-
-  .dc__figures {
-    flex: 1;
-    min-height: 0;
-    width: 70%;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    gap: 6%;
-    margin-top: -2%;
-  }
-
-  .dc__figure {
-    height: 100%;
-    aspect-ratio: 200 / 520;
-    -webkit-mask: var(--mask-w) center / contain no-repeat;
-    mask: var(--mask-w) center / contain no-repeat;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--c1) 85%, white), color-mix(in srgb, var(--c2) 70%, white));
-    opacity: 0.9;
-  }
-
-  .dc__figure--man {
-    aspect-ratio: 180 / 520;
-    -webkit-mask-image: var(--mask-m);
-    mask-image: var(--mask-m);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--c3) 80%, white), color-mix(in srgb, var(--c2) 65%, white));
-  }
-
-  .dc__emblem {
-    flex: none;
-    width: 9cqw;
-    max-width: 44px;
-    color: var(--gold-text);
-  }
-
-  .dc__event {
-    font: 600 clamp(13px, 3.8cqw, 16px) / 1.25 var(--font-royal);
-    letter-spacing: 0.1em;
+  .dc__title {
+    margin-top: calc(var(--u) * 2);
+    font: 600 calc(var(--u) * 29) / 1.1 var(--font-display);
+    letter-spacing: 0.12em;
+    text-indent: 0.12em;
     text-transform: uppercase;
-    color: var(--brown);
+    color: #4a3126;
+    text-shadow: 0 0 calc(var(--u) * 10) rgba(255, 252, 244, 0.85);
   }
 
-  .dc__suggestion {
-    font: italic 500 clamp(15px, 4.4cqw, 19px) / 1.3 var(--font-display);
-    color: var(--brown);
+  .dc__sub {
+    margin-top: calc(var(--u) * 5);
+    font: 400 calc(var(--u) * 12) / 1.3 var(--font-body);
+    color: #5d4637;
+    text-shadow: 0 0 calc(var(--u) * 8) rgba(255, 252, 244, 0.95);
   }
 
-  .dc__swatches {
-    display: flex;
-    gap: 8px;
-  }
-
-  .dc__swatch {
-    width: 26px;
-    height: 18px;
-    border-radius: 3px 10px 3px 10px;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--sw) 70%, white), var(--sw) 60%, color-mix(in srgb, var(--sw) 80%, black));
-    box-shadow: inset 0 0 0 1px rgba(75, 48, 38, 0.15);
-  }
-
-  .dc__swatch--big {
-    display: inline-block;
-    width: 34px;
-    height: 24px;
-    margin-right: 10px;
-    vertical-align: middle;
-  }
-
-  .dc__colours,
-  .dc__back-label,
-  .dc__hint {
-    font: 500 9px/1.4 var(--font-royal);
-    letter-spacing: 0.14em;
+  .dc__pill {
+    margin-top: calc(var(--u) * 9);
+    padding: calc(var(--u) * 5) calc(var(--u) * 22);
+    border: 2px dotted #c9a24a;
+    border-radius: 999px;
+    background: rgba(250, 240, 214, 0.88);
+    box-shadow: 0 0 0 calc(var(--u) * 2) rgba(250, 240, 214, 0.5);
+    font: 500 calc(var(--u) * 11.5) / 1.2 var(--font-royal);
+    letter-spacing: 0.2em;
+    text-indent: 0.2em;
     text-transform: uppercase;
-    color: var(--gold-text);
+    color: #8a6420;
   }
 
-  .dc__hint {
-    opacity: 0.8;
+  /* ---------------------------------------------------------------- the stack of cards */
+  .dc__deck {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--u) * 206);
+    width: calc(var(--u) * 372);
+    aspect-ratio: var(--deck-ratio);
+    translate: -50% 0;
+    touch-action: pan-y pinch-zoom;
+    outline-offset: 8px;
   }
 
-  .dc__when {
-    font-size: 13px;
-    color: var(--brown-soft);
-  }
-
-  .dc__big-swatches {
+  .dc__slot {
+    position: absolute;
+    inset: 0;
     display: grid;
-    gap: 10px;
-    text-align: left;
-    font: 500 15px/1.3 var(--font-display);
-    color: var(--brown);
+    place-items: center;
+    will-change: transform;
   }
 
-  .dc__note {
-    margin-top: 1cqh;
-    font-size: 13px;
-    line-height: 1.45;
-    color: var(--brown-soft);
+  .dc__card {
+    position: relative;
+    width: 100%;
+    aspect-ratio: var(--ar);
+    container-type: inline-size;
+    border-radius: calc(var(--u) * 5);
+    filter: drop-shadow(0 calc(var(--u) * 9) calc(var(--u) * 12) rgba(60, 38, 10, 0.36));
   }
 
+  .dc__art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* The card's writing, set where the picture had it (the positions and sizes are % of the card) */
+  .dc__t,
+  .dc__tag,
+  .dc__label,
+  .dc__desc {
+    position: absolute;
+    translate: -50% -50%;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .dc__t {
+    font: 600 calc(var(--cap) * 1.46cqw) / 1 var(--font-royal);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: #4a3126;
+  }
+
+  .dc__tag {
+    font: 400 calc(var(--h) * 1cqw) / 1 var(--font-body);
+    white-space: nowrap;
+    color: #66503f;
+  }
+
+  .dc__label {
+    font: 500 calc(var(--h) * 1.1cqw) / 1.2 var(--font-display);
+    white-space: nowrap;
+    color: #55402f;
+  }
+
+  .dc__discs {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .dc__disc {
+    position: absolute;
+    width: calc(var(--d) * 1cqw);
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    border-radius: 50%;
+    background: var(--sw);
+    box-shadow:
+      inset 0 0 0 1px rgba(60, 40, 20, 0.12),
+      inset 0 calc(var(--d) * -0.1cqw) calc(var(--d) * 0.16cqw) rgba(0, 0, 0, 0.1),
+      0 1px 2px rgba(60, 40, 20, 0.18);
+  }
+
+  /* the lettering is the same size on every card (--s: the card's width against the narrowest) */
+  .dc__desc {
+    width: calc(var(--s) * 29cqw);
+    font: 500 calc(var(--s) * 3.5cqw) / 1.26 var(--font-display);
+    color: #55402f;
+    text-wrap: balance;
+  }
+
+  /* ---------------------------------------------------------------- arrows and dots */
   .dc__nav {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--u) * 616);
     display: flex;
     align-items: center;
-    gap: 3cqw;
+    justify-content: center;
+    gap: calc(var(--u) * 14);
   }
 
   .dc__dots {
     display: flex;
+    gap: 2px;
   }
 
-  .dc__jasmine {
-    width: 20cqw;
-    top: calc(var(--safe-top) + 3cqh);
-  }
-
-  .dc__jasmine--l {
-    left: 2cqw;
-  }
-
-  .dc__jasmine--r {
-    right: 2cqw;
-    transform: scaleX(-1);
-  }
-
-  @container app (max-height: 699px) {
-    .dc__deck {
-      width: min(62cqw, 38cqh);
-    }
-
-    .dc__colours,
-    .dc__hint {
-      display: none;
-    }
+  html:not(.js) .dc__slot:not(:first-child) {
+    display: none;
   }
 </style>
