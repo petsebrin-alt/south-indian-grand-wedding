@@ -17,6 +17,16 @@ export function directionsUrl(v: Venue): string | null {
   return `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
 }
 
+/**
+ * The map shown on the Venue page: Google Maps' own embed (no key needed), centred on the venue's coordinates, or else on a
+ * search for its name and address. Null while the venue has no public location.
+ */
+export function mapEmbedUrl(v: Venue): string | null {
+  if (!hasLocation(v)) return null;
+  const q = v.lat !== null && v.lng !== null ? `${v.lat},${v.lng}` : [v.name, v.address].filter(Boolean).join(', ');
+  return q ? `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=15&output=embed` : null;
+}
+
 /** Guest-facing line when the venue name or address is not available. */
 export function venueFallback(v: Venue): string {
   return v.privacy === 'onRequest' ? 'Address shared personally' : 'Venue details will be shared soon';

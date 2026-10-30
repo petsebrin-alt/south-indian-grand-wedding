@@ -1,50 +1,70 @@
-import { defineChoreo, gsap, isReducedMotion, timelineChoreo } from '../choreo';
+import { defineChoreo, gsap, isReducedMotion } from '../choreo';
+import { breeze, type Breeze } from '../breeze';
 
 /**
- * Venues and Directions (PRD §6.13): the garland arch settles, the card rises, and the map pin
- * drops with a single soft bounce. Tabs switch venues with a cross-fade and re-drop the pin;
- * arrow keys move between tabs (ARIA tabs pattern).
+ * Venue and Travel (PRD §6.13, §6.14): each time the page turns in, the temple's two carved pillars (the two halves of the
+ * entrance photograph, wrapped in their jasmine-and-rose malas, with the swag across the top) come in from the sides and
+ * meet; then the map card rises, then Travel & Stay; then the malas, leaves and swag begin to stir in a light breeze (never
+ * under reduced motion). The map is loaded as the page arrives, so it is there when its card appears.
  */
-function dropPin(panel: HTMLElement) {
-  const pin = panel.querySelector('.vn__pin');
-  if (!pin || isReducedMotion()) return;
-  gsap.fromTo(pin, { y: -26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'back.out(2.2)' });
-}
+defineChoreo('venues', (page) => {
+  const q = <T extends HTMLElement>(sel: string) => [...page.querySelectorAll<T>(sel)];
+  const halves = q('[data-half]');
+  const winds = q('[data-winds]');
+  const title = q('.vt__title');
+  const cards = q('[data-card]');
+  const slot = page.querySelector<HTMLElement>('[data-map-slot]');
+  let tl: gsap.core.Timeline | null = null;
+  let wind: Breeze | null = null;
 
-function initTabs(page: HTMLElement) {
-  const tabs = [...page.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
-  const panels = [...page.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
-  const select = (i: number, focus = false) => {
-    tabs.forEach((t, k) => {
-      t.setAttribute('aria-selected', String(k === i));
-      t.tabIndex = k === i ? 0 : -1;
-    });
-    panels.forEach((p, k) => p.classList.toggle('is-active', k === i));
-    if (focus) tabs[i].focus();
-    tabs[i].scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    dropPin(panels[i]);
+  /** Before the page is in view: pillars outside, the content hidden */
+  const hidden = () => {
+    const calm = isReducedMotion();
+    halves.forEach((h) => gsap.set(h, { x: calm ? 0 : h.dataset.half === 'l' ? -46 : 46, opacity: calm ? 1 : 0 }));
+    gsap.set(winds, { opacity: calm ? 1 : 0 });
+    gsap.set(title, { opacity: calm ? 1 : 0, y: calm ? 0 : -8 });
+    gsap.set(cards, { opacity: calm ? 1 : 0, y: calm ? 0 : 18 });
   };
-  tabs.forEach((tab, i) => {
-    tab.addEventListener('click', () => select(i));
-    tab.addEventListener('keydown', (e) => {
-      const keys: Record<string, number> = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 };
-      if (!(e.key in keys)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      select((keys[e.key] + tabs.length) % tabs.length, true);
-    });
-  });
-}
+  hidden();
 
-defineChoreo(
-  'venues',
-  timelineChoreo((tl, page) => {
-    initTabs(page);
-    const all = (sel: string) => [...page.querySelectorAll<HTMLElement>(sel)];
-    tl.from(all('.vn__swag, .vn__marigold'), { opacity: 0, y: -12, duration: 0.6, stagger: 0.1 }, 0)
-      .from(all('.vn__pillar'), { opacity: 0, y: 20, duration: 0.6, stagger: 0.08 }, 0.1)
-      .from(all('.vn__card'), { opacity: 0, y: 12, duration: 0.6 }, 0.3)
-      .from(all('.vn__panel.is-active .vn__photo'), { opacity: 0, scale: 0.97, duration: 0.5 }, 0.6)
-      .fromTo(all('.vn__panel.is-active .vn__pin'), { y: -26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'back.out(2.2)' }, 0.95);
-  }),
-);
+  /** Put Google's map in its place (once), unless the guest is offline (then the card keeps its pin and name) */
+  const loadMap = () => {
+    if (!slot || slot.querySelector('iframe') || !slot.dataset.src) return;
+    if (navigator.onLine === false) return void slot.closest('.vt__map')?.classList.add('is-offline');
+    const frame = document.createElement('iframe');
+    frame.className = 'vt__map-frame';
+    frame.dataset.map = '';
+    frame.title = slot.dataset.title ?? 'Map of the venue';
+    frame.referrerPolicy = 'no-referrer-when-downgrade';
+    frame.tabIndex = -1;
+    frame.src = slot.dataset.src;
+    slot.append(frame);
+  };
+
+  return {
+    enter() {
+      tl?.kill();
+      wind?.stop();
+      wind = null;
+      hidden();
+      loadMap();
+      if (isReducedMotion()) return;
+      tl = gsap
+        .timeline()
+        .to(halves, { x: 0, opacity: 1, duration: 1.05, ease: 'power3.out' }, 0.05)
+        .to(title, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0.9)
+        .to(cards[0], { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, 1.15)
+        .to(cards[1], { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, 1.75)
+        // the pieces of the photograph that stir lie exactly over it, so they join in without a change to see
+        .set(winds, { opacity: 1 }, 1.1)
+        .add(() => {
+          wind = breeze(q('.vt__wind'), { active: () => page.dataset.state === 'current' });
+        }, 1.2);
+    },
+    leave() {
+      tl?.kill();
+      wind?.stop();
+      wind = null;
+    },
+  };
+});

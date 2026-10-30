@@ -1,0 +1,426 @@
+---
+/**
+ * Page 11 — Venue and Travel (PRD §6.13, §6.14), the Venues page and the Travel & Stay page as one, with only what a guest
+ * needs: a card with Google's own map of the wedding venue (the client's "Tirupati temple"), its name and Get Directions;
+ * and under it Travel & Stay in three lines (airport, railway, stay). It stands in the temple's entrance, the client's
+ * photograph from the opening (src/assets/opening/frame.webp: carved pillars wrapped in jasmine-and-rose malas, a swag of
+ * jasmine and mango leaves with bells, banana leaves, brass lamps; the doorway of the picture is see-through, so the cream
+ * page shows in it). The pillars arrive first, then the map card, then Travel & Stay, and the malas, leaves and swag then
+ * stir in a light breeze. Behaviour: src/motion/pages/venues.ts
+ */
+import PageShell from '../PageShell.astro';
+import ScenePhoto from '../ScenePhoto.astro';
+import Icon from '../Icon.astro';
+import type { BookPage } from '../../data/pages';
+import scene from '../../assets/opening/scene.json';
+import frame from '../../assets/opening/frame.webp';
+import frameAvif from '../../assets/opening/frame.avif';
+import { directionsUrl, locationUnavailableMessage, mapEmbedUrl, venueById, venueFallback } from '../../lib/venue';
+import { travelItem } from '../../lib/travel';
+
+interface Props {
+  page: BookPage;
+  index: number;
+}
+
+const { page, index } = Astro.props;
+const { door, photo, wind } = scene;
+const pct = (n: number) => `${+n.toFixed(3)}%`;
+const box = ([x0, y0, x1, y1]: number[]) => `left:${pct(x0)};top:${pct(y0)};width:${pct(x1 - x0)};height:${pct(y1 - y0)}`;
+/** An element showing one region of the photograph: the full image, offset so the region shows. */
+const cropImg = ([x0, y0, x1, y1]: number[]) => `width:${pct((100 / (x1 - x0)) * 100)};left:${pct((-x0 / (x1 - x0)) * 100)};top:${pct((-y0 / (y1 - y0)) * 100)}`;
+
+const venue = venueById('ceremony');
+const maps = directionsUrl(venue);
+const embed = mapEmbedUrl(venue);
+const rows = [
+  { key: 'airport', icon: 'plane' },
+  { key: 'railway', icon: 'train' },
+  { key: 'accommodation', icon: 'hotel' },
+] as const;
+---
+
+<PageShell page={page} index={index} watermark={false} class="vt">
+  <Fragment slot="architecture">
+    <div class="layer layer--architecture vt__scene" aria-hidden="true">
+      <div class="vt__plate" style={`--ratio:${photo.height / photo.width}`}>
+        <div class="vt__half vt__half--l" data-half="l"><ScenePhoto class="vt__still" avif={frameAvif} webp={frame} defer /></div>
+        <div class="vt__half vt__half--r" data-half="r"><ScenePhoto class="vt__still" avif={frameAvif} webp={frame} defer /></div>
+        <!-- The garlands, swag and leaves: pieces of the photograph that stir in the breeze once the page has settled -->
+        <div class="vt__winds" data-winds>
+          {
+            wind.map((w) => (
+              <div
+                class:list={['vt__wind', `vt__wind--${w.feather}`]}
+                data-wind={w.amp}
+                style={`${box(w.box)};transform-origin:${pct(((w.pivot[0] - w.box[0]) / (w.box[2] - w.box[0])) * 100)} ${pct(((w.pivot[1] - w.box[1]) / (w.box[3] - w.box[1])) * 100)}`}
+              >
+                <ScenePhoto avif={frameAvif} webp={frame} defer style={cropImg(w.box)} />
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </Fragment>
+
+  <div class="vt__door" data-door>
+    <h2 class="vt__title" tabindex="-1" data-page-heading>Venue &amp; Travel</h2>
+
+    <section class="vt__card vt__card--venue" data-card="venue" aria-label={venue.label}>
+      <div class="vt__map">
+        {
+          embed ? (
+            <>
+              <!-- Google's map is put here by src/motion/pages/venues.ts as the page arrives (an iframe in the page from the start would load an empty page of its own with the cover) -->
+              <span class="vt__map-slot" data-map-slot data-src={embed} data-title={`Map of ${venue.name ?? venue.label}`} />
+              <span class="vt__map-wait" aria-hidden="true">
+                <Icon name="pin" />
+              </span>
+              {maps && <a class="vt__map-link" href={maps} target="_blank" rel="noopener" tabindex="-1" aria-hidden="true" />}
+            </>
+          ) : (
+            <span class="vt__map-wait vt__map-wait--note">
+              <Icon name="pin" />
+              <span class="preview-only">The map arrives once the venue is confirmed</span>
+            </span>
+          )
+        }
+      </div>
+      <p class="vt__label">{venue.label}</p>
+      <p class="vt__name" data-selectable>{venue.name ?? venueFallback(venue)}</p>
+      {venue.name && venue.address && <p class="vt__addr" data-selectable>{venue.address}</p>}
+      {
+        maps ? (
+          <a class="btn-primary vt__go" href={maps} target="_blank" rel="noopener">
+            <Icon name="pin" /> Get Directions
+          </a>
+        ) : (
+          <button class="btn-primary vt__go" type="button" aria-disabled="true" data-disabled-message={locationUnavailableMessage(venue)}>
+            <Icon name="pin" /> Get Directions
+          </button>
+        )
+      }
+    </section>
+
+    <section class="vt__card vt__card--travel" data-card="travel" aria-labelledby="vt-travel">
+      <h3 class="vt__sub" id="vt-travel">Travel &amp; Stay</h3>
+      <ul class="vt__rows">
+        {
+          rows.map(({ key, icon }) => {
+            const item = travelItem(key);
+            return (
+              <li class="vt__row">
+                <span class="vt__icon" aria-hidden="true">
+                  <Icon name={icon} />
+                </span>
+                <span class="vt__row-text">
+                  <span class="vt__row-title">{item.title}</span>
+                  <span class="vt__row-summary">{item.status === 'toBeConfirmed' ? 'To be announced' : item.summary}</span>
+                </span>
+              </li>
+            );
+          })
+        }
+      </ul>
+    </section>
+  </div>
+</PageShell>
+
+<style is:global>
+  /* The temple entrance picture is scaled to cover the page's height, and never narrower than 123% of its width, so its doorway
+     (55% of the picture) is at least two thirds of the page wide; the picture is centred, its foot cropped on a short page. */
+  .vt {
+    --fw: max(56.5cqh, 123cqw);
+    --fh: calc(var(--fw) * 1.7688);
+  }
+
+  .vt .page__frame {
+    display: none;
+  }
+
+  .vt .page__content {
+    inset: 0;
+    display: block;
+  }
+
+  .vt__scene {
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .vt__plate {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: var(--fw);
+    height: var(--fh);
+    translate: -50% 0;
+  }
+
+  /* The picture in two halves, overlapping a hair at the middle, that come in from the sides */
+  .vt__half {
+    position: absolute;
+    inset: 0;
+    will-change: transform, opacity;
+  }
+
+  .vt__half--l {
+    clip-path: inset(0 49.6% 0 0);
+  }
+
+  .vt__half--r {
+    clip-path: inset(0 0 0 49.6%);
+  }
+
+  .vt__still {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .vt__winds {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* Pieces that stir: their edges fade into the still picture, so a moving piece reads as the flowers flexing */
+  .vt__wind {
+    position: absolute;
+    overflow: hidden;
+    will-change: transform;
+    mask-image: linear-gradient(90deg, transparent 0, #000 16%, #000 84%, transparent 100%), linear-gradient(180deg, #000 0, #000 72%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16%, #000 84%, transparent 100%), linear-gradient(180deg, #000 0, #000 72%, transparent 100%);
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
+  }
+
+  .vt__wind--all {
+    mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 22%, #000 78%, transparent 100%), linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+  }
+
+  .vt__wind img {
+    position: absolute;
+    height: auto;
+  }
+
+  /* ---------------------------------------------------------------- the doorway: the cream page, with the content in it */
+  .vt__door {
+    position: absolute;
+    left: calc(50% - var(--fw) / 2 + var(--fw) * 0.229);
+    width: calc(var(--fw) * 0.542);
+    top: calc(var(--fh) * 0.178);
+    height: min(calc(var(--fh) * 0.645), calc(100cqh - var(--fh) * 0.178 - 60px));
+    container-type: size;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .vt__title {
+    flex: none;
+    text-align: center;
+    font: 600 clamp(15px, 6.2cqw, 21px) / 1.15 var(--font-royal);
+    letter-spacing: 0.16em;
+    text-indent: 0.16em;
+    text-transform: uppercase;
+    color: #6a0f1f;
+  }
+
+  .vt__title::after {
+    content: '';
+    display: block;
+    width: 38%;
+    height: 1px;
+    margin: 5px auto 0;
+    background: linear-gradient(90deg, transparent, #c9a24a, transparent);
+  }
+
+  .vt__card {
+    position: relative;
+    padding: 8px;
+    border-radius: 12px;
+    background-color: #fffaf0;
+    background-image: var(--paper-texture);
+    background-blend-mode: multiply;
+    box-shadow:
+      0 0 0 1px #c9a24a,
+      inset 0 0 0 3px #fffaf0,
+      inset 0 0 0 4px rgba(201, 162, 74, 0.55),
+      0 7px 14px rgba(70, 40, 10, 0.24);
+  }
+
+  .vt__card--venue {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    text-align: center;
+  }
+
+  .vt__card--travel {
+    flex: none;
+    padding: 9px 10px 8px;
+  }
+
+  /* The map: Google's own, kept still (a swipe over it turns the page; a tap opens Google Maps) */
+  .vt__map {
+    position: relative;
+    flex: 1 1 0;
+    min-height: 56px;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid rgba(160, 120, 40, 0.6);
+    background: #efe3c8;
+  }
+
+  .vt__map-slot {
+    position: absolute;
+    inset: 0;
+  }
+
+  .vt__map-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    pointer-events: none;
+    filter: sepia(0.16) saturate(0.92);
+  }
+
+  .vt__map-wait {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 4px;
+    color: #8a6420;
+    font: 500 11px / 1.3 var(--font-body);
+  }
+
+  .vt__map-wait svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .vt__map-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .vt__label {
+    flex: none;
+    font: 700 clamp(8.5px, 3cqw, 10.5px) / 1.2 var(--font-royal);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #8a6420;
+  }
+
+  .vt__name {
+    flex: none;
+    font: 700 clamp(17px, 7.4cqw, 25px) / 1.1 var(--font-display);
+    color: #6a0f1f;
+  }
+
+  .vt__addr {
+    flex: none;
+    margin-top: -2px;
+    font: 500 clamp(10.5px, 3.8cqw, 12.5px) / 1.25 var(--font-body);
+    color: #66503f;
+  }
+
+  .vt__go {
+    flex: none;
+    width: 100%;
+    min-height: 40px;
+    margin-top: 2px;
+  }
+
+  .vt__sub {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    font: 700 clamp(9.5px, 3.3cqw, 11.5px) / 1 var(--font-royal);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #6a0f1f;
+  }
+
+  .vt__sub::before,
+  .vt__sub::after {
+    content: '';
+    flex: 0 1 18%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #c9a24a);
+  }
+
+  .vt__sub::after {
+    transform: scaleX(-1);
+  }
+
+  .vt__rows {
+    display: grid;
+    gap: 5px;
+  }
+
+  .vt__row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(201, 162, 74, 0.35);
+  }
+
+  .vt__icon {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: #8a6420;
+    background: radial-gradient(circle at 35% 30%, #fff4d2, #ecd8a2);
+    box-shadow: 0 0 0 1px #c9a24a;
+  }
+
+  .vt__icon svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .vt__row-text {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .vt__row-title {
+    font: 700 9.5px / 1.2 var(--font-royal);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8a6420;
+  }
+
+  .vt__row-summary {
+    font: 600 clamp(11px, 3.9cqw, 13px) / 1.22 var(--font-body);
+    color: #3f2a20;
+  }
+
+  /* A short page: the address and the small print give way to the map */
+  @container app (max-height: 700px) {
+    .vt__addr,
+    .vt__label {
+      display: none;
+    }
+  }
+</style>

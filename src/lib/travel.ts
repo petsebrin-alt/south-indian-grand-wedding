@@ -1,16 +1,7 @@
 import { wedding } from '../data/wedding';
 
-/** Travel tiles (PRD §6.14): order, icon and sheet id for each item in wedding.travel. */
-export const travelTiles = [
-  { key: 'airport', icon: 'plane' },
-  { key: 'railway', icon: 'train' },
-  { key: 'guidance', icon: 'compass' },
-  { key: 'parking', icon: 'parking' },
-  { key: 'accommodation', icon: 'hotel' },
-  { key: 'shuttle', icon: 'bus' },
-] as const;
-
-export type TravelKey = (typeof travelTiles)[number]['key'];
+/** The items of wedding.travel that have a title and a summary (the Venue and Travel page shows airport, railway and stay). */
+export type TravelKey = 'airport' | 'railway' | 'guidance' | 'parking' | 'accommodation' | 'shuttle';
 
 export const travelItem = (key: TravelKey) => wedding.travel[key];
 

@@ -3,13 +3,15 @@
  * Page 4 — Parents and Family (PRD §6.7), after the client's reference video of a 3D cube carousel: on the cream temple
  * background of the desktop screen (golden pillars, a paisley wall, swaying garlands and lamps; src/components/StageBackdrop.astro)
  * with the courtyard temple faded behind it (src/assets/family/), two maroon-and-gold boards, "The Groom's Family" and "The
- * Bride's Family", each over a cube in a gold border that rolls over by itself to show its other face: the parents
- * (photographs with father's and mother's names and what they do) and the siblings (photographs and names; none
- * supplied yet, so a preview shows a placeholder and a production build leaves the siblings face out). A tap, a
- * swipe, the arrow keys or the dots roll it by hand. Behaviour: src/motion/pages/family.ts
+ * Bride's Family", each over a card made of two blocks side by side, as in the video: a photograph block and a
+ * description block. At rest they read as one gold-bordered card; every few seconds the two blocks turn, in opposite
+ * directions (the photograph rolls its next face in from below, the description from above), to the siblings: the parents'
+ * photograph with the father's and mother's names and what they do, then the sibling's photograph with their name. A
+ * tap, a swipe, the arrow keys or the dots turn it by hand. Behaviour: src/motion/pages/family.ts
  */
 import PageShell from '../PageShell.astro';
 import StageBackdrop from '../StageBackdrop.astro';
+import Icon from '../Icon.astro';
 import ScenePhoto from '../ScenePhoto.astro';
 import type { BookPage } from '../../data/pages';
 import { wedding } from '../../data/wedding';
@@ -23,25 +25,27 @@ interface Props {
 }
 
 const { page, index } = Astro.props;
-type Person = { relation: string; name: string | null; work: string | null; photo: { src: string; alt: string } | null };
-type Face = { label: string; people: Person[] };
+type Photo = { src: string; alt: string; focus?: string } | null;
+type Person = { relation: string; name: string | null; work: string | null };
+/** One thing the card shows: a photograph on one block and the words about it on the other */
+type Face = { label: string; photo: Photo; people: Person[] };
 
 const build = (key: 'groom' | 'bride', of: 'Groom' | 'Bride') => {
   const data = wedding.family[key];
   const parents: Person[] = [
-    { relation: `Father of the ${of}`, name: data.father, work: data.fatherWork, photo: data.fatherPhoto },
-    { relation: `Mother of the ${of}`, name: data.mother, work: data.motherWork, photo: data.motherPhoto },
+    { relation: `Father of the ${of}`, name: data.father, work: data.fatherWork },
+    { relation: `Mother of the ${of}`, name: data.mother, work: data.motherWork },
   ].filter((p) => p.name || siteMode === 'preview');
-  const siblings: Person[] = data.siblings.length
-    ? data.siblings.map((s) => ({ relation: `${s.relation} of the ${of}`, name: s.name, work: null, photo: s.photo }))
+  const siblings: { person: Person; photo: Photo }[] = data.siblings.length
+    ? data.siblings.map((s) => ({ person: { relation: `${s.relation} of the ${of}`, name: s.name, work: null }, photo: s.photo }))
     : siteMode === 'preview'
-      ? [{ relation: `Sibling of the ${of}`, name: null, work: null, photo: null }]
+      ? [{ person: { relation: `Sibling of the ${of}`, name: null, work: null }, photo: null }]
       : [];
-  // Three to a face; more than six are not shown
-  const content: Face[] = [{ label: 'Parents', people: parents }, ...[siblings.slice(0, 3), siblings.slice(3, 6)].filter((f) => f.length).map((people) => ({ label: 'Siblings', people }))];
-  // The cube's four sides: the faces repeat, so it can roll on the same way for ever (one face alone does not roll)
-  const sides = content.length === 1 ? [0] : content.length === 2 ? [0, 1, 0, 1] : [0, 1, 0, 2];
-  return { key, of, content, sides };
+  // The parents, then each sibling on a face of their own (up to three)
+  const faces: Face[] = [{ label: 'Parents', photo: data.photo, people: parents }, ...siblings.slice(0, 3).map((s) => ({ label: 'Sibling', photo: s.photo, people: [s.person] }))];
+  // The four sides of each block: the faces repeat, so the blocks can turn on the same way for ever (one face alone does not turn)
+  const sides = faces.length === 1 ? [0] : faces.length === 2 ? [0, 1, 0, 1] : faces.length === 3 ? [0, 1, 0, 2] : [0, 1, 2, 3];
+  return { key, of, faces, sides };
 };
 
 const families = [
@@ -50,6 +54,7 @@ const families = [
 ];
 // What shows on a card: the relation without "of the Groom" (the board already says whose family it is)
 const shortRelation = (relation: string) => relation.split(' of the ')[0];
+const describe = (face: Face, of: string) => `${face.label} of the ${of}: ${face.people.map((p) => p.name ?? 'name to be provided').join(' and ')}`;
 ---
 
 <PageShell page={page} index={index} watermark={false} class="fm">
@@ -76,54 +81,68 @@ const shortRelation = (relation: string) => relation.split(' of the ')[0];
             tabindex="0"
             role="group"
             aria-roledescription="carousel"
-            aria-label={`${f.title}: ${f.content.map((c) => c.label.toLowerCase()).join(' and ')}. ${f.content.length > 1 ? 'The cube rolls over by itself; use the arrow keys to roll it.' : ''}`}
+            aria-label={`${f.title}: ${f.faces.map((c) => c.label.toLowerCase()).join(' and ')}. ${f.faces.length > 1 ? 'The card turns by itself; use the arrow keys to turn it.' : ''}`}
           >
-            <div class="fm__rig">
-              <div class="fm__box" data-cube-box>
-                {
-                  f.sides.map((c, side) => {
-                    const face = f.content[c];
-                    return (
-                      <div class="fm__face" data-face data-content={c} role="group" aria-roledescription="slide" aria-label={`${face.label} of the ${f.of}: ${face.people.map((p) => p.name ?? 'name to be provided').join(' and ')}`} aria-hidden={side === 0 ? 'false' : 'true'}>
-                        <div class="fm__paper">
-                          <p class="fm__tag">{face.label}</p>
-                          <div class="fm__people" style={`--n:${face.people.length}`}>
-                            {face.people.map((p) => (
-                              <figure class="fm__person">
-                                <div class="fm__ring">
-                                  {p.photo ? (
-                                    <>
-                                      <img class="fm__photo" data-src={p.photo.src} alt={p.photo.alt} decoding="async" draggable="false" />
-                                      <noscript>
-                                        <img class="fm__photo" src={p.photo.src} alt={p.photo.alt} decoding="async" />
-                                      </noscript>
-                                    </>
-                                  ) : (
-                                    <span class="fm__ph">
-                                      <span class="fm__ph-mono">R·D</span>
-                                      <span class="fm__ph-note preview-only">Photo to be provided</span>
-                                    </span>
-                                  )}
-                                </div>
-                                <figcaption class="fm__cap">
-                                  <span class="fm__rel">{shortRelation(p.relation)}</span>
-                                  <span class="fm__name">{p.name ?? <span class="fm__tbp">Name to be provided</span>}</span>
-                                  {p.work && <span class="fm__work">{p.work}</span>}
-                                </figcaption>
-                              </figure>
-                            ))}
+            {/* The photograph block turns one way (its next face comes up from below), the description block the other (from above) */}
+            {
+              ([
+                { kind: 'photo', dir: 1 },
+                { kind: 'text', dir: -1 },
+              ] as const).map(({ kind, dir }) => (
+                <div class={`fm__block fm__block--${kind}`} data-block data-dir={dir}>
+                  <div class="fm__rig">
+                    <div class="fm__box" data-cube-box>
+                      {f.sides.map((c, side) => {
+                        const face = f.faces[c];
+                        return (
+                          <div class="fm__face" data-face data-content={c} role={kind === 'text' ? 'group' : undefined} aria-roledescription={kind === 'text' ? 'slide' : undefined} aria-label={kind === 'text' ? describe(face, f.of) : undefined} aria-hidden={side === 0 ? 'false' : 'true'}>
+                            <div class="fm__paper">
+                              {kind === 'photo' ? (
+                                face.photo ? (
+                                  <>
+                                    <img class="fm__shot" data-src={face.photo.src} alt={face.photo.alt} style={face.photo.focus ? `object-position:${face.photo.focus}` : undefined} decoding="async" draggable="false" />
+                                    <noscript>
+                                      <img class="fm__shot" src={face.photo.src} alt={face.photo.alt} decoding="async" />
+                                    </noscript>
+                                  </>
+                                ) : (
+                                  <span class="fm__ph">
+                                    <span class="fm__ph-mono">R·D</span>
+                                    <span class="fm__ph-note preview-only">Photo to be provided</span>
+                                  </span>
+                                )
+                              ) : (
+                                <>
+                                  <p class="fm__tag">{face.label}</p>
+                                  <div class="fm__people">
+                                    {face.label === 'Sibling' && (
+                                      <span class="fm__orn" aria-hidden="true">
+                                        <Icon name="lotus" />
+                                      </span>
+                                    )}
+                                    {face.people.map((p) => (
+                                      <div class="fm__person">
+                                        <span class="fm__rel">{face.label === 'Sibling' ? p.relation : shortRelation(p.relation)}</span>
+                                        <span class="fm__name">{p.name ?? <span class="fm__tbp">Name to be provided</span>}</span>
+                                        {p.work && <span class="fm__work">{p.work}</span>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                }
-              </div>
-            </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ))
+            }
           </div>
 
           <div class="fm__dots" data-cube-dots>
-            {f.content.length > 1 && f.content.map((c, j) => <button class:list={['fm__dot', j === 0 && 'is-active']} type="button" data-cube-dot={j} aria-label={`Show the ${c.label.toLowerCase()} of the ${f.of}`} />)}
+            {f.faces.length > 1 && f.faces.map((c, j) => <button class:list={['fm__dot', j === 0 && 'is-active']} type="button" data-cube-dot={j} aria-label={`Show the ${c.label.toLowerCase()} of the ${f.of}`} />)}
           </div>
           <p class="sr-only" aria-live="polite" data-cube-live></p>
         </section>
@@ -236,16 +255,24 @@ const shortRelation = (relation: string) => relation.split(' of the ')[0];
     text-shadow: 0 1px 2px rgba(20, 0, 4, 0.6);
   }
 
-  /* ---------------------------------------------------------------- the cube: four faces round a horizontal axis, rolled by
-     GSAP (src/motion/pages/family.ts). Its depth is its own height (cqh is the cube's), so the front face lies flat on the page. */
+  /* ---------------------------------------------------------------- the card: two blocks side by side, each a cube of four
+     faces round a horizontal axis, turned by GSAP (src/motion/pages/family.ts) in opposite directions. A block's depth is its
+     own height (cqh is the block's), so its front face lies flat on the page and the two read as one card. */
   .fm__cube {
+    position: relative;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 44fr 56fr;
+    touch-action: pan-y pinch-zoom;
+    outline-offset: 8px;
+    cursor: pointer;
+  }
+
+  .fm__block {
     position: relative;
     min-height: 0;
     container-type: size;
     perspective: 1500px;
-    touch-action: pan-y pinch-zoom;
-    outline-offset: 8px;
-    cursor: pointer;
   }
 
   .fm__rig {
@@ -261,12 +288,12 @@ const shortRelation = (relation: string) => relation.split(' of the ')[0];
     transform-style: preserve-3d;
   }
 
-  /* Each face has a gold border (a metal gradient band) round its ivory paper */
+  /* Each face has a gold border (a metal gradient band) round its paper; where the two blocks meet the band is half as thick on
+     each, so at rest the card has one gold divider in the middle */
   .fm__face {
     position: absolute;
     inset: 0;
     padding: 5px;
-    border-radius: 13px;
     background: linear-gradient(135deg, #f6e3a3 0%, #c9993f 30%, #f8ebb8 52%, #a8741f 100%);
     box-shadow:
       0 0 0 1px #7a5718,
@@ -275,20 +302,43 @@ const shortRelation = (relation: string) => relation.split(' of the ')[0];
     -webkit-backface-visibility: hidden;
   }
 
+  .fm__block--photo .fm__face {
+    padding-right: 2.5px;
+    border-radius: 13px 3px 3px 13px;
+  }
+
+  .fm__block--text .fm__face {
+    padding-left: 2.5px;
+    border-radius: 3px 13px 13px 3px;
+  }
+
+  /* The sides: the photograph block (turning one way) has its next face below, the description block (the other way) above */
   .fm__face:nth-child(1) {
     transform: translateZ(50cqh);
   }
 
-  .fm__face:nth-child(2) {
+  .fm__block[data-dir='1'] .fm__face:nth-child(2) {
     transform: rotateX(-90deg) translateZ(50cqh);
   }
 
-  .fm__face:nth-child(3) {
+  .fm__block[data-dir='1'] .fm__face:nth-child(3) {
     transform: rotateX(-180deg) translateZ(50cqh);
   }
 
-  .fm__face:nth-child(4) {
+  .fm__block[data-dir='1'] .fm__face:nth-child(4) {
     transform: rotateX(-270deg) translateZ(50cqh);
+  }
+
+  .fm__block[data-dir='-1'] .fm__face:nth-child(2) {
+    transform: rotateX(90deg) translateZ(50cqh);
+  }
+
+  .fm__block[data-dir='-1'] .fm__face:nth-child(3) {
+    transform: rotateX(180deg) translateZ(50cqh);
+  }
+
+  .fm__block[data-dir='-1'] .fm__face:nth-child(4) {
+    transform: rotateX(270deg) translateZ(50cqh);
   }
 
   .fm__paper {
@@ -296,14 +346,22 @@ const shortRelation = (relation: string) => relation.split(' of the ')[0];
     width: 100%;
     height: 100%;
     container-type: size;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    padding: 5cqh 4cqw 4cqh;
     overflow: hidden;
-    border-radius: 8px;
     background-color: #fff8e8;
     background-image: var(--paper-texture);
     background-blend-mode: multiply;
+  }
+
+  .fm__block--photo .fm__paper {
+    border-radius: 8px 1px 1px 8px;
+    box-shadow: inset 0 0 0 1.5px rgba(122, 16, 32, 0.6);
+  }
+
+  .fm__block--text .fm__paper {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: 5cqh 4cqw 4cqh;
+    border-radius: 1px 8px 8px 1px;
     box-shadow:
       inset 0 0 0 1.5px rgba(122, 16, 32, 0.6),
       inset 0 0 0 4px #fff8e8,
@@ -320,14 +378,45 @@ const shortRelation = (relation: string) => relation.split(' of the ')[0];
     pointer-events: none;
   }
 
+  .fm__shot {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    background: #e9d9b7;
+  }
+
+  .fm__ph {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 4px;
+    background: radial-gradient(ellipse at 50% 40%, #fbf3e3, #ead9b8);
+    text-align: center;
+  }
+
+  .fm__ph-mono {
+    font: 400 max(22px, 12cqh) / 1 var(--font-script);
+    color: #8c1023;
+  }
+
+  .fm__ph-note {
+    padding-inline: 8%;
+    font: 500 max(8px, 4cqh) / 1.2 var(--font-body);
+    color: #85735f;
+  }
+
+  /* The words: a label, then each person with their relation, name and what they do */
   .fm__tag {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 3cqw;
     padding-top: 1cqh;
-    font: 700 max(9px, min(5.2cqh, 3.1cqw)) / 1 var(--font-royal);
-    letter-spacing: 0.24em;
+    font: 700 max(9px, min(5.2cqh, 4.6cqw)) / 1 var(--font-royal);
+    letter-spacing: 0.22em;
     text-transform: uppercase;
     color: #8a6420;
   }
@@ -335,7 +424,7 @@ const shortRelation = (relation: string) => relation.split(' of the ')[0];
   .fm__tag::before,
   .fm__tag::after {
     content: '';
-    flex: 0 1 17cqw;
+    flex: 0 1 12cqw;
     height: 1px;
     background: linear-gradient(90deg, transparent, #c9a24a);
   }
@@ -346,84 +435,40 @@ const shortRelation = (relation: string) => relation.split(' of the ')[0];
 
   .fm__people {
     display: grid;
-    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
-    column-gap: 2cqw;
-    align-content: center;
+    align-content: space-evenly;
     justify-items: center;
+    text-align: center;
+  }
+
+  /* a gold lotus over a sibling's words, which are few */
+  .fm__orn {
+    display: grid;
+    place-items: center;
+    color: #c9a24a;
+  }
+
+  .fm__orn svg {
+    width: min(15cqh, 17cqw);
+    height: min(15cqh, 17cqw);
   }
 
   .fm__person {
-    margin: 0;
-    min-width: 0;
     display: grid;
     justify-items: center;
-    gap: 1.6cqh;
-    text-align: center;
+    gap: 0.8cqh;
+    min-width: 0;
   }
 
-  /* A gold oval ring round a maroon line round the photograph */
-  .fm__ring {
-    position: relative;
-    height: min(46cqh, 30cqw);
-    aspect-ratio: 4 / 5;
-    padding: max(2px, 1.1cqh);
-    border-radius: 50%;
-    background: linear-gradient(135deg, #f6e3a3 0%, #c9993f 38%, #f8ebb8 55%, #a8741f 100%);
-    box-shadow: 0 3px 8px rgba(60, 30, 5, 0.35);
-  }
-
-  .fm__ring::before {
+  .fm__person + .fm__person::before {
     content: '';
-    position: absolute;
-    inset: max(2px, 1.1cqh);
-    border-radius: 50%;
-    border: max(1.5px, 0.7cqh) solid #8c1023;
-    z-index: 1;
-    pointer-events: none;
-  }
-
-  .fm__photo {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    object-position: 50% 22%;
-    pointer-events: none;
-    background: #e9d9b7;
-  }
-
-  .fm__ph {
-    position: absolute;
-    inset: max(2px, 1.1cqh);
-    display: grid;
-    place-content: center;
-    gap: 4px;
-    border-radius: 50%;
-    background: radial-gradient(ellipse at 50% 40%, #fbf3e3, #ead9b8);
-    text-align: center;
-  }
-
-  .fm__ph-mono {
-    font: 400 max(15px, 8cqh) / 1 var(--font-script);
-    color: #8c1023;
-  }
-
-  .fm__ph-note {
-    padding-inline: 8%;
-    font: 500 max(7px, 3.4cqh) / 1.2 var(--font-body);
-    color: #85735f;
-  }
-
-  .fm__cap {
-    display: grid;
-    justify-items: center;
-    gap: 0.6cqh;
-    min-width: 0;
+    width: 36cqw;
+    height: 1px;
+    margin-bottom: 1.6cqh;
+    background: linear-gradient(90deg, transparent, #c9a24a, transparent);
   }
 
   .fm__rel {
-    font: 700 max(9px, min(4.6cqh, 2.9cqw)) / 1.2 var(--font-royal);
+    font: 700 max(9px, min(4.4cqh, 4.2cqw)) / 1.2 var(--font-royal);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: #8a6420;
@@ -431,30 +476,21 @@ const shortRelation = (relation: string) => relation.split(' of the ')[0];
 
   .fm__name {
     max-width: 100%;
-    font: 400 max(17px, min(10.5cqh, 6.6cqw)) / 1.05 var(--font-script);
+    font: 400 max(17px, min(9.2cqh, 9.6cqw)) / 1.05 var(--font-script);
     color: #6a0f1f;
     -webkit-text-stroke: 0.3px currentColor;
     overflow-wrap: anywhere;
   }
 
   .fm__tbp {
-    font: 500 max(11px, 4.6cqh) / 1.2 var(--font-body);
+    font: 500 max(11px, min(5cqh, 5.2cqw)) / 1.2 var(--font-body);
     color: #85735f;
     -webkit-text-stroke: 0;
   }
 
   .fm__work {
-    font: 700 max(11px, min(5.6cqh, 3.6cqw)) / 1.2 var(--font-display);
+    font: 700 max(11px, min(5.4cqh, 5.6cqw)) / 1.2 var(--font-display);
     color: #4a3126;
-  }
-
-  /* Three to a face: slimmer ovals and smaller names */
-  .fm__people[style*='--n:3'] .fm__ring {
-    height: min(40cqh, 21cqw);
-  }
-
-  .fm__people[style*='--n:3'] .fm__name {
-    font-size: max(15px, min(8.6cqh, 5cqw));
   }
 
   /* ---------------------------------------------------------------- the dots, one for each face */
@@ -494,7 +530,7 @@ const shortRelation = (relation: string) => relation.split(' of the ')[0];
     transform: scale(1.3);
   }
 
-  /* Without scripts the cube cannot roll: the parents face shows alone */
+  /* Without scripts the blocks cannot turn: the parents show alone */
   html:not(.js) .fm__face:not(:first-child),
   html:not(.js) .fm__dots {
     display: none;

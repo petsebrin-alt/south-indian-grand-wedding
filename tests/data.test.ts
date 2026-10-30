@@ -32,15 +32,17 @@ describe('no invented personal details (PRD §4)', () => {
   it('holds only the family details the client supplied, and keeps venues, contacts and end time empty until provided', () => {
     // Supplied by the client on 28 October 2026
     expect(Object.values(wedding.family).flatMap((f) => [f.father, f.mother])).toEqual(['Ravichandran', 'Sopna', 'Ravichandran', 'Kanimalar']);
-    expect(Object.values(wedding.family).every((f) => f.siblings.length === 0 && f.grandparents.length === 0)).toBe(true);
-    // The four parents' photographs, supplied by the client on 29 October 2026 (none for anyone else)
-    expect(Object.values(wedding.family).flatMap((f) => [f.fatherPhoto?.src, f.motherPhoto?.src])).toEqual([
-      '/photos/family/groom-father.webp',
-      '/photos/family/groom-mother.webp',
-      '/photos/family/bride-father.webp',
-      '/photos/family/bride-mother.webp',
+    expect(Object.values(wedding.family).every((f) => f.siblings.every((x) => x.name === null) && f.grandparents.length === 0)).toBe(true);
+    // The parents' photographs (each side's two parents together) and one sibling photograph each, supplied on 30 October 2026; no sibling names
+    expect(Object.values(wedding.family).map((f) => f.photo?.src)).toEqual(['/photos/family/groom-parents.webp', '/photos/family/bride-parents.webp']);
+    expect(Object.values(wedding.family).flatMap((f) => f.siblings.map((x) => [x.name, x.photo?.src]))).toEqual([
+      [null, '/photos/family/groom-sibling.webp'],
+      [null, '/photos/family/bride-sibling.webp'],
     ]);
-    expect(wedding.venues.every((v) => v.name === null && v.address === null && v.mapsUrl === null)).toBe(true);
+    expect(Object.values(wedding.family).every((f) => f.fatherPhoto === null && f.motherPhoto === null)).toBe(true);
+    // only the wedding venue is known (the client's "Tirupati temple"); the hall and the family homes are not
+    expect(wedding.venues.filter((v) => v.name !== null).map((v) => v.id)).toEqual(['ceremony']);
+    expect(wedding.venues.filter((v) => v.id !== 'ceremony').every((v) => v.name === null && v.address === null && v.mapsUrl === null)).toBe(true);
     expect(wedding.contacts.every((c) => c.name === null && c.phone === null)).toBe(true);
     expect(wedding.ceremony.endISO).toBeNull();
   });
@@ -67,7 +69,12 @@ describe('wishing wall samples', () => {
 describe('launch check', () => {
   it('blocks production while launch-critical details are missing', () => {
     const blockers = launchBlockers(wedding);
-    expect(blockers.map((b) => b.id)).toEqual(expect.arrayContaining(['M-13', 'M-19', 'M-28']));
+    expect(blockers.map((b) => b.id)).toEqual(expect.arrayContaining(['M-14', 'M-19', 'M-28']));
+  });
+
+  it('no longer blocks on the wedding venue (the client gave "the Tirupati temple") but notes that its exact name and pin are to be confirmed', () => {
+    expect(launchBlockers(wedding).some((b) => b.id === 'M-13')).toBe(false);
+    expect(checkContent(wedding).some((i) => i.id === 'M-13' && !i.blocking && /confirm the exact name and map pin/.test(i.label))).toBe(true);
   });
 
   it('accepts a field the families chose to hide', () => {
@@ -88,16 +95,16 @@ describe('launch check', () => {
 });
 
 describe('book structure (PRD §5.1)', () => {
-  it('has a cover plus 14 pages covering all 14 sections (Divine Blessings, the Reception page, the RSVP page and the two Meet the Couple pages removed at the client\'s request)', () => {
-    expect(bookPages).toHaveLength(15);
-    expect(new Set(bookPages.map((p) => p.section)).size).toBe(14);
-    expect(bookPages.filter((p) => p.contents)).toHaveLength(14);
+  it('has a cover plus 13 pages covering all 13 sections (Divine Blessings, the Reception page, the RSVP page, the two Meet the Couple pages and the separate Travel page removed at the client\'s request)', () => {
+    expect(bookPages).toHaveLength(14);
+    expect(new Set(bookPages.map((p) => p.section)).size).toBe(13);
+    expect(bookPages.filter((p) => p.contents)).toHaveLength(13);
   });
 
-  it('runs Welcome, Save the Date, Countdown, Parents, Love Story, Events, Ceremony, Wishing Wall, Dress Code, Venues, Travel, Need Help, Thank You', () => {
+  it('runs Welcome, Save the Date, Countdown, Parents, Love Story, Events, Ceremony, Wishing Wall, Dress Code, Venue and Travel, Need Help, Thank You', () => {
     const ids = bookPages.map((p) => p.id);
-    expect(ids).toEqual(['cover', 'welcome', 'save-the-date', 'countdown', 'family', 'love-story', 'events', 'events-wedding', 'ceremony', 'wishes', 'dress-code', 'venues', 'travel', 'help', 'thank-you']);
-    for (const gone of ['groom', 'bride', 'reception', 'rsvp']) expect(ids).not.toContain(gone);
+    expect(ids).toEqual(['cover', 'welcome', 'save-the-date', 'countdown', 'family', 'love-story', 'events', 'events-wedding', 'ceremony', 'wishes', 'dress-code', 'venues', 'help', 'thank-you']);
+    for (const gone of ['groom', 'bride', 'reception', 'rsvp', 'travel']) expect(ids).not.toContain(gone);
   });
 });
 

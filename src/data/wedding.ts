@@ -42,7 +42,21 @@ const data: WeddingData = {
   ],
 
   venues: [
-    { id: 'ceremony', label: 'Wedding Ceremony Venue', name: null, address: null, mapsUrl: null, lat: null, lng: null, photo: null, privacy: 'public' },
+    // The client's words: "the Tirupati temple" (30 October 2026). The map and Get Directions search Google Maps for this name and
+    // address; once the families confirm the exact temple or hall, put its name and address (or its coordinates in lat and lng, or
+    // its Google Maps link in mapsUrl) here and set locationStatus to 'confirmed'.
+    {
+      id: 'ceremony',
+      label: 'Wedding Ceremony Venue',
+      name: 'Tirupati Temple',
+      address: 'Tirupati, Andhra Pradesh',
+      mapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=Tirupati+Temple%2C+Tirupati%2C+Andhra+Pradesh',
+      lat: null,
+      lng: null,
+      photo: null,
+      privacy: 'public',
+      locationStatus: 'toVerify',
+    },
     { id: 'function-hall', label: 'Sangeet & Reception Hall', name: null, address: null, mapsUrl: null, lat: null, lng: null, photo: null, privacy: 'public' },
     // Q-D3 default: family home addresses are shared personally, not published
     { id: 'bride-home', label: "Bride's Family Home", name: null, address: null, mapsUrl: null, lat: null, lng: null, photo: null, privacy: 'onRequest' },
@@ -50,8 +64,34 @@ const data: WeddingData = {
   ],
 
   family: {
-    groom: { father: 'Ravichandran', fatherWork: 'College Principal', fatherPhoto: { src: '/photos/family/groom-father.webp', alt: 'Ravichandran, the groom\'s father' }, mother: 'Sopna', motherWork: 'College Lecturer', motherPhoto: { src: '/photos/family/groom-mother.webp', alt: 'Sopna, the groom\'s mother' }, grandparents: [], siblings: [], others: [], photo: null },
-    bride: { father: 'Ravichandran', fatherWork: 'Businessman', fatherPhoto: { src: '/photos/family/bride-father.webp', alt: 'Ravichandran, the bride\'s father' }, mother: 'Kanimalar', motherWork: 'Teacher', motherPhoto: { src: '/photos/family/bride-mother.webp', alt: 'Kanimalar, the bride\'s mother' }, grandparents: [], siblings: [], others: [], photo: null },
+    // The parents' photograph (both together, supplied by the client on 30 October 2026) and one sibling photograph for each
+    // side (their names are not supplied yet: add `name` and, if they wish, change `relation` to Brother or Sister). The two
+    // sibling photographs are matched to the sides in the order the client sent them: Rahul's, then Divya's; swap them here
+    // if that is the wrong way round. fatherPhoto / motherPhoto (single portraits) are not used by the Parents page.
+    groom: {
+      father: 'Ravichandran',
+      fatherWork: 'College Principal',
+      fatherPhoto: null,
+      mother: 'Sopna',
+      motherWork: 'College Lecturer',
+      motherPhoto: null,
+      grandparents: [],
+      siblings: [{ name: null, relation: 'Sibling', photo: { src: '/photos/family/groom-sibling.webp', alt: "The groom's sibling, smiling in a green and gold half-saree in front of a temple tower", focus: '50% 26%' } }],
+      others: [],
+      photo: { src: '/photos/family/groom-parents.webp', alt: "The groom's parents: his mother in a silk saree standing with her hand on the shoulder of his father, seated in a cane chair in a garden", focus: '50% 38%' },
+    },
+    bride: {
+      father: 'Ravichandran',
+      fatherWork: 'Businessman',
+      fatherPhoto: null,
+      mother: 'Kanimalar',
+      motherWork: 'Teacher',
+      motherPhoto: null,
+      grandparents: [],
+      siblings: [{ name: null, relation: 'Sibling', photo: { src: '/photos/family/bride-sibling.webp', alt: "The bride's sibling, smiling in an orange silk saree on temple steps among garlands", focus: '48% 14%' } }],
+      others: [],
+      photo: { src: '/photos/family/bride-parents.webp', alt: "The bride's parents: her father in a dark suit standing behind her mother, seated in a red and gold saree", focus: '50% 30%' },
+    },
   },
 
   contacts: [

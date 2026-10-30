@@ -83,7 +83,8 @@ async function newContext(browser: Browser, options: Parameters<Browser['newCont
   await ctx.addInitScript({ content: 'globalThis.__name = (f) => f;' });
   // The invitation opens by itself and a cue says how to turn the page; the checks switch both off (the dedicated
   // checks AC-43 and AC-44 switch them on) so a page stays where the check left it.
-  await ctx.addInitScript({ content: "try { localStorage.setItem('rdv:auto', 'off'); localStorage.setItem('rdv:turned', '1'); } catch (e) {}" });
+  // (top frame only: the map's iframe starts as an empty page of its own, and its copy of this script must not undo a check's change)
+  await ctx.addInitScript({ content: "try { if (window.top === window) { localStorage.setItem('rdv:auto', 'off'); localStorage.setItem('rdv:turned', '1'); } } catch (e) {}" });
   ctx.on('page', (p) => p.on('pageerror', (e) => pageErrors.push(`${p.url()}: ${e.message}`)));
   return ctx;
 }
@@ -198,7 +199,7 @@ async function main() {
     /* AC-04 / AC-06 Contents + Back */
     await page.getByRole('button', { name: 'Contents' }).tap();
     await page.waitForTimeout(450);
-    await page.getByRole('button', { name: /Venues and Directions/ }).tap();
+    await page.getByRole('button', { name: /Venue and Travel/ }).tap();
     await page.waitForTimeout(150);
     await settle(page);
     check('AC-04', 'Contents jumps to the chosen section', (await current(page)) === 'venues' && page.url().endsWith('#venues'), page.url());
@@ -256,7 +257,7 @@ async function main() {
     await page.goto(BASE);
     const height = await page.evaluate(() => document.documentElement.scrollHeight);
     const sections = await page.locator('section.page').count();
-    check('AC-07c', 'Without JavaScript the pages read as one continuous scroll', sections === 15 && height > 844 * 14, `${sections} pages, ${height}px tall`);
+    check('AC-07c', 'Without JavaScript the pages read as one continuous scroll', sections === 14 && height > 844 * 13, `${sections} pages, ${height}px tall`);
     await ctx.close();
   }
 
@@ -624,12 +625,12 @@ async function main() {
         return panel.top >= app.top - 1 && panel.bottom <= app.bottom + 1 && panel.height <= app.height * 0.86 && !document.getElementById(sheetId)!.hidden;
       }, id)) as (page: Page) => Promise<boolean>;
 
-  /* AC-18 Parents and Family: on the cream temple background (garlands and lamps swaying) with the courtyard temple faded
-     behind it, two maroon-and-gold boards ("The Groom's Family", "The Bride's Family"), each over a cube in a gold border that
-     rolls by itself, and by tap, swipe, arrow key and dot, between the parents (photographs, father's and mother's names and
-     work) and the siblings */
+  /* AC-18 Parents and Family, after the client's reference video: on the cream temple background (garlands and lamps swaying)
+     with the courtyard temple faded behind it, two maroon-and-gold boards ("The Groom's Family", "The Bride's Family"), each
+     over a card made of TWO BLOCKS side by side (the parents' photograph and the words about them) that read as one card at
+     rest and, every few seconds and by tap, swipe, arrow key and dot, turn in OPPOSITE directions to the siblings */
   {
-    // Opened by hand so the first faces can be read before the cubes roll by themselves (3.2 s and 4.8 s in)
+    // Opened by hand so the first faces can be read before the cards turn by themselves (3.2 s and 4.8 s in)
     const ctx = await mobileContext(browser);
     const page = await ctx.newPage();
     await page.goto(BASE);
@@ -640,18 +641,36 @@ async function main() {
     await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'family', null, { timeout: 4000, polling: POLL });
     await page.waitForTimeout(1300);
     const front = (key: string) => page.evaluate((k) => document.querySelector<HTMLElement>(`#family [data-family=${k}] [data-cube]`)!.dataset.front, key);
+    // a block's turn about its horizontal axis, in degrees (from its computed matrix): the photograph block's is + while it
+    // brings the next face up from below, the words block's is − (the next face comes down from above)
+    const angles = (key: string) =>
+      page.evaluate((k) => {
+        const turn = (sel: string) => {
+          const m = new DOMMatrix(getComputedStyle(document.querySelector<HTMLElement>(`#family [data-family=${k}] ${sel} [data-cube-box]`)!).transform);
+          return Math.round((Math.atan2(m.m23, m.m22) * 180) / Math.PI);
+        };
+        return { photo: turn('.fm__block--photo'), text: turn('.fm__block--text') };
+      }, key);
     const read = () =>
       page.evaluate(() =>
         [...document.querySelectorAll<HTMLElement>('#family [data-family]')].map((fam) => {
-          const faceOf = (c: number) => fam.querySelector<HTMLElement>(`[data-face][data-content="${c}"]`)!;
+          const photoBlock = fam.querySelector<HTMLElement>('.fm__block--photo')!;
+          const textBlock = fam.querySelector<HTMLElement>('.fm__block--text')!;
+          const textFace = (c: number) => textBlock.querySelector<HTMLElement>(`[data-face][data-content="${c}"]`)!;
           const people = (face: HTMLElement) => [...face.querySelectorAll('.fm__person')].map((p) => `${p.querySelector('.fm__rel')?.textContent?.trim()}|${p.querySelector('.fm__name')?.textContent?.trim()}|${p.querySelector('.fm__work')?.textContent?.trim() ?? ''}`);
+          const shots = [...photoBlock.querySelectorAll<HTMLImageElement>('img.fm__shot')];
           return {
             board: fam.querySelector('.fm__title')?.textContent?.trim(),
             partner: fam.querySelector('.fm__eyebrow')?.textContent?.trim(),
-            parents: people(faceOf(0)),
-            siblings: people(faceOf(1)),
-            photosLoaded: [...faceOf(0).querySelectorAll<HTMLImageElement>('img')].every((i) => i.complete && i.naturalWidth > 50),
-            faces: fam.querySelectorAll('[data-face]').length,
+            parents: people(textFace(0)),
+            siblings: people(textFace(1)),
+            blocks: fam.querySelectorAll('[data-block]').length,
+            dirs: [...fam.querySelectorAll<HTMLElement>('[data-block]')].map((b) => b.dataset.dir).join(),
+            photoFaces: photoBlock.querySelectorAll('[data-face]').length,
+            textFaces: textBlock.querySelectorAll('[data-face]').length,
+            shots: shots.length,
+            photosLoaded: shots.every((i) => i.complete && i.naturalWidth > 50),
+            lotus: !!textFace(1).querySelector('.fm__orn svg'),
             dots: fam.querySelectorAll('[data-cube-dot]').length,
           };
         }),
@@ -662,7 +681,7 @@ async function main() {
     const groomBySelf = await front('groom');
     await page.waitForFunction(() => document.querySelector<HTMLElement>('#family [data-family=bride] [data-cube]')!.dataset.front === '1', null, { timeout: 8000, polling: POLL });
     const brideBySelf = await front('bride');
-    await page.waitForTimeout(1400); // the rolls finish
+    await page.waitForTimeout(1400); // the turns finish
     // by hand: the arrow key, a tap, a dot
     await page.locator('#family [data-family=groom] [data-cube]').focus();
     await page.keyboard.press('ArrowRight');
@@ -675,9 +694,16 @@ async function main() {
     await page.locator('#family [data-family=groom] [data-cube-dot]').nth(0).dispatchEvent('click');
     await page.waitForTimeout(1500);
     const afterDot = await front('groom'); // → parents
+    const rest = await angles('groom');
+    // the two blocks turn in opposite directions: mid-turn the photograph block's angle is + and the words block's is −
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(450);
+    const mid = await angles('groom');
+    await page.waitForTimeout(1200);
+    const after = await angles('groom');
     check(
       'AC-18a',
-      'Parents and Family: two boards ("The Groom\'s Family", "The Bride\'s Family"), each over a cube showing the parents first (photographs, names and work as supplied) and a siblings face (a placeholder: none supplied); each cube rolls by itself to the siblings, and by arrow key, tap and dot',
+      'Parents and Family: two boards ("The Groom\'s Family", "The Bride\'s Family"), each over a card of two blocks (the parents\' photograph, and the father\'s and mother\'s names and work) with a siblings face; the blocks turn in OPPOSITE directions; the card turns by itself, and by arrow key, tap and dot',
       content.length === 2 &&
         content[0].board === "The Groom's Family" &&
         content[1].board === "The Bride's Family" &&
@@ -685,17 +711,23 @@ async function main() {
         content[1].partner === 'Divya' &&
         JSON.stringify(content[0].parents) === JSON.stringify(['Father|Ravichandran|College Principal', 'Mother|Sopna|College Lecturer']) &&
         JSON.stringify(content[1].parents) === JSON.stringify(['Father|Ravichandran|Businessman', 'Mother|Kanimalar|Teacher']) &&
-        content.every((c) => c.photosLoaded && c.faces === 4 && c.dots === 2 && c.siblings.length === 1 && /Sibling\|Name to be provided/.test(c.siblings[0])) &&
+        content.every((c) => c.blocks === 2 && c.dirs === '1,-1' && c.photoFaces === 4 && c.textFaces === 4 && c.shots === 4 && c.photosLoaded && c.dots === 2 && c.lotus && c.siblings.length === 1 && /^Sibling of the (Groom|Bride)\|Name to be provided/.test(c.siblings[0])) &&
         startFront.join() === '0,0' &&
         groomBySelf === '1' &&
         brideBySelf === '1' &&
         afterKey === '0' &&
         afterTap === '1' &&
-        afterDot === '0',
-      JSON.stringify({ content, startFront, groomBySelf, brideBySelf, afterKey, afterTap, afterDot }),
+        afterDot === '0' &&
+        rest.photo === 0 &&
+        rest.text === 0 &&
+        mid.photo > 15 &&
+        mid.text < -15 &&
+        after.photo === 90 &&
+        after.text === -90,
+      JSON.stringify({ content, startFront, groomBySelf, brideBySelf, afterKey, afterTap, afterDot, rest, mid, after }),
     );
 
-    // The backdrop and the fit: the cream stage with its garlands swaying and the faded temple; gold borders; every face's writing inside its paper
+    // The backdrop and the fit: the cream stage with its garlands swaying and the faded temple; at rest the two blocks make one card with one gold divider; every face's writing inside its paper
     const look = await page.evaluate(() => {
       const temple = document.querySelector<HTMLElement>('#family .fm__temple')!;
       const canvases = document.querySelectorAll('#family .sbd__top canvas').length;
@@ -703,14 +735,20 @@ async function main() {
       const fits = faces.map((f) => {
         const paper = f.querySelector<HTMLElement>('.fm__paper')!;
         const pr = { w: paper.clientWidth, h: paper.clientHeight };
-        return [...f.querySelectorAll<HTMLElement>('.fm__tag, .fm__person')].every((e) => {
+        const inside = [...f.querySelectorAll<HTMLElement>('.fm__tag, .fm__person, .fm__orn')].every((e) => {
           const top = e.offsetTop, left = e.offsetLeft;
-          return left >= -1 && e.offsetLeft + e.offsetWidth <= pr.w + 1 && top >= -1 && top + e.offsetHeight <= pr.h + 1;
+          return left >= -1 && left + e.offsetWidth <= pr.w + 1 && top >= -1 && top + e.offsetHeight <= pr.h + 1;
         });
+        return inside && paper.scrollHeight <= paper.clientHeight + 1;
       });
       const gold = faces.every((f) => /linear-gradient/.test(getComputedStyle(f).backgroundImage) && parseFloat(getComputedStyle(f).paddingTop) >= 4);
       const boards = [...document.querySelectorAll<HTMLElement>('#family .fm__board')].map((b) => b.getBoundingClientRect());
       const cubes = [...document.querySelectorAll<HTMLElement>('#family .fm__cube')].map((c) => c.getBoundingClientRect());
+      const joined = [...document.querySelectorAll<HTMLElement>('#family .fm__cube')].map((c) => {
+        const a = c.querySelector<HTMLElement>('.fm__block--photo')!.getBoundingClientRect();
+        const b = c.querySelector<HTMLElement>('.fm__block--text')!.getBoundingClientRect();
+        return Math.abs(a.right - b.left) <= 1.5 && Math.abs(a.top - b.top) <= 1 && Math.abs(a.height - b.height) <= 1 && a.width > 0.35 * (a.width + b.width);
+      });
       const lotus = document.querySelector<HTMLElement>('.chrome-btn')!.getBoundingClientRect();
       const folio = document.querySelector<HTMLElement>('.folio')!.getBoundingClientRect();
       return {
@@ -718,6 +756,7 @@ async function main() {
         canvases,
         fits,
         gold,
+        joined,
         order: boards[0].bottom <= cubes[0].top + 14 && cubes[0].bottom <= boards[1].top + 14 && boards[1].bottom <= cubes[1].top + 14,
         clear: boards[0].top >= lotus.bottom - 2 && cubes[1].bottom <= folio.top + 2,
         inside: boards.every((b) => b.left >= 0 && b.right <= innerWidth) && cubes.every((c) => c.left >= 0 && c.right <= innerWidth),
@@ -726,10 +765,43 @@ async function main() {
     });
     check(
       'AC-18b',
-      'Parents and Family: the temple is held back (faded to 40–75%) on the cream wall with its garlands swaying; each face has a gold border and all its writing inside; the boards and cubes stack clear of the Contents button and the page number',
-      look.temple >= 0.4 && look.temple <= 0.75 && look.canvases >= 2 && look.fits.every(Boolean) && look.gold && look.order && look.clear && look.inside,
+      'Parents and Family: the temple is held back (faded to 40–75%) on the cream wall with its garlands swaying; the two blocks of each card meet as one card; each face has a gold border and all its writing inside; the boards and cards stack clear of the Contents button and the page number',
+      look.temple >= 0.4 && look.temple <= 0.75 && look.canvases >= 2 && look.fits.every(Boolean) && look.gold && look.joined.every(Boolean) && look.order && look.clear && look.inside,
       JSON.stringify(look),
     );
+    await ctx.close();
+  }
+
+  /* AC-18d the Parents cards on the smallest and the largest phones: all writing inside every face, the cards inside the
+     screen and clear of the Contents button and the page number, the names and work large enough to read */
+  for (const [w, h] of [
+    [360, 640],
+    [375, 667],
+    [430, 932],
+  ]) {
+    const { ctx, page } = await openedPage('family', w, h);
+    const fit = await page.evaluate(() => {
+      const faces = [...document.querySelectorAll<HTMLElement>('#family [data-face]')];
+      const writing = faces.every((f) => {
+        const paper = f.querySelector<HTMLElement>('.fm__paper')!;
+        return paper.scrollHeight <= paper.clientHeight + 1 && paper.scrollWidth <= paper.clientWidth + 1 && [...f.querySelectorAll<HTMLElement>('.fm__tag, .fm__person, .fm__orn')].every((e) => e.offsetLeft >= -1 && e.offsetLeft + e.offsetWidth <= paper.clientWidth + 1 && e.offsetTop >= -1 && e.offsetTop + e.offsetHeight <= paper.clientHeight + 1);
+      });
+      const name = Math.min(...[...document.querySelectorAll<HTMLElement>('#family .fm__name')].map((e) => parseFloat(getComputedStyle(e).fontSize)));
+      const work = Math.min(...[...document.querySelectorAll<HTMLElement>('#family .fm__work')].map((e) => parseFloat(getComputedStyle(e).fontSize)));
+      const cubes = [...document.querySelectorAll<HTMLElement>('#family .fm__cube')].map((c) => c.getBoundingClientRect());
+      const boards = [...document.querySelectorAll<HTMLElement>('#family .fm__board')].map((b) => b.getBoundingClientRect());
+      const lotus = document.querySelector<HTMLElement>('.chrome-btn')!.getBoundingClientRect();
+      const folio = document.querySelector<HTMLElement>('.folio')!.getBoundingClientRect();
+      return {
+        writing,
+        name,
+        work,
+        clear: boards[0].top >= lotus.bottom - 2 && cubes[1].bottom <= folio.top + 2 && cubes[0].bottom <= boards[1].top + 14,
+        inside: cubes.every((c) => c.left >= 0 && c.right <= innerWidth) && boards.every((b) => b.left >= 0 && b.right <= innerWidth),
+        cubeH: cubes.map((c) => Math.round(c.height)),
+      };
+    });
+    check(`AC-18d@${w}x${h}`, `Parents and Family at ${w}×${h}: every face's writing inside it (names at least 13px, work at least 11px), the cards inside the screen and clear of the Contents button and the page number`, fit.writing && fit.name >= 13 && fit.work >= 11 && fit.clear && fit.inside, JSON.stringify(fit));
     await ctx.close();
   }
 
@@ -770,19 +842,24 @@ async function main() {
         return { location: action('Location').getAttribute('aria-disabled') === 'true', calendar: action('Calendar').getAttribute('aria-disabled') !== 'true' };
       }, id);
     const all = await Promise.all(['mehndi', 'haldi', 'sangeet', 'wedding', 'reception'].map(async (id) => [id, await sheet(id)] as const));
-    const okSheets = all.every(([, a]) => a.location) && all.filter(([, a]) => a.calendar).map(([id]) => id).join() === 'wedding';
+    // Only the wedding venue is known (the Tirupati temple): its Location is a live link; the others wait for a venue
+    const okSheets = all.filter(([, a]) => a.location).map(([id]) => id).join() === 'mehndi,haldi,sangeet,reception' && all.filter(([, a]) => a.calendar).map(([id]) => id).join() === 'wedding';
     await page.locator('#events-wedding .ev__item[data-event="wedding"] .ev__open').tap();
     await page.waitForTimeout(500);
     const detailsFit = await sheetFits('event-wedding')(page);
-    // aria-disabled buttons stay tappable for guests (they explain themselves); Playwright needs force for them
-    await page.locator('#event-wedding .ev-action', { hasText: 'Location' }).tap({ force: true });
-    await page.waitForTimeout(250);
-    const toastText = await page.locator('[data-toast]').textContent();
+    const weddingLocation = await page.evaluate(() => {
+      const a = [...document.querySelectorAll<HTMLAnchorElement>('#event-wedding a.ev-action')].find((x) => x.textContent?.includes('Location'));
+      return a ? { href: a.href, target: a.target } : null;
+    });
     await page.locator('#event-wedding .ev-action', { hasText: 'Calendar' }).tap();
     await page.waitForTimeout(500);
     const calendarOpen = await page.evaluate(() => !document.getElementById('calendar-wedding')!.hidden);
-    check('AC-20b', 'Each event opens its details: Location waits for a venue, Calendar only for the confirmed wedding; the sheet fits and explains', okSheets && detailsFit && /venue is confirmed/.test(toastText ?? '') && calendarOpen, JSON.stringify({ all, detailsFit, toastText, calendarOpen }));
+    check('AC-20b', 'Each event opens its details: the wedding\'s Location opens Google Maps on the Tirupati temple, the other events\' wait for a venue, Calendar only for the confirmed wedding; the sheet fits', okSheets && detailsFit && /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=Tirupati/.test(weddingLocation?.href ?? '') && weddingLocation?.target === '_blank' && calendarOpen, JSON.stringify({ all, detailsFit, weddingLocation, calendarOpen }));
+    // close the calendar sheet and then the event's details (each Escape closes the top one)
     await page.keyboard.press('Escape');
+    await page.waitForTimeout(450);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(450);
     // Each medallion has its own blinking Location button; with no confirmed venue it says why (a toast)
     const locs = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>('#events-wedding .ev__item, #events .ev__item')].map((item) => {
@@ -791,14 +868,14 @@ async function main() {
         return { id: item.dataset.event, there: !!b, blinking: !!b && getComputedStyle(b).animationName === 'ev-blink', message: b?.dataset.disabledMessage ?? null, wide: item.closest('#events-wedding') ? !!r && r.width >= 60 && r.height >= 13 : true };
       }),
     );
-    await page.locator('#events-wedding .ev__item[data-event="wedding"] .ev__loc').tap({ force: true });
+    await page.locator('#events-wedding .ev__item[data-event="sangeet"] .ev__loc').tap({ force: true });
     await page.waitForTimeout(300);
     const locToast = await page.locator('[data-toast]').textContent();
     const nameSizes = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#events .ev__name, #events-wedding .ev__name')].map((n) => parseFloat(getComputedStyle(n).fontSize) / (n.closest<HTMLElement>('.ev__item')!.getBoundingClientRect().width / 100)));
     check(
       'AC-20c',
-      'Every medallion has a large, bold name and a blinking Location button; with no confirmed venue it says why when tapped',
-      locs.length === 6 && locs.every((l) => l.there && l.blinking && l.wide && l.message) && /venue is confirmed/.test(locToast ?? '') && nameSizes.length === 6 && nameSizes.every((n) => n >= 14),
+      'Every medallion has a large, bold name and a blinking Location button; one with no confirmed venue says why when tapped (the wedding\'s is live)',
+      locs.length === 6 && locs.every((l) => l.there && l.blinking && l.wide && (l.message || l.id === 'wedding')) && /venue is confirmed/.test(locToast ?? '') && nameSizes.length === 6 && nameSizes.every((n) => n >= 14),
       JSON.stringify({ locs, locToast, nameSizes }),
     );
     const rings = await page.evaluate(() => {
@@ -809,47 +886,125 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-21 venue tabs */
+  /* AC-47 Venue and Travel, one page in the temple's entrance (carved pillars wrapped in jasmine-and-rose malas): the pillars come
+     first, then the map card (Google's map of the wedding venue, its name and Get Directions), then Travel & Stay in three lines;
+     no photo placeholder and no tabs; the malas and leaves then stir */
   {
-    const { ctx, page } = await openedPage('venues');
-    const tabs = page.getByRole('tab');
-    const count = await tabs.count();
-    const seen: string[] = [];
-    for (let i = 0; i < count; i++) {
-      await tabs.nth(i).tap();
-      await page.waitForTimeout(400);
-      seen.push(await page.evaluate(() => `${document.querySelector('[role=tab][aria-selected=true]')!.id}>${document.querySelector('.vn__panel.is-active')!.id}`));
-    }
-    await tabs.first().focus();
-    await page.keyboard.press('ArrowRight');
-    await page.waitForTimeout(300);
-    const keyed = await page.evaluate(() => document.activeElement?.getAttribute('aria-selected') === 'true' && document.activeElement.id);
-    const directionsDisabled = await page.evaluate(() => [...document.querySelectorAll('.vn__go')].every((b) => b.getAttribute('aria-disabled') === 'true'));
-    const stillOnPage = (await current(page)) === 'venues';
-    const ok = count === 4 && seen.every((s) => s.split('>')[0].replace('vn-tab-', '') === s.split('>')[1].replace('vn-panel-', '')) && keyed === 'vn-tab-function-hall' && directionsDisabled && stillOnPage;
-    check('AC-21', 'Venue tabs switch all four locations (touch and arrow keys); Get Directions waits for a confirmed location', ok, JSON.stringify({ count, seen, keyed, directionsDisabled }));
+    const ctx = await mobileContext(browser);
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#dress-code`);
+    await settle(page);
+    await page.waitForTimeout(800);
+    // note when each part first shows (a frame-by-frame sampler), then turn to the page
+    await page.evaluate(() => {
+      const w = window as unknown as { __seq: Record<string, number> };
+      w.__seq = {};
+      const halves = [...document.querySelectorAll<HTMLElement>('#venues .vt__half')];
+      const cards = [...document.querySelectorAll<HTMLElement>('#venues [data-card]')];
+      const op = (e: HTMLElement) => Number(getComputedStyle(e).opacity);
+      const t0 = performance.now();
+      const mark = (k: string, ok: boolean) => ok && w.__seq[k] === undefined && (w.__seq[k] = Math.round(performance.now() - t0));
+      const tick = () => {
+        mark('pillars', halves.every((h) => op(h) > 0.9));
+        mark('venue', op(cards[0]) > 0.5);
+        mark('travel', op(cards[1]) > 0.5);
+        if (performance.now() - t0 < 9000) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      location.hash = 'venues';
+    });
+    await page.waitForFunction(() => document.querySelector('.page[data-state=current]')?.id === 'venues', null, { timeout: 5000, polling: POLL });
+    await page.waitForTimeout(5200);
+    const seq = await page.evaluate(() => (window as unknown as { __seq: Record<string, number> }).__seq);
+    const v = await page.evaluate(() => {
+      const root = document.getElementById('venues')!;
+      const map = root.querySelector<HTMLIFrameElement>('[data-map]');
+      const go = root.querySelector<HTMLAnchorElement>('.vt__go');
+      const rects = (sel: string) => root.querySelector<HTMLElement>(sel)!.getBoundingClientRect();
+      const door = rects('[data-door]');
+      const venue = rects('[data-card=venue]');
+      const travel = rects('[data-card=travel]');
+      const folio = document.querySelector<HTMLElement>('.folio')!.getBoundingClientRect();
+      const lotus = document.querySelector<HTMLElement>('.chrome-btn')!.getBoundingClientRect();
+      const title = rects('.vt__title');
+      const stills = [...root.querySelectorAll<HTMLImageElement>('.vt__still')];
+      return {
+        heading: root.querySelector('.vt__title')?.textContent?.replace(/\s+/g, ' ').trim(),
+        mapSrc: map?.src ?? null,
+        mapTitle: map?.title ?? null,
+        mapStill: map ? getComputedStyle(map).pointerEvents === 'none' : false,
+        goHref: go?.href ?? null,
+        goTarget: go?.target ?? null,
+        goText: go?.textContent?.replace(/\s+/g, ' ').trim(),
+        name: root.querySelector('.vt__name')?.textContent?.trim(),
+        rows: [...root.querySelectorAll('.vt__row')].map((r) => `${r.querySelector('.vt__row-title')?.textContent?.trim()}|${r.querySelector('.vt__row-summary')?.textContent?.trim()}`),
+        leftovers: /R·D|To be provided|Venue photograph|Illustrated map/i.test(root.textContent ?? '') || root.querySelectorAll('[role=tab], .vn__tab').length > 0,
+        pillars: stills.length === 2 && stills.every((i) => i.complete && i.naturalWidth >= 900),
+        winds: [...root.querySelectorAll<HTMLElement>('.vt__wind')].filter((w) => w.style.rotate !== '').length,
+        layout:
+          door.left >= 0 && door.right <= innerWidth && venue.bottom <= travel.top + 1 && travel.bottom <= door.bottom + 1 && travel.bottom <= folio.top + 2 && title.top >= lotus.bottom - 6 && venue.height > 120,
+      };
+    });
+    check(
+      'AC-47',
+      'Venue and Travel: the pillars come first, then the map card, then Travel & Stay; Google\'s map of the Tirupati Temple with Get Directions, and Airport, Railway and Stay in three lines; no photo placeholder or tabs; the malas stir',
+      seq.pillars !== undefined &&
+        seq.venue !== undefined &&
+        seq.travel !== undefined &&
+        seq.pillars < seq.venue &&
+        seq.venue < seq.travel &&
+        v.heading === 'Venue & Travel' &&
+        /^https:\/\/maps\.google\.com\/maps\?q=Tirupati%20Temple/.test(v.mapSrc ?? '') &&
+        /output=embed/.test(v.mapSrc ?? '') &&
+        /Tirupati Temple/.test(v.mapTitle ?? '') &&
+        v.mapStill &&
+        /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=Tirupati/.test(v.goHref ?? '') &&
+        v.goTarget === '_blank' &&
+        v.goText === 'Get Directions' &&
+        v.name === 'Tirupati Temple' &&
+        JSON.stringify(v.rows) === JSON.stringify(['Airport|Tirupati International Airport (TIR), Renigunta', 'Railway|Tirupati Main (TPTY) · Renigunta Junction (RU)', 'Stay|To be announced']) &&
+        !v.leftovers &&
+        v.pillars &&
+        v.winds >= 5 &&
+        v.layout,
+      JSON.stringify({ seq, v }),
+    );
     await ctx.close();
   }
 
-  /* AC-22 travel tiles open readable sheets that fit and close */
+  /* AC-47b the page fits every phone: the map card and Travel & Stay stack inside the doorway and clear of the page number */
   {
-    const { ctx, page } = await openedPage('travel', 375, 667);
-    const ids = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.tv__tile')].map((t) => t.dataset.openDialog!));
-    const results: string[] = [];
-    for (const [i, id] of ids.entries()) {
-      await page.locator(`.tv__tile[data-open-dialog="${id}"]`).tap();
-      await page.waitForTimeout(450);
-      const fits = await sheetFits(id)(page);
-      const how = i % 3;
-      if (how === 0) await page.locator(`#${id} .overlay__close`).tap();
-      else if (how === 1) await page.keyboard.press('Escape');
-      else await page.mouse.click(20, 40); // the dimmed backdrop above the sheet
-      await page.waitForTimeout(450);
-      const closed = await page.evaluate((sid) => document.getElementById(sid)!.hidden, id);
-      if (!fits || !closed) results.push(`${id}: fits=${fits} closed=${closed}`);
+    const rows: Record<string, unknown>[] = [];
+    let ok = true;
+    for (const [w, h] of [[360, 640], [375, 667], [390, 844], [430, 932]] as const) {
+      const { ctx, page } = await openedPage('venues', w, h);
+      await page.waitForTimeout(2600);
+      const r = await page.evaluate(() => {
+        const root = document.getElementById('venues')!;
+        const q = (s: string) => root.querySelector<HTMLElement>(s)!.getBoundingClientRect();
+        const door = q('[data-door]');
+        const venue = q('[data-card=venue]');
+        const travel = q('[data-card=travel]');
+        const map = q('.vt__map');
+        const go = q('.vt__go');
+        const folio = document.querySelector<HTMLElement>('.folio')!.getBoundingClientRect();
+        const texts = [...root.querySelectorAll<HTMLElement>('.vt__name, .vt__row-summary, .vt__row-title')];
+        return {
+          doorW: Math.round(door.width),
+          mapH: Math.round(map.height),
+          stacked: venue.bottom <= travel.top + 1 && travel.bottom <= door.bottom + 1 && travel.bottom <= folio.top + 2,
+          mapOk: map.height >= 80 && map.width >= door.width * 0.8,
+          goOk: go.height >= 38 && go.left >= door.left && go.right <= door.right + 1,
+          textOk: texts.every((e) => e.scrollWidth <= e.clientWidth + 1),
+        };
+      });
+      rows.push({ w, h, ...r });
+      if (!(r.stacked && r.mapOk && r.goOk && r.textOk && r.doorW >= 235)) ok = false;
+      await ctx.close();
     }
-    check('AC-22', 'All six travel tiles open sheets that fit a small phone and close by button, Esc or backdrop', ids.length === 6 && results.length === 0, results.join(' | '));
-    await ctx.close();
+    check('AC-47b', 'Venue and Travel fits 360 × 640 to 430 × 932: the doorway at least 235 px wide, a map at least 80 px high, Get Directions inside it, nothing cut, clear of the page number', ok, JSON.stringify(rows));
   }
 
   /* ================================================ Phase 4: guest forms and backend ================================================ */
@@ -1541,7 +1696,7 @@ async function main() {
   {
     const run = async (touch: boolean) => {
       const ctx = await mobileContext(browser);
-      await ctx.addInitScript({ content: "try { localStorage.removeItem('rdv:auto'); } catch (e) {}" });
+      await ctx.addInitScript({ content: "try { if (window.top === window) localStorage.removeItem('rdv:auto'); } catch (e) {}" });
       const page = await ctx.newPage();
       await page.goto(BASE);
       await settle(page);
@@ -1577,7 +1732,7 @@ async function main() {
   {
     const ctx = await mobileContext(browser);
     // a fresh guest on the first load only (a reload later in the check keeps what the guest did)
-    await ctx.addInitScript({ content: "try { if (!sessionStorage.getItem('qa-fresh')) { localStorage.removeItem('rdv:turned'); sessionStorage.setItem('qa-fresh', '1'); } } catch (e) {}" });
+    await ctx.addInitScript({ content: "try { if (window.top === window && !sessionStorage.getItem('qa-fresh')) { localStorage.removeItem('rdv:turned'); sessionStorage.setItem('qa-fresh', '1'); } } catch (e) {}" });
     const page = await ctx.newPage();
     await page.goto(BASE);
     await page.evaluate(() => {

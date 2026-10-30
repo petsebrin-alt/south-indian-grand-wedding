@@ -26,8 +26,6 @@ import Chrome from '../components/Chrome.astro';
 import ContentsDialog from '../components/ContentsDialog.astro';
 import CalendarSheet from '../components/CalendarSheet.astro';
 import EventSheet from '../components/EventSheet.astro';
-import TravelSheet from '../components/TravelSheet.astro';
-import { travelTiles } from '../lib/travel';
 import WishesAll from '../components/WishesAll.astro';
 import ContactSheet from '../components/ContactSheet.astro';
 import PrivacySheet from '../components/PrivacySheet.astro';
@@ -41,8 +39,7 @@ import LoveStory from '../components/pages/LoveStory.astro';
 import Events from '../components/pages/Events.astro';
 import Ceremony from '../components/pages/Ceremony.astro';
 import DressCode from '../components/pages/DressCode.astro';
-import Venues from '../components/pages/Venues.astro';
-import Travel from '../components/pages/Travel.astro';
+import VenueTravel from '../components/pages/VenueTravel.astro';
 import Wishes from '../components/pages/Wishes.astro';
 import Help from '../components/pages/Help.astro';
 import ThankYou from '../components/pages/ThankYou.astro';
@@ -107,8 +104,7 @@ const p = (id: string) => {
           <Ceremony {...p('ceremony')} />
           <Wishes {...p('wishes')} />
           <DressCode {...p('dress-code')} />
-          <Venues {...p('venues')} />
-          <Travel {...p('travel')} />
+          <VenueTravel {...p('venues')} />
           <Help {...p('help')} />
           <ThankYou {...p('thank-you')} />
         </main>
@@ -116,7 +112,6 @@ const p = (id: string) => {
         <ContentsDialog />
         {wedding.events.map((e) => <CalendarSheet eventId={e.id} />)}
         {wedding.events.map((e) => <EventSheet event={e} />)}
-        {travelTiles.map((t) => <TravelSheet item={t.key} icon={t.icon} />)}
         <WishesAll />
         {wedding.contacts.map((c) => <ContactSheet contact={c} />)}
         <PrivacySheet />

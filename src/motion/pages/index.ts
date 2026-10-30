@@ -10,6 +10,5 @@ import './ceremony';
 import './wishes';
 import './dress-code';
 import './venues';
-import './travel';
 import './help';
 import './thank-you';

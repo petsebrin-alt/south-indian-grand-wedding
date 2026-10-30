@@ -10,10 +10,11 @@ const istDateTime = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+05:3
 const text = z.string().trim().min(1);
 const maybeText = text.nullable();
 
-const photo = z.object({ src: text, alt: text }).nullable();
+// `focus` is where the picture is anchored when it is cropped to a frame (CSS object-position, e.g. '50% 20%': the middle, a fifth down)
+const photo = z.object({ src: text, alt: text, focus: z.string().regex(/^\d{1,3}% \d{1,3}%$/).optional() }).nullable();
 const draft = z.object({ text, status: z.enum(['draft', 'approved']) });
 
-const relative = z.object({ name: text, relation: text, photo });
+const relative = z.object({ name: maybeText, relation: text, photo });
 const familySide = z.object({
   father: maybeText,
   fatherWork: maybeText,
@@ -87,6 +88,8 @@ export const weddingSchema = z.object({
         lng: z.number().nullable(),
         photo,
         privacy: z.enum(['public', 'onRequest']),
+        // 'toVerify' while the families have not yet confirmed the exact name and map pin (a launch note, not a blocker); left out means confirmed
+        locationStatus: z.enum(['confirmed', 'toVerify']).optional(),
       }),
     )
     .length(4),

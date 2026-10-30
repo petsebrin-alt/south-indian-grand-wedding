@@ -34,13 +34,13 @@ describe('Add to Calendar (PRD §6.4.5)', () => {
     const ics = buildIcs(calendarEntry(weddingEvent)!, new Date('2026-10-23T00:00:00Z'));
     expect(ics).toContain('DTSTART;TZID=Asia/Kolkata:20270407T103000');
     expect(ics).toContain('BEGIN:VTIMEZONE');
-    expect(ics).toContain('LOCATION:Tirupati\\, Andhra Pradesh');
+    expect(ics).toContain('LOCATION:Tirupati Temple\\, Tirupati\\, Andhra Pradesh');
     expect(ics.split('\r\n').every((line) => new TextEncoder().encode(line).length <= 75)).toBe(true);
     expect(ics.endsWith('END:VCALENDAR\r\n')).toBe(true);
   });
 
-  it('does not reveal a family home address in calendar entries', () => {
+  it('puts the wedding venue (the Tirupati temple) in the calendar entry, and never a family home address', () => {
     const entry = calendarEntry(weddingEvent)!;
-    expect(entry.location).toBe('Tirupati, Andhra Pradesh');
+    expect(entry.location).toBe('Tirupati Temple, Tirupati, Andhra Pradesh');
   });
 });

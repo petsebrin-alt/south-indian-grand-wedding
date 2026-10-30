@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Venue } from '../src/data/schema';
-import { directionsUrl, hasLocation, locationUnavailableMessage, venueFallback } from '../src/lib/venue';
+import { directionsUrl, hasLocation, locationUnavailableMessage, mapEmbedUrl, venueFallback } from '../src/lib/venue';
 import { whatsappLink } from '../src/lib/travel';
 import { wedding } from '../src/data/wedding';
 
@@ -27,8 +27,20 @@ describe('venue directions (PRD §6.9, §6.13)', () => {
     expect(venueFallback(home)).toBe('Address shared personally');
   });
 
-  it('has no venue locations yet in the real data (nothing invented)', () => {
-    expect(wedding.venues.every((v) => directionsUrl(v) === null)).toBe(true);
+  it('has a location only for the wedding venue, the client\'s "Tirupati temple", marked to be verified; no other venue is invented', () => {
+    const [ceremony, ...others] = wedding.venues;
+    expect(ceremony.id).toBe('ceremony');
+    expect(ceremony.name).toBe('Tirupati Temple');
+    expect(ceremony.locationStatus).toBe('toVerify');
+    expect(directionsUrl(ceremony)).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=Tirupati/);
+    expect(others.every((v) => directionsUrl(v) === null)).toBe(true);
+  });
+
+  it('embeds Google Maps on the venue\'s coordinates, else on a search for its name and address, and not at all without a public location', () => {
+    expect(mapEmbedUrl(base)).toBeNull();
+    expect(mapEmbedUrl({ ...base, lat: 13.6288, lng: 79.4192, mapsUrl: 'https://maps.app.goo.gl/example' })).toBe('https://maps.google.com/maps?q=13.6288%2C79.4192&z=15&output=embed');
+    expect(mapEmbedUrl({ ...base, name: 'Tirupati Temple', address: 'Tirupati, Andhra Pradesh', mapsUrl: 'https://maps.app.goo.gl/example' })).toBe('https://maps.google.com/maps?q=Tirupati%20Temple%2C%20Tirupati%2C%20Andhra%20Pradesh&z=15&output=embed');
+    expect(mapEmbedUrl({ ...base, privacy: 'onRequest', lat: 1, lng: 2 })).toBeNull();
   });
 });
 
