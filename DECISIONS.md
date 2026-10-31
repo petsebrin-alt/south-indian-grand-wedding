@@ -1024,3 +1024,16 @@ The client asked for the Need Help page to be replaced: the Dress Code page's ba
 ### Results
 
 - `npm run qa:book`: 84/84. AC-28 (the Dress Code sky at 90%; three bars with their words whole; a touch opens a card, the strip first and the photograph last; the rows and their logos; "coming soon" and inert; one at a time; touching elsewhere or Escape folds it and returns the focus), AC-28b (a mouse: resting opens, moving onto the card keeps it, leaving folds it, a click holds it and another lets it go) and AC-28c (360 × 640 to 430 × 932: a card clear of the Contents button and joined to its bar, rows inside, bars clear of the page number, the heading stepping aside only when covered). `npx vitest run`: 67 (new: the contact cards, and a number and email becoming call, WhatsApp and mail links). `npx astro check`: 0 errors. `npm run perf`: performance 88, accessibility 100.
+
+## 31 October 2026 — Need Help: a person icon on every bar, and more space between the bars
+
+The client liked the Need Help page but asked for the flower icons beside the names to be replaced with a person (a human icon, not a photograph), and for more space between the three bars, with Rahul's father's and Divya's father's bars a little higher and the coordinator's where it is.
+
+### Decisions
+
+1. **A person icon on all three bars** (and on the coordinator's card panel): a head and shoulders in the same fine gold line as the other icons (`person` in `src/components/Icon.astro`), in the round gold disc, slightly larger and bolder than the flowers were. The lotus, jasmine and bell are no longer used here.
+2. **More space.** The gap between the bars is 22 px (it was 12 px). The bars stand on the same line at the bottom, so the coordinator's bar keeps its place and Divya's father's bar moves up 10 px and Rahul's father's 20 px. Cards open from the bars as before; the heading still steps aside on a short phone when a card reaches it.
+
+### Results
+
+- `npm run qa:book`: 84/84 (AC-28 now also checks that each bar has the person icon, not a flower, and that the bars are at least 20 px apart). `npx vitest run`: 67. `npx astro check`: 0 errors.

@@ -6,7 +6,8 @@ import { whatsappLink } from './travel';
 export const NUMBER_SOON = 'Number coming soon';
 export const EMAIL_SOON = 'Email coming soon';
 
-const emblem = { 'groom-rep': 'lotus', 'bride-rep': 'jasmine', coordinator: 'bell' } as const;
+// a person, for every contact (the client asked for a human icon in place of the flowers)
+const emblem = { 'groom-rep': 'person', 'bride-rep': 'person', coordinator: 'person' } as const;
 const side = { 'groom-rep': "Groom's Family", 'bride-rep': "Bride's Family", coordinator: 'Event Coordinator' } as const;
 const tab = { 'groom-rep': 'Groom', 'bride-rep': 'Bride', coordinator: 'Events' } as const;
 

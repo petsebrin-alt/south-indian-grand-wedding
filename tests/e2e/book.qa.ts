@@ -1389,8 +1389,17 @@ async function main() {
         rel: b.querySelector('.nh__bar-rel')?.textContent?.trim(),
         tall: b.getBoundingClientRect().height >= 44,
         cut: b.querySelector<HTMLElement>('.nh__bar-name')!.scrollWidth > b.querySelector<HTMLElement>('.nh__bar-name')!.clientWidth + 1 || b.querySelector<HTMLElement>('.nh__bar-rel')!.scrollWidth > b.querySelector<HTMLElement>('.nh__bar-rel')!.clientWidth + 1,
+        // a person (a head and shoulders), not a flower
+        person: (() => {
+          const svg = b.querySelector('.nh__avatar svg')!;
+          return svg.querySelectorAll('circle').length === 1 && svg.querySelector('circle')!.getAttribute('r') === '3.6' && svg.querySelectorAll('path').length === 1;
+        })(),
       })),
     );
+    const gaps = await page.evaluate(() => {
+      const r = [...document.querySelectorAll<HTMLElement>('#help [data-bar]')].map((b) => b.getBoundingClientRect());
+      return [r[1].top - r[0].bottom, r[2].top - r[1].bottom].map((g) => Math.round(g));
+    });
     // touch the first bar: sample early (the strip is out, the photograph not yet) and when it has settled
     await page.locator('#help [data-bar]').nth(0).tap();
     await page.waitForTimeout(110);
@@ -1437,7 +1446,7 @@ async function main() {
     const focusBack = await page.evaluate(() => document.activeElement?.matches('#help [data-contact="coordinator"] [data-bar]'));
     check(
       'AC-28',
-      "Need Help: on the Dress Code sky (about 90%), three glass bars (Rahul's father, Divya's father, the event coordinator); a touch opens a card upward (the strip first, the photograph last) with the name, Call, WhatsApp and Email rows (each with its logo, \"coming soon\" and inert until a number exists); one card at a time; touching elsewhere or Escape folds it down",
+      "Need Help: on the Dress Code sky (about 90%), three glass bars (Rahul's father, Divya's father, the event coordinator); a person icon on each; at least 20 px between them; a touch opens a card upward (the strip first, the photograph last) with the name, Call, WhatsApp and Email rows (each with its logo, \"coming soon\" and inert until a number exists); one card at a time; touching elsewhere or Escape folds it down",
       bg.src &&
         bg.loaded &&
         bg.opacity >= 0.85 &&
@@ -1447,7 +1456,8 @@ async function main() {
         /Rahul.s Father/i.test(bars[0].rel ?? '') &&
         /Divya.s Father/i.test(bars[1].rel ?? '') &&
         /to be announced/i.test(bars[2].rel ?? '') &&
-        bars.every((b) => b.tall && !b.cut) &&
+        bars.every((b) => b.tall && !b.cut && b.person) &&
+        gaps.every((g) => g >= 20) &&
         early.h > 0 &&
         early.h < open1.h * 0.85 &&
         early.stripShown &&
@@ -1475,7 +1485,7 @@ async function main() {
         afterEsc.h === 0 &&
         afterEsc.inert &&
         focusBack === true,
-      JSON.stringify({ bg, closed, bars, early, open1, detail, toast, swapped, afterOutside, coordOpen, afterEsc, focusBack }),
+      JSON.stringify({ bg, closed, bars, gaps, early, open1, detail, toast, swapped, afterOutside, coordOpen, afterEsc, focusBack }),
     );
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/phase4-need-help.png` });
     await ctx.close();
