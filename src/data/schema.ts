@@ -41,6 +41,8 @@ const travelItem = z.object({
   title: text,
   summary: maybeText,
   details: maybeText,
+  // Where it is, as Google Maps would be asked for it: the arrow on its line opens the route from here to the wedding venue
+  place: maybeText.optional(),
   status: z.enum(['verifyBeforeLaunch', 'toBeConfirmed', 'verified']),
 });
 
@@ -84,6 +86,8 @@ export const weddingSchema = z.object({
         name: maybeText,
         address: maybeText,
         mapsUrl: z.url().nullable(),
+        // What Google Maps is asked for (the embedded map and, when there is no mapsUrl, Get Directions): left out, the name and address are used
+        mapQuery: text.optional(),
         lat: z.number().nullable(),
         lng: z.number().nullable(),
         photo,

@@ -72,9 +72,15 @@ describe('launch check', () => {
     expect(blockers.map((b) => b.id)).toEqual(expect.arrayContaining(['M-14', 'M-19', 'M-28']));
   });
 
-  it('no longer blocks on the wedding venue (the client gave "the Tirupati temple") but notes that its exact name and pin are to be confirmed', () => {
+  it('does not block on the wedding venue (the Tirupati main temple, as the client asked) and has nothing to confirm about it', () => {
     expect(launchBlockers(wedding).some((b) => b.id === 'M-13')).toBe(false);
-    expect(checkContent(wedding).some((i) => i.id === 'M-13' && !i.blocking && /confirm the exact name and map pin/.test(i.label))).toBe(true);
+    expect(checkContent(wedding).some((i) => i.id === 'M-13')).toBe(false);
+  });
+
+  it('notes, without blocking, a venue marked as still to be verified', () => {
+    const unsure = { ...wedding, venues: wedding.venues.map((v) => (v.id === 'ceremony' ? { ...v, locationStatus: 'toVerify' as const } : v)) };
+    expect(launchBlockers(unsure).some((b) => b.id === 'M-13')).toBe(false);
+    expect(checkContent(unsure).some((i) => i.id === 'M-13' && !i.blocking && /confirm the exact name and map pin/.test(i.label))).toBe(true);
   });
 
   it('accepts a field the families chose to hide', () => {

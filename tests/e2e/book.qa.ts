@@ -129,9 +129,8 @@ async function main() {
     const page = await ctx.newPage();
     await page.goto(BASE);
     await settle(page);
-    await page.getByRole('button', { name: 'Skip' }).tap();
-    await settle(page);
-    check('AC-01', 'SKIP lands on Welcome immediately', (await current(page)) === 'welcome');
+    const splash = await page.evaluate(() => ({ skip: document.querySelectorAll('[data-skip], .chrome-skip').length, skipText: [...document.querySelectorAll('button')].filter((b) => /^skip$/i.test(b.textContent?.trim() ?? '') && getComputedStyle(b).display !== 'none').length }));
+    check('AC-01', 'The first splash screen (the temple door) has no Skip button', splash.skip === 0 && splash.skipText === 0 && (await current(page)) === 'cover', JSON.stringify(splash));
     await ctx.close();
   }
 
@@ -293,7 +292,6 @@ async function main() {
     const book = await page.evaluate(() => ({
       focus: document.activeElement?.textContent?.trim(),
       entered: sessionStorage.getItem('rdv:entered'),
-      skipHidden: getComputedStyle(document.querySelector('[data-skip]')!).display === 'none',
     }));
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/opening-book.png` });
     const o0 = Date.now();
@@ -321,7 +319,6 @@ async function main() {
         bookAt < 13 &&
         book.focus === 'Open the Invitation' &&
         book.entered === '1' &&
-        book.skipHidden &&
         flap &&
         curl &&
         openSeconds < 3,
@@ -854,7 +851,7 @@ async function main() {
     await page.locator('#event-wedding .ev-action', { hasText: 'Calendar' }).tap();
     await page.waitForTimeout(500);
     const calendarOpen = await page.evaluate(() => !document.getElementById('calendar-wedding')!.hidden);
-    check('AC-20b', 'Each event opens its details: the wedding\'s Location opens Google Maps on the Tirupati temple, the other events\' wait for a venue, Calendar only for the confirmed wedding; the sheet fits', okSheets && detailsFit && /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=Tirupati/.test(weddingLocation?.href ?? '') && weddingLocation?.target === '_blank' && calendarOpen, JSON.stringify({ all, detailsFit, weddingLocation, calendarOpen }));
+    check('AC-20b', 'Each event opens its details: the wedding\'s Location opens Google Maps on the Tirupati main temple, the other events\' wait for a venue, Calendar only for the confirmed wedding; the sheet fits', okSheets && detailsFit && /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=Sri\+Venkateswara\+Swamy\+Temple/.test(weddingLocation?.href ?? '') && weddingLocation?.target === '_blank' && calendarOpen, JSON.stringify({ all, detailsFit, weddingLocation, calendarOpen }));
     // close the calendar sheet and then the event's details (each Escape closes the top one)
     await page.keyboard.press('Escape');
     await page.waitForTimeout(450);
@@ -886,9 +883,10 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-47 Venue and Travel, one page in the temple's entrance (carved pillars wrapped in jasmine-and-rose malas): the pillars come
-     first, then the map card (Google's map of the wedding venue, its name and Get Directions), then Travel & Stay in three lines;
-     no photo placeholder and no tabs; the malas and leaves then stir */
+  /* AC-47 Venue and Travel, one page on the temple courtyard (sky, gopuram and steps between pillars and jasmine-and-rose malas, with
+     bells; no carved arch): the picture comes in first, then the title and the map card (frosted glass: Google's map of the Tirupati
+     main temple, its name and a glowing Get Directions), then Travel & Stay in three lines, each with an arrow that opens the route
+     to the temple (the stay waits for its details); no photo placeholder and no tabs; the malas and swag then stir */
   {
     const ctx = await mobileContext(browser);
     const page = await ctx.newPage();
@@ -897,6 +895,8 @@ async function main() {
     await page.goto(`${BASE}#dress-code`);
     await settle(page);
     await page.waitForTimeout(800);
+    // the map starts loading as the guest reaches the page before this one
+    const earlyMap = await page.evaluate(() => !!document.querySelector('#venues [data-map]'));
     // note when each part first shows (a frame-by-frame sampler), then turn to the page
     await page.evaluate(() => {
       const w = window as unknown as { __seq: Record<string, number> };
@@ -930,6 +930,13 @@ async function main() {
       const lotus = document.querySelector<HTMLElement>('.chrome-btn')!.getBoundingClientRect();
       const title = rects('.vt__title');
       const stills = [...root.querySelectorAll<HTMLImageElement>('.vt__still')];
+      const glass = (e: Element) => {
+        const cs = getComputedStyle(e);
+        return /blur\(/.test(cs.backdropFilter || (cs as unknown as { webkitBackdropFilter: string }).webkitBackdropFilter || '') && /rgba\(/.test(cs.backgroundImage + cs.backgroundColor) && !/^rgb\(/.test(cs.backgroundColor);
+      };
+      const rowEls = [...root.querySelectorAll<HTMLElement>('.vt__row')];
+      const arrow = (r: HTMLElement) => r.querySelector<HTMLElement>('.vt__arrow')!.getBoundingClientRect();
+      const goStyle = go ? getComputedStyle(go) : null;
       return {
         heading: root.querySelector('.vt__title')?.textContent?.replace(/\s+/g, ' ').trim(),
         mapSrc: map?.src ?? null,
@@ -938,38 +945,70 @@ async function main() {
         goHref: go?.href ?? null,
         goTarget: go?.target ?? null,
         goText: go?.textContent?.replace(/\s+/g, ' ').trim(),
+        goAnimated: !!goStyle && /vt-glow/.test(goStyle.animationName) && /vt-sheen/.test(getComputedStyle(go!, '::after').animationName),
         name: root.querySelector('.vt__name')?.textContent?.trim(),
-        rows: [...root.querySelectorAll('.vt__row')].map((r) => `${r.querySelector('.vt__row-title')?.textContent?.trim()}|${r.querySelector('.vt__row-summary')?.textContent?.trim()}`),
+        rows: rowEls.map((r) => `${r.querySelector('.vt__row-title')?.textContent?.trim()}|${r.querySelector('.vt__row-summary')?.textContent?.trim()}`),
+        rowTags: rowEls.map((r) => r.tagName),
+        rowHrefs: rowEls.map((r) => (r as HTMLAnchorElement).href || null),
+        rowTargets: rowEls.map((r) => (r as HTMLAnchorElement).target || null),
+        rowsTall: rowEls.every((r) => r.getBoundingClientRect().height >= 44),
+        arrows: rowEls.every((r) => arrow(r).width >= 30 && arrow(r).height >= 30 && arrow(r).right <= r.getBoundingClientRect().right + 1),
+        stayDisabled: rowEls[2]?.getAttribute('aria-disabled') === 'true' && rowEls[2]?.dataset.disabledMessage === 'Stay details will be shared soon',
+        glass: glass(root.querySelector('.vt__card--venue')!) && glass(root.querySelector('.vt__card--travel')!) && glass(root.querySelector('.vt__title')!),
         leftovers: /R·D|To be provided|Venue photograph|Illustrated map/i.test(root.textContent ?? '') || root.querySelectorAll('[role=tab], .vn__tab').length > 0,
-        pillars: stills.length === 2 && stills.every((i) => i.complete && i.naturalWidth >= 900),
+        // the courtyard picture (sky, temple, steps) and not the carved-arch entrance picture
+        courtyard: stills.length === 2 && stills.every((i) => i.complete && i.naturalWidth >= 900 && /courtyard/.test(i.currentSrc) && !/frame/.test(i.currentSrc)),
+        arch: !!root.querySelector('img[src*="frame"], img[srcset*="frame"], source[srcset*="frame"]'),
         winds: [...root.querySelectorAll<HTMLElement>('.vt__wind')].filter((w) => w.style.rotate !== '').length,
         layout:
           door.left >= 0 && door.right <= innerWidth && venue.bottom <= travel.top + 1 && travel.bottom <= door.bottom + 1 && travel.bottom <= folio.top + 2 && title.top >= lotus.bottom - 6 && venue.height > 120,
       };
     });
+    // the Get Directions button glows: its shadow changes as it pulses
+    const glow1 = await page.evaluate(() => getComputedStyle(document.querySelector('#venues .vt__go')!).boxShadow);
+    await page.waitForTimeout(950);
+    const glow2 = await page.evaluate(() => getComputedStyle(document.querySelector('#venues .vt__go')!).boxShadow);
+    // the stay's arrow says its details are coming
+    await page.locator('#venues .vt__row').nth(2).tap({ force: true });
+    await page.waitForTimeout(400);
+    const toast = await page.evaluate(() => document.querySelector('[data-toast]')?.textContent?.trim());
     check(
       'AC-47',
-      'Venue and Travel: the pillars come first, then the map card, then Travel & Stay; Google\'s map of the Tirupati Temple with Get Directions, and Airport, Railway and Stay in three lines; no photo placeholder or tabs; the malas stir',
-      seq.pillars !== undefined &&
+      'Venue and Travel: the courtyard (sky, temple, steps; no carved arch) comes first, then the glass map card, then Travel & Stay; Google\'s map of the Tirupati main temple loaded early, a glowing Get Directions; Airport and Railway each with an arrow that opens the route to the temple, Stay waiting; no photo placeholder or tabs; the malas stir',
+      earlyMap &&
+        seq.pillars !== undefined &&
         seq.venue !== undefined &&
         seq.travel !== undefined &&
         seq.pillars < seq.venue &&
         seq.venue < seq.travel &&
         v.heading === 'Venue & Travel' &&
-        /^https:\/\/maps\.google\.com\/maps\?q=Tirupati%20Temple/.test(v.mapSrc ?? '') &&
+        /^https:\/\/maps\.google\.com\/maps\?q=Sri%20Venkateswara%20Swamy%20Temple%2C%20Tirumala/.test(v.mapSrc ?? '') &&
         /output=embed/.test(v.mapSrc ?? '') &&
         /Tirupati Temple/.test(v.mapTitle ?? '') &&
         v.mapStill &&
-        /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=Tirupati/.test(v.goHref ?? '') &&
+        /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=Sri\+Venkateswara\+Swamy\+Temple/.test(v.goHref ?? '') &&
         v.goTarget === '_blank' &&
         v.goText === 'Get Directions' &&
+        v.goAnimated &&
+        glow1 !== glow2 &&
         v.name === 'Tirupati Temple' &&
         JSON.stringify(v.rows) === JSON.stringify(['Airport|Tirupati International Airport (TIR), Renigunta', 'Railway|Tirupati Main (TPTY) · Renigunta Junction (RU)', 'Stay|To be announced']) &&
+        JSON.stringify(v.rowTags) === JSON.stringify(['A', 'A', 'BUTTON']) &&
+        /^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&origin=Tirupati%20International%20Airport.*&destination=Sri%20Venkateswara%20Swamy%20Temple/.test(v.rowHrefs[0] ?? '') &&
+        /origin=Tirupati%20Railway%20Station.*destination=Sri%20Venkateswara%20Swamy%20Temple/.test(v.rowHrefs[1] ?? '') &&
+        v.rowTargets[0] === '_blank' &&
+        v.rowTargets[1] === '_blank' &&
+        v.rowsTall &&
+        v.arrows &&
+        v.stayDisabled &&
+        toast === 'Stay details will be shared soon' &&
+        v.glass &&
         !v.leftovers &&
-        v.pillars &&
+        v.courtyard &&
+        !v.arch &&
         v.winds >= 5 &&
         v.layout,
-      JSON.stringify({ seq, v }),
+      JSON.stringify({ earlyMap, seq, v, glow1: glow1.slice(0, 60), glow2: glow2.slice(0, 60), toast }),
     );
     await ctx.close();
   }
@@ -996,7 +1035,7 @@ async function main() {
           mapH: Math.round(map.height),
           stacked: venue.bottom <= travel.top + 1 && travel.bottom <= door.bottom + 1 && travel.bottom <= folio.top + 2,
           mapOk: map.height >= 80 && map.width >= door.width * 0.8,
-          goOk: go.height >= 38 && go.left >= door.left && go.right <= door.right + 1,
+          goOk: go.height >= 38 && go.height < 60 && go.left >= door.left && go.right <= door.right + 1,
           textOk: texts.every((e) => e.scrollWidth <= e.clientWidth + 1),
         };
       });
@@ -1004,7 +1043,78 @@ async function main() {
       if (!(r.stacked && r.mapOk && r.goOk && r.textOk && r.doorW >= 235)) ok = false;
       await ctx.close();
     }
-    check('AC-47b', 'Venue and Travel fits 360 × 640 to 430 × 932: the doorway at least 235 px wide, a map at least 80 px high, Get Directions inside it, nothing cut, clear of the page number', ok, JSON.stringify(rows));
+    check('AC-47b', 'Venue and Travel fits 360 × 640 to 430 × 932: the cards at least 235 px wide, a map at least 80 px high, Get Directions on one line inside them, nothing cut, clear of the page number', ok, JSON.stringify(rows));
+  }
+
+  /* AC-48 the page number and arrows are a pane of frosted glass on every page (the page shows through, blurred, while the number
+     and arrows stay deep maroon on a pale pane), with the touch targets unchanged */
+  {
+    const rows: Record<string, unknown>[] = [];
+    let ok = true;
+    for (const id of ['welcome', 'events', 'venues', 'thank-you']) {
+      const { ctx, page } = await openedPage(id, 390, 844);
+      const f = await page.evaluate(() => {
+        const folio = document.querySelector<HTMLElement>('.folio')!;
+        const cs = getComputedStyle(folio);
+        const blur = cs.backdropFilter || (cs as unknown as { webkitBackdropFilter: string }).webkitBackdropFilter || '';
+        const alphas = [...cs.backgroundImage.matchAll(/rgba\(\d+, \d+, \d+, ([\d.]+)\)/g)].map((m) => Number(m[1]));
+        const btn = folio.querySelector<HTMLElement>('[data-next]')!.getBoundingClientRect();
+        const num = getComputedStyle(folio.querySelector('.folio__number')!);
+        return { blur, maxAlpha: Math.max(...alphas, 0), translucent: alphas.length > 0 && Math.max(...alphas) < 0.8, bg: cs.backgroundColor, tap: Math.min(btn.width, btn.height), numColor: num.color, arrow: getComputedStyle(folio.querySelector('[data-next]')!).color };
+      });
+      rows.push({ id, ...f });
+      if (!(/blur\(/.test(f.blur) && f.translucent && f.tap >= 44 && f.numColor === 'rgb(94, 14, 28)')) ok = false;
+      await ctx.close();
+    }
+    check('AC-48', 'The page number and arrows are frosted glass on every page (blurred, translucent, at least 44 px to touch, the number in deep maroon)', ok, JSON.stringify(rows));
+  }
+
+  /* AC-20d the date and time on each event's disc are larger (13.4% of the disc's content width, 29% more than before), each date
+     on one line, and stay inside the disc, clear of the Location button */
+  {
+    const rows: Record<string, unknown>[] = [];
+    let ok = true;
+    for (const [id, w, h] of [['events', 360, 640], ['events-wedding', 360, 640], ['events', 375, 667], ['events-wedding', 375, 667], ['events', 390, 844], ['events-wedding', 390, 844], ['events-wedding', 430, 932]] as const) {
+      const { ctx, page } = await openedPage(id, w, h);
+      const r = await page.evaluate(() =>
+        [...document.querySelectorAll<HTMLElement>('.page[data-state=current] .ev__item')].map((item) => {
+          const d = item.querySelector<HTMLElement>('.ev__disc')!.getBoundingClientRect();
+          const date = item.querySelector<HTMLElement>('.ev__date')!;
+          const time = item.querySelector<HTMLElement>('.ev__time');
+          const locEl = item.querySelector<HTMLElement>('.ev__loc')!;
+          const inside = (e: Element) => {
+            const b = e.getBoundingClientRect();
+            const cx = d.left + d.width / 2;
+            const cy = d.top + d.height / 2;
+            const rad = d.width / 2;
+            return [[b.left, b.top], [b.right, b.top], [b.left, b.bottom], [b.right, b.bottom]].every(([x, y]) => Math.hypot(x - cx, y - cy) <= rad * 0.98);
+          };
+          // a rounded pill: its two ends and its bottom middle are what must lie inside the disc
+          const pillInside = (e: Element) => {
+            const b = e.getBoundingClientRect();
+            const cx = d.left + d.width / 2;
+            const cy = d.top + d.height / 2;
+            const rad = d.width / 2;
+            return [[b.left, b.top + b.height / 2], [b.right, b.top + b.height / 2], [b.left + b.width / 2, b.bottom]].every(([x, y]) => Math.hypot(x - cx, y - cy) <= rad * 0.98);
+          };
+          return {
+            id: item.dataset.event,
+            datePx: Math.round(parseFloat(getComputedStyle(date).fontSize) * 10) / 10,
+            timePx: time ? Math.round(parseFloat(getComputedStyle(time).fontSize) * 10) / 10 : null,
+            ratio: Math.round((parseFloat(getComputedStyle(date).fontSize) / d.width) * 1000) / 1000,
+            oneLine: !item.querySelector('.ev__time') || date.getBoundingClientRect().height < parseFloat(getComputedStyle(date).lineHeight) * 1.5,
+            dateOk: inside(date),
+            timeOk: !time || inside(time),
+            locOk: pillInside(locEl),
+            clear: !time || time.getBoundingClientRect().bottom <= locEl.getBoundingClientRect().top + 1,
+          };
+        }),
+      );
+      rows.push({ id, w, h, r });
+      for (const e of r) if (!(e.datePx >= 8.8 && (e.timePx === null || e.timePx >= 8.8) && e.ratio >= 0.088 && e.oneLine && e.dateOk && e.timeOk && e.locOk && e.clear)) ok = false;
+      await ctx.close();
+    }
+    check('AC-20d', "Events: the date and time on each disc are 29% larger than before (at least 8.8 px on the smallest phone, 13 to 16 px on a large one) and 8.8% of the disc's width (they were 7.8%), each date on one line, inside the disc and clear of the Location button, from 360 × 640 to 430 × 932", ok, JSON.stringify(rows));
   }
 
   /* ================================================ Phase 4: guest forms and backend ================================================ */
@@ -1757,7 +1867,7 @@ async function main() {
         cueVisible: Number(getComputedStyle(cue).opacity) > 0.95 && c.left >= 0 && c.right <= innerWidth,
         above: c.bottom <= f.top + 1 && c.bottom > f.top - 40,
         centred: Math.abs(c.left + c.width / 2 - innerWidth / 2) < 3,
-        rim: parseFloat(fs.borderTopWidth) >= 1.9 && fs.backgroundColor !== 'rgba(0, 0, 0, 0)',
+        rim: parseFloat(fs.borderTopWidth) >= 1.4 && /138, 20, 38/.test(fs.borderTopColor) && (fs.backgroundColor !== 'rgba(0, 0, 0, 0)' || /gradient/.test(fs.backgroundImage)),
         tap: n.width >= 44 && n.height >= 44 && prev.getBoundingClientRect().height >= 44,
         nudging: getComputedStyle(next.querySelector('svg')!).animationName !== 'none',
         pearlCue: getComputedStyle(document.querySelector('.pearl')!, '::after').content !== 'none',
@@ -1774,7 +1884,7 @@ async function main() {
     const later = await page.evaluate(() => document.querySelector('.turn-cue')!.classList.contains('is-on'));
     check(
       'AC-44',
-      'Turning the page is explained: a "Swipe or tap to turn the page" pill above a rimmed page-number pill with large arrows and a nudging next arrow, gone after the guest turns a page',
+      'Turning the page is explained: a "Swipe or tap to turn the page" pill above a glass page-number pill with a maroon rim with large arrows and a nudging next arrow, gone after the guest turns a page',
       /Swipe or tap to turn the page/.test(seen.text ?? '') && seen.cueVisible && seen.above && seen.centred && seen.rim && seen.tap && seen.nudging && seen.pearlCue && seen.noOverlap && !afterTurn.on && afterTurn.stored === '1' && !later,
       JSON.stringify({ seen, afterTurn, later }),
     );
@@ -2187,7 +2297,7 @@ async function main() {
       await page.evaluate(() => (window as unknown as { __book: { show(i: number): void } }).__book.show(0));
       await settle(page);
       await page.screenshot({ path: `${SHOTS}/desktop-1440x900-cover.png` });
-      await page.getByRole('button', { name: 'Skip' }).click();
+      await page.evaluate(() => (location.hash = 'welcome'));
       await settle(page);
       await page.waitForTimeout(1400); // entry choreography
       await page.screenshot({ path: `${SHOTS}/desktop-1440x900-welcome.png` });

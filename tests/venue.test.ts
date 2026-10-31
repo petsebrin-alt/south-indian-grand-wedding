@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Venue } from '../src/data/schema';
-import { directionsUrl, hasLocation, locationUnavailableMessage, mapEmbedUrl, venueFallback } from '../src/lib/venue';
+import { directionsUrl, hasLocation, locationUnavailableMessage, mapEmbedUrl, routeUrl, venueFallback } from '../src/lib/venue';
 import { whatsappLink } from '../src/lib/travel';
 import { wedding } from '../src/data/wedding';
 
@@ -27,13 +27,27 @@ describe('venue directions (PRD §6.9, §6.13)', () => {
     expect(venueFallback(home)).toBe('Address shared personally');
   });
 
-  it('has a location only for the wedding venue, the client\'s "Tirupati temple", marked to be verified; no other venue is invented', () => {
+  it('has a location only for the wedding venue, the Tirupati main temple (Sri Venkateswara Swamy Temple, Tirumala); no other venue is invented', () => {
     const [ceremony, ...others] = wedding.venues;
     expect(ceremony.id).toBe('ceremony');
     expect(ceremony.name).toBe('Tirupati Temple');
-    expect(ceremony.locationStatus).toBe('toVerify');
-    expect(directionsUrl(ceremony)).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=Tirupati/);
+    expect(ceremony.mapQuery).toBe('Sri Venkateswara Swamy Temple, Tirumala, Andhra Pradesh');
+    expect(directionsUrl(ceremony)).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=Sri\+Venkateswara\+Swamy\+Temple/);
+    expect(mapEmbedUrl(ceremony)).toBe('https://maps.google.com/maps?q=Sri%20Venkateswara%20Swamy%20Temple%2C%20Tirumala%2C%20Andhra%20Pradesh&z=15&output=embed');
     expect(others.every((v) => directionsUrl(v) === null)).toBe(true);
+  });
+
+  it('opens the route from a place (an airport, a station) to the venue in Google Maps, and not without a place or a public venue', () => {
+    const ceremony = wedding.venues[0];
+    const url = routeUrl(wedding.travel.airport.place, ceremony)!;
+    expect(url).toBe(
+      'https://www.google.com/maps/dir/?api=1&origin=Tirupati%20International%20Airport%2C%20Renigunta&destination=Sri%20Venkateswara%20Swamy%20Temple%2C%20Tirumala%2C%20Andhra%20Pradesh&travelmode=driving',
+    );
+    expect(routeUrl(wedding.travel.railway.place, ceremony)).toContain('origin=Tirupati%20Railway%20Station');
+    expect(routeUrl(null, ceremony)).toBeNull();
+    expect(routeUrl(wedding.travel.accommodation.place, ceremony)).toBeNull();
+    expect(routeUrl('Anywhere', { ...ceremony, privacy: 'onRequest' })).toBeNull();
+    expect(routeUrl('Anywhere', { ...base, lat: 1, lng: 2, mapsUrl: 'https://maps.app.goo.gl/x' })).toContain('destination=1%2C2');
   });
 
   it('embeds Google Maps on the venue\'s coordinates, else on a search for its name and address, and not at all without a public location', () => {

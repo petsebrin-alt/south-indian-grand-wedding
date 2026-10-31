@@ -42,20 +42,21 @@ const data: WeddingData = {
   ],
 
   venues: [
-    // The client's words: "the Tirupati temple" (30 October 2026). The map and Get Directions search Google Maps for this name and
-    // address; once the families confirm the exact temple or hall, put its name and address (or its coordinates in lat and lng, or
-    // its Google Maps link in mapsUrl) here and set locationStatus to 'confirmed'.
+    // The client's words: "the Tirupati temple" and, on 31 October 2026, "the main temple": the map and Get Directions ask Google
+    // Maps for Sri Venkateswara Swamy Temple, Tirumala (the Tirupati Balaji temple), so the pin is the main temple itself. The
+    // invitation keeps the client's name for it; if the wedding is at another temple or hall, change name, address and mapQuery
+    // (or give its coordinates in lat and lng, or its Google Maps link in mapsUrl) and set locationStatus to 'toVerify' until confirmed.
     {
       id: 'ceremony',
       label: 'Wedding Ceremony Venue',
       name: 'Tirupati Temple',
       address: 'Tirupati, Andhra Pradesh',
-      mapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=Tirupati+Temple%2C+Tirupati%2C+Andhra+Pradesh',
+      mapsUrl: 'https://www.google.com/maps/dir/?api=1&destination=Sri+Venkateswara+Swamy+Temple%2C+Tirumala%2C+Andhra+Pradesh',
+      mapQuery: 'Sri Venkateswara Swamy Temple, Tirumala, Andhra Pradesh',
       lat: null,
       lng: null,
       photo: null,
       privacy: 'public',
-      locationStatus: 'toVerify',
     },
     { id: 'function-hall', label: 'Sangeet & Reception Hall', name: null, address: null, mapsUrl: null, lat: null, lng: null, photo: null, privacy: 'public' },
     // Q-D3 default: family home addresses are shared personally, not published
@@ -201,12 +202,14 @@ const data: WeddingData = {
     airport: {
       title: 'Airport',
       summary: 'Tirupati International Airport (TIR), Renigunta',
+      place: 'Tirupati International Airport, Renigunta',
       details: 'About 15 km from Tirupati city. Chennai International Airport is roughly 140 km away by road.',
       status: 'verifyBeforeLaunch',
     },
     railway: {
       title: 'Railway',
       summary: 'Tirupati Main (TPTY) · Renigunta Junction (RU)',
+      place: 'Tirupati Railway Station, Tirupati',
       details: null,
       status: 'verifyBeforeLaunch',
     },

@@ -244,7 +244,7 @@ app.addEventListener('click', (e) => {
     return;
   }
 
-  const el = (e.target as Element).closest<HTMLElement>('[data-open-book], [data-skip], [data-return-first], [data-share], [data-open-dialog], [data-goto], [data-copy], [data-ring], [data-ring-any], [data-sound]');
+  const el = (e.target as Element).closest<HTMLElement>('[data-open-book], [data-return-first], [data-share], [data-open-dialog], [data-goto], [data-copy], [data-ring], [data-ring-any], [data-sound]');
   if (!el) return;
 
   if (el.matches('[data-ring], [data-ring-any]')) {
@@ -269,10 +269,6 @@ app.addEventListener('click', (e) => {
     e.preventDefault();
     if (mode === 'scroll') scrollToPage(controller.openTarget);
     else void openBook();
-  } else if (el.matches('[data-skip]')) {
-    session.set('rdv:entered', '1');
-    showBook(pages[0]);
-    controller.goTo(controller.openTarget, 'instant', 'open');
   } else if (el.matches('[data-return-first]')) {
     // A quick riffle back to Welcome, not the cover (PRD §6.18); reduced motion fades instead.
     if (mode === 'scroll') scrollToPage(1);

@@ -2,10 +2,11 @@ import { defineChoreo, gsap, isReducedMotion } from '../choreo';
 import { breeze, type Breeze } from '../breeze';
 
 /**
- * Venue and Travel (PRD §6.13, §6.14): each time the page turns in, the temple's two carved pillars (the two halves of the
- * entrance photograph, wrapped in their jasmine-and-rose malas, with the swag across the top) come in from the sides and
- * meet; then the map card rises, then Travel & Stay; then the malas, leaves and swag begin to stir in a light breeze (never
- * under reduced motion). The map is loaded as the page arrives, so it is there when its card appears.
+ * Venue and Travel (PRD §6.13, §6.14): each time the page turns in, the temple courtyard (the two halves of the photograph,
+ * with its pillars, jasmine-and-rose malas, bells and the swag across the top) comes in from the sides and meets; then the
+ * title, the map card (frosted glass) and Travel & Stay rise; then the malas and swag begin to stir in a light breeze (never
+ * under reduced motion). Google's map is put in its place once, as the guest reaches the Dress Code page before this one (or,
+ * on a link straight here, as this page arrives), so that it has painted by the time its card appears; it fades in when it has.
  */
 defineChoreo('venues', (page) => {
   const q = <T extends HTMLElement>(sel: string) => [...page.querySelectorAll<T>(sel)];
@@ -37,9 +38,13 @@ defineChoreo('venues', (page) => {
     frame.title = slot.dataset.title ?? 'Map of the venue';
     frame.referrerPolicy = 'no-referrer-when-downgrade';
     frame.tabIndex = -1;
+    frame.addEventListener('load', () => frame.classList.add('is-in'), { once: true });
     frame.src = slot.dataset.src;
     slot.append(frame);
   };
+  // The page before this one: from the moment the guest is on it, the map starts loading
+  const before = document.getElementById('dress-code');
+  if (before) new MutationObserver(() => before.dataset.state === 'current' && loadMap()).observe(before, { attributes: true, attributeFilter: ['data-state'] });
 
   return {
     enter() {
