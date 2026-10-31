@@ -1781,19 +1781,29 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-45 the Welcome lines are a clear serif, larger, in a maroon gradient (not script), and fit between the date and the couple */
-  {
-    const { ctx, page } = await openedPage('welcome', 390, 844);
+  /* AC-45 the Welcome lines are a clear serif in a maroon gradient (not script), the same size as the date above them, no more
+     than three lines, with close word spacing, and fit between the date and the couple */
+  for (const [w, h] of [
+    [360, 640],
+    [390, 844],
+    [430, 932],
+  ]) {
+    const { ctx, page } = await openedPage('welcome', w, h);
     const m = await page.evaluate(() => {
       const el = document.querySelector<HTMLElement>('#welcome .wl__message')!;
       const cs = getComputedStyle(el);
       const r = el.getBoundingClientRect();
+      const dateSize = parseFloat(getComputedStyle(document.querySelector<HTMLElement>('#welcome .wl__date')!).fontSize);
       const couple = document.querySelector<HTMLElement>('#welcome .wl-couple__img')!.getBoundingClientRect();
       const detail = document.querySelector<HTMLElement>('#welcome .wl__place')!.getBoundingClientRect();
+      const size = parseFloat(cs.fontSize);
       return {
         family: cs.fontFamily,
-        size: parseFloat(cs.fontSize),
+        size,
+        dateSize,
         weight: Number(cs.fontWeight),
+        lines: Math.round(r.height / parseFloat(cs.lineHeight)),
+        wordSpacingEm: parseFloat(cs.wordSpacing) / size,
         gradient: /linear-gradient/.test(cs.backgroundImage) && cs.backgroundClip === 'text',
         fill: cs.webkitTextFillColor,
         inside: r.left >= 0 && r.right <= innerWidth,
@@ -1803,9 +1813,9 @@ async function main() {
       };
     });
     check(
-      'AC-45',
-      'Welcome lines: a serif (not script), bold, at least 22 px, filled with a maroon gradient, below the place line and clear of the couple',
-      !/Pinyon|script/i.test(m.family) && /Cormorant|serif/i.test(m.family) && m.size >= 22 && m.weight >= 600 && m.gradient && m.fill === 'rgba(0, 0, 0, 0)' && m.inside && m.below && m.clearOfCouple && m.text,
+      `AC-45@${w}x${h}`,
+      `Welcome lines at ${w}×${h}: a serif (not script) the same size as the date, in two or three lines with close word spacing, filled with a maroon gradient, below the place line and clear of the couple`,
+      !/Pinyon|script/i.test(m.family) && /Cormorant|serif/i.test(m.family) && Math.abs(m.size - m.dateSize) < 0.6 && m.size >= 19 && m.weight >= 600 && m.lines >= 2 && m.lines <= 3 && m.wordSpacingEm < 0 && m.gradient && m.fill === 'rgba(0, 0, 0, 0)' && m.inside && m.below && m.clearOfCouple && m.text,
       JSON.stringify(m),
     );
     await ctx.close();

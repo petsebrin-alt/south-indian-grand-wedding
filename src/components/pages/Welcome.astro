@@ -114,13 +114,19 @@ const names = lettering([`${groom.name} & ${bride.name}`]);
       0 0 10px rgba(255, 249, 238, 0.9);
   }
 
+  .wl__details,
+  .wl__message {
+    --wl-size: clamp(20px, 5.6cqw, 25px);
+  }
+
   .wl__details {
     display: grid;
     gap: 0.5cqh;
   }
 
+  /* The date and the welcome lines are the same size, so the lines read as part of the same note */
   .wl__date {
-    font: 700 clamp(20px, 5.6cqw, 25px) / 1.2 var(--font-display);
+    font: 700 var(--wl-size) / 1.2 var(--font-display);
     color: #6a0f1f;
   }
 
@@ -139,10 +145,11 @@ const names = lettering([`${groom.name} & ${bride.name}`]);
   /* The welcome lines in a clear, bold serif (not script), larger, in a maroon-to-ruby gradient with a soft ivory glow so
      they read plainly over the photograph (the glow is a drop-shadow, which follows the gradient-filled letters) */
   .wl__message {
-    max-width: 16.5em;
+    max-width: 100%;
     margin-top: 0.6cqh;
-    font: 700 clamp(22px, 6.4cqw, 28px) / 1.26 var(--font-display);
-    letter-spacing: 0.005em;
+    font: 600 var(--wl-size) / 1.28 var(--font-display);
+    letter-spacing: 0;
+    word-spacing: -0.1em;
     background: linear-gradient(104deg, #5e0e1c 0%, #a3142e 36%, #cf2d45 62%, #7a1226 100%);
     -webkit-background-clip: text;
     background-clip: text;
@@ -195,10 +202,6 @@ const names = lettering([`${groom.name} & ${bride.name}`]);
     .page--welcome .page__content {
       inset-block-end: calc(var(--safe-bottom) + 44cqh);
       gap: 1cqh;
-    }
-
-    .wl__message {
-      font-size: 21px;
     }
 
     .wl-couple {

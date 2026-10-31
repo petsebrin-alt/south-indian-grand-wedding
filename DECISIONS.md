@@ -972,3 +972,17 @@ The client said the first Parents cube was wrong: it turned as one block and sho
 ### Results
 
 - `npm run qa:book`: 78/78. AC-18a (two boards; each card has two blocks, 4 photographs loaded, the parents' names and work, the sibling face with its lotus; the blocks turn in opposite directions mid-turn and rest at ±90°; by itself, by arrow key, tap and dot), AC-18b (faded temple on the swaying garlands, the two blocks meet as one card, gold borders, all writing inside, clear of the Contents button and the page number) and AC-18d (the same fit at 360 × 640, 375 × 667 and 430 × 932, names at least 13 px and work at least 11 px). `npx vitest run`: 63. `npx astro check`: 0 errors. `npm run perf`: performance 88, accessibility 100.
+
+## 31 October 2026 — The Welcome lines are the date's size, in three lines, with closer words
+
+The client said the lines under the date ("Two families, one sacred promise. Your presence and blessings will make our celebration complete.") looked very big, that the size of "Wednesday, 7 April 2027" is enough for them too, that they should run to two or three lines and not four, and that the spaces between the words were too wide.
+
+### Decisions
+
+1. **Same size as the date.** The lines now use exactly the date's size (one shared value, `--wl-size`: 5.6% of the page width, between 20 and 25 px), so they always match it: 20.2 px on a 360-wide phone, 21.8 px on a 390-wide one, 24.1 px on a 430-wide one. They were 22–28 px, up to a third larger. The weight is 600 (it was 700), still in the maroon gradient with the ivory glow. The separate smaller size for short phones is removed, as the two now move together.
+2. **Three lines, not four.** The lines use the width of the page, so they set in three (checked at 360 × 640, 390 × 844 and 430 × 932) and sit clear of the couple.
+3. **Closer words.** The gap between words is cut by a tenth of the letter size (`word-spacing: -0.1em`); the letters themselves are spaced as the font draws them.
+
+### Results
+
+- `npm run qa:book`: 80/80. AC-45 now runs at 360 × 640, 390 × 844 and 430 × 932: the same size as the date, two or three lines, negative word spacing, a gradient serif, clear of the place line and the couple. `npx vitest run`: 63. `npx astro check`: 0 errors.
