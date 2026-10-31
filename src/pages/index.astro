@@ -27,7 +27,6 @@ import ContentsDialog from '../components/ContentsDialog.astro';
 import CalendarSheet from '../components/CalendarSheet.astro';
 import EventSheet from '../components/EventSheet.astro';
 import WishesAll from '../components/WishesAll.astro';
-import ContactSheet from '../components/ContactSheet.astro';
 import PrivacySheet from '../components/PrivacySheet.astro';
 import ShareSheet from '../components/ShareSheet.astro';
 import Cover from '../components/pages/Cover.astro';
@@ -113,7 +112,6 @@ const p = (id: string) => {
         {wedding.events.map((e) => <CalendarSheet eventId={e.id} />)}
         {wedding.events.map((e) => <EventSheet event={e} />)}
         <WishesAll />
-        {wedding.contacts.map((c) => <ContactSheet contact={c} />)}
         <PrivacySheet />
         <ShareSheet />
       </div>

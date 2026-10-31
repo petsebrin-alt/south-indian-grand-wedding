@@ -29,7 +29,7 @@ describe('confirmed wedding facts', () => {
 });
 
 describe('no invented personal details (PRD §4)', () => {
-  it('holds only the family details the client supplied, and keeps venues, contacts and end time empty until provided', () => {
+  it('holds only the family details the client supplied, and keeps venues, contact numbers and end time empty until provided', () => {
     // Supplied by the client on 28 October 2026
     expect(Object.values(wedding.family).flatMap((f) => [f.father, f.mother])).toEqual(['Ravichandran', 'Sopna', 'Ravichandran', 'Kanimalar']);
     expect(Object.values(wedding.family).every((f) => f.siblings.every((x) => x.name === null) && f.grandparents.length === 0)).toBe(true);
@@ -43,7 +43,9 @@ describe('no invented personal details (PRD §4)', () => {
     // only the wedding venue is known (the client's "Tirupati temple"); the hall and the family homes are not
     expect(wedding.venues.filter((v) => v.name !== null).map((v) => v.id)).toEqual(['ceremony']);
     expect(wedding.venues.filter((v) => v.id !== 'ceremony').every((v) => v.name === null && v.address === null && v.mapsUrl === null)).toBe(true);
-    expect(wedding.contacts.every((c) => c.name === null && c.phone === null)).toBe(true);
+    // the families' contacts are the fathers (as the client asked); no number or email is invented; the coordinator has no name yet
+    expect(wedding.contacts.map((c) => [c.id, c.name])).toEqual([['groom-rep', 'Ravichandran'], ['bride-rep', 'Ravichandran'], ['coordinator', null]]);
+    expect(wedding.contacts.every((c) => c.phone === null && c.whatsapp === null && !c.email)).toBe(true);
     expect(wedding.ceremony.endISO).toBeNull();
   });
 });

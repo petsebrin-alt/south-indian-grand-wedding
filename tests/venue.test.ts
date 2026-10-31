@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Venue } from '../src/data/schema';
 import { directionsUrl, hasLocation, locationUnavailableMessage, mapEmbedUrl, routeUrl, venueFallback } from '../src/lib/venue';
 import { whatsappLink } from '../src/lib/travel';
+import { contactCards, EMAIL_SOON, NUMBER_SOON } from '../src/lib/contacts';
 import { wedding } from '../src/data/wedding';
 
 const base: Venue = { id: 'ceremony', label: 'Wedding Ceremony Venue', name: null, address: null, mapsUrl: null, lat: null, lng: null, photo: null, privacy: 'public' };
@@ -76,5 +77,31 @@ describe('dress code and contact helpers', () => {
 
   it('builds a WhatsApp link with only digits and a friendly message', () => {
     expect(whatsappLink('+91 98765 43210')).toBe(`https://wa.me/919876543210?text=${encodeURIComponent("Namaste! I have a question about Rahul & Divya's wedding.")}`);
+  });
+});
+
+describe('Need Help contact cards', () => {
+  it('shows Rahul\'s father, Divya\'s father and the event coordinator, with no number or email invented', () => {
+    const cards = contactCards();
+    expect(cards.map((c) => [c.title, c.subtitle])).toEqual([
+      ['Ravichandran', "Rahul's Father"],
+      ['Ravichandran', "Divya's Father"],
+      ['Event Coordinator', 'To be announced'],
+    ]);
+    expect(cards.map((c) => c.side)).toEqual(["Groom's Family", "Bride's Family", 'Event Coordinator']);
+    // the family cards carry the parents' photograph; the coordinator has none
+    expect(cards.map((c) => !!c.photo)).toEqual([true, true, false]);
+    expect(cards.every((c) => c.telHref === null && c.whatsappHref === null && c.mailHref === null)).toBe(true);
+    expect([NUMBER_SOON, EMAIL_SOON]).toEqual(['Number coming soon', 'Email coming soon']);
+  });
+
+  it('turns a number and an email into a call, a WhatsApp and a mail link once the families give them', () => {
+    const given = wedding.contacts.map((c) => (c.id === 'groom-rep' ? { ...c, phone: '+919876543210', whatsapp: '+919876543211', email: 'family@example.com' } : c));
+    const [groom, bride] = contactCards(given);
+    expect(groom.telHref).toBe('tel:+919876543210');
+    expect(groom.whatsappHref).toMatch(/^https:\/\/wa\.me\/919876543211\?text=/);
+    expect(groom.mailHref).toBe('mailto:family@example.com');
+    expect(groom.phoneText).toMatch(/98765/);
+    expect(bride.telHref).toBeNull();
   });
 });

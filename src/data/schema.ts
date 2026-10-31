@@ -105,6 +105,7 @@ export const weddingSchema = z.object({
       name: maybeText,
       phone: z.string().regex(/^\+\d{8,15}$/, 'Use international format, e.g. +91XXXXXXXXXX').nullable(),
       whatsapp: z.string().regex(/^\+\d{8,15}$/).nullable(),
+      email: z.email().nullable().optional(),
       languages: z.array(text),
     }),
   ),

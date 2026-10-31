@@ -1353,41 +1353,217 @@ async function main() {
     await ctx.close();
   }
 
-  /* AC-28 contact cards: no invented numbers, disabled actions explain themselves, details sheets fit */
+  /* AC-28 Need Help, after the client's reference video: on the Dress Code sky (slightly softened), three glass bars (Rahul's father,
+     Divya's father, the event coordinator) that each open a card upward when touched (or, with a mouse, rested on): the strip
+     shows first, then the rows, the photograph last; one card at a time; touching elsewhere or Escape folds it down; Call,
+     WhatsApp and Email rows say "coming soon" and do nothing until the numbers exist */
   {
     const { ctx, page } = await openedPage('help', 375, 667);
-    const cards = await page.evaluate(() =>
-      [...document.querySelectorAll<HTMLElement>('.nh__card')].map((c) => ({
-        tel: c.querySelectorAll('a[href^="tel:"]').length,
-        wa: c.querySelectorAll('a[href^="https://wa.me/"]').length,
-        disabled: c.querySelectorAll('[aria-disabled="true"]').length,
+    const card = (i: number) =>
+      page.evaluate((idx) => {
+        const item = document.querySelectorAll<HTMLElement>('#help [data-contact]')[idx];
+        const c = item.querySelector<HTMLElement>('[data-card]')!;
+        const bar = item.querySelector<HTMLElement>('[data-bar]')!;
+        const photo = item.querySelector<HTMLElement>('.nh__photo, .nh__emblem');
+        const strip = item.querySelector<HTMLElement>('.nh__strip')!;
+        const r = c.getBoundingClientRect();
+        const pr = photo?.getBoundingClientRect();
+        const sr = strip.getBoundingClientRect();
+        return {
+          h: Math.round(r.height),
+          top: Math.round(r.top),
+          inert: c.inert,
+          expanded: bar.getAttribute('aria-expanded'),
+          photoHidden: !!pr && pr.bottom <= r.top + 4,
+          stripShown: sr.top >= r.top - 1 && sr.bottom <= r.bottom + 1 && r.height > 20,
+        };
+      }, i);
+    const bg = await page.evaluate(() => {
+      const img = document.querySelector<HTMLImageElement>('#help .nh__bg')!;
+      return { src: /scene/.test(img.currentSrc), loaded: img.complete && img.naturalWidth > 800, opacity: Number(getComputedStyle(img).opacity) };
+    });
+    const closed = await Promise.all([0, 1, 2].map(card));
+    const bars = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('#help [data-bar]')].map((b) => ({
+        name: b.querySelector('.nh__bar-name')?.textContent?.trim(),
+        rel: b.querySelector('.nh__bar-rel')?.textContent?.trim(),
+        tall: b.getBoundingClientRect().height >= 44,
+        cut: b.querySelector<HTMLElement>('.nh__bar-name')!.scrollWidth > b.querySelector<HTMLElement>('.nh__bar-name')!.clientWidth + 1 || b.querySelector<HTMLElement>('.nh__bar-rel')!.scrollWidth > b.querySelector<HTMLElement>('.nh__bar-rel')!.clientWidth + 1,
       })),
     );
-    await page.locator('.nh__card').first().getByRole('button', { name: /Call/ }).tap({ force: true });
-    await page.waitForTimeout(200);
+    // touch the first bar: sample early (the strip is out, the photograph not yet) and when it has settled
+    await page.locator('#help [data-bar]').nth(0).tap();
+    await page.waitForTimeout(110);
+    const early = await card(0);
+    await page.waitForTimeout(1300);
+    const open1 = await card(0);
+    const detail = await page.evaluate(() => {
+      const item = document.querySelector<HTMLElement>('#help [data-contact="groom-rep"]')!;
+      const rows = [...item.querySelectorAll<HTMLElement>('.nh__row')];
+      const img = item.querySelector<HTMLImageElement>('.nh__photo');
+      const lotus = document.querySelector<HTMLElement>('.chrome-btn')!.getBoundingClientRect();
+      const c = item.querySelector<HTMLElement>('[data-card]')!.getBoundingClientRect();
+      return {
+        name: item.querySelector('.nh__name')?.textContent?.trim(),
+        rel: item.querySelector('.nh__rel')?.textContent?.trim(),
+        tab: item.querySelector('.nh__tab')?.textContent?.trim(),
+        strip: item.querySelector('.nh__strip')?.textContent?.trim(),
+        photo: !!img && img.complete && img.naturalWidth > 100,
+        rows: rows.map((r) => `${r.querySelector('.nh__lab')?.textContent?.trim()}|${r.querySelector('.nh__val')?.textContent?.trim()}`),
+        logos: rows.every((r) => !!r.querySelector('.nh__ico svg')),
+        disabled: rows.every((r) => r.getAttribute('aria-disabled') === 'true'),
+        tall: rows.every((r) => r.getBoundingClientRect().height >= 44),
+        inside: c.left >= 0 && c.right <= innerWidth && c.top >= lotus.bottom - 2,
+      };
+    });
+    await page.locator('#help [data-contact="groom-rep"] .nh__row').first().tap({ force: true });
+    await page.waitForTimeout(250);
     const toast = await toastText(page);
-    const sheets: string[] = [];
-    for (const id of ['groom-rep', 'bride-rep', 'coordinator']) {
-      await page.locator(`[data-open-dialog="contact-${id}"]`).tap();
-      await page.waitForTimeout(450);
-      const fits = await page.evaluate((sid) => {
-        const panel = document.querySelector<HTMLElement>(`#${sid} .sheet__panel`)!.getBoundingClientRect();
-        const app = document.querySelector('.app')!.getBoundingClientRect();
-        const close = document.querySelector<HTMLElement>(`#${sid} .overlay__close`)!.getBoundingClientRect();
-        return panel.height <= app.height * 0.81 && panel.bottom <= app.bottom + 1 && close.width >= 44 && close.top >= panel.top;
-      }, `contact-${id}`);
-      await page.locator(`#contact-${id} .overlay__close`).tap();
-      await page.waitForTimeout(450);
-      if (!fits) sheets.push(id);
-    }
+    // only one at a time: touching the second bar folds the first
+    await page.locator('#help [data-bar]').nth(1).tap();
+    await page.waitForTimeout(1300);
+    const swapped = [await card(0), await card(1)];
+    // touching elsewhere folds it
+    await page.touchscreen.tap(200, 100); // above the card, on the sky
+    await page.waitForTimeout(1000);
+    const afterOutside = await card(1);
+    // Escape folds it and gives the focus back to its bar
+    await page.locator('#help [data-bar]').nth(2).tap();
+    await page.waitForTimeout(1200);
+    const coordOpen = await card(2);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(900);
+    const afterEsc = await card(2);
+    const focusBack = await page.evaluate(() => document.activeElement?.matches('#help [data-contact="coordinator"] [data-bar]'));
     check(
       'AC-28',
-      'Call and WhatsApp stay disabled ("Number coming soon") until numbers exist; details sheets fit with a close button',
-      cards.length === 3 && cards.every((c) => c.tel === 0 && c.wa === 0 && c.disabled === 2) && toast === 'Number coming soon' && sheets.length === 0,
-      JSON.stringify({ cards, toast, sheets }),
+      "Need Help: on the Dress Code sky (about 90%), three glass bars (Rahul's father, Divya's father, the event coordinator); a touch opens a card upward (the strip first, the photograph last) with the name, Call, WhatsApp and Email rows (each with its logo, \"coming soon\" and inert until a number exists); one card at a time; touching elsewhere or Escape folds it down",
+      bg.src &&
+        bg.loaded &&
+        bg.opacity >= 0.85 &&
+        bg.opacity <= 0.95 &&
+        closed.every((c) => c.h === 0 && c.inert && c.expanded === 'false') &&
+        bars.map((b) => b.name).join() === 'Ravichandran,Ravichandran,Event Coordinator' &&
+        /Rahul.s Father/i.test(bars[0].rel ?? '') &&
+        /Divya.s Father/i.test(bars[1].rel ?? '') &&
+        /to be announced/i.test(bars[2].rel ?? '') &&
+        bars.every((b) => b.tall && !b.cut) &&
+        early.h > 0 &&
+        early.h < open1.h * 0.85 &&
+        early.stripShown &&
+        early.photoHidden &&
+        open1.h > 200 &&
+        open1.expanded === 'true' &&
+        !open1.inert &&
+        detail.name === 'Ravichandran' &&
+        /Rahul.s Father/i.test(detail.rel ?? '') &&
+        /groom/i.test(detail.tab ?? '') &&
+        /Groom.s Family/i.test(detail.strip ?? '') &&
+        detail.photo &&
+        JSON.stringify(detail.rows) === JSON.stringify(['Call|Number coming soon', 'WhatsApp|Number coming soon', 'Email|Email coming soon']) &&
+        detail.logos &&
+        detail.disabled &&
+        detail.tall &&
+        detail.inside &&
+        /coming soon/.test(toast ?? '') &&
+        swapped[0].h === 0 &&
+        swapped[0].inert &&
+        swapped[1].h > 200 &&
+        afterOutside.h === 0 &&
+        afterOutside.inert &&
+        coordOpen.h > 200 &&
+        afterEsc.h === 0 &&
+        afterEsc.inert &&
+        focusBack === true,
+      JSON.stringify({ bg, closed, bars, early, open1, detail, toast, swapped, afterOutside, coordOpen, afterEsc, focusBack }),
     );
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/phase4-need-help.png` });
     await ctx.close();
+  }
+
+  /* AC-28b with a mouse: resting on a bar opens its card, leaving folds it; a click holds it open and another click lets it go */
+  {
+    const ctx = await newContext(browser, { viewport: { width: 1280, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto(BASE);
+    await page.evaluate(() => sessionStorage.setItem('rdv:opened', '1'));
+    await page.goto(`${BASE}#help`);
+    await settle(page);
+    await page.waitForTimeout(2600);
+    const height = (i: number) => page.evaluate((idx) => Math.round(document.querySelectorAll<HTMLElement>('#help [data-card]')[idx].getBoundingClientRect().height), i);
+    const bar = (await page.locator('#help [data-bar]').nth(0).boundingBox())!;
+    await page.mouse.move(bar.x + bar.width / 2, bar.y + bar.height / 2);
+    await page.waitForTimeout(1300);
+    const hovered = await height(0);
+    // up over the card (it grows above the bar) keeps it open
+    const card = (await page.locator('#help [data-card]').nth(0).boundingBox())!;
+    await page.mouse.move(card.x + card.width / 2, card.y + card.height / 3, { steps: 6 });
+    await page.waitForTimeout(700);
+    const onCard = await height(0);
+    await page.mouse.move(5, 5, { steps: 4 });
+    await page.waitForTimeout(1300);
+    const left = await height(0);
+    // a click holds it open
+    await page.mouse.move(bar.x + bar.width / 2, bar.y + bar.height / 2);
+    await page.waitForTimeout(900);
+    await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2);
+    await page.mouse.move(5, 5, { steps: 4 });
+    await page.waitForTimeout(1200);
+    const held = await height(0);
+    await page.mouse.move(bar.x + bar.width / 2, bar.y + bar.height / 2);
+    await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2);
+    await page.waitForTimeout(1200);
+    const released = await height(0);
+    check(
+      'AC-28b',
+      'Need Help with a mouse: resting on a bar opens its card (and moving up onto the card keeps it open), leaving folds it, a click holds it open and another click lets it go',
+      hovered > 200 && onCard > 200 && left === 0 && held > 200 && released === 0,
+      JSON.stringify({ hovered, onCard, left, held, released }),
+    );
+    await ctx.close();
+  }
+
+  /* AC-28c Need Help fits every phone: a card opens clear of the Contents button and the page number, the bars show their whole words,
+     and on a short phone the heading steps aside while a card reaches it */
+  {
+    const rows: Record<string, unknown>[] = [];
+    let ok = true;
+    for (const [w, h] of [[360, 640], [375, 667], [390, 844], [430, 932]] as const) {
+      const { ctx, page } = await openedPage('help', w, h);
+      const r: Record<string, unknown> = { w, h };
+      for (const i of [0, 2]) {
+        await page.locator('#help [data-bar]').nth(i).tap();
+        await page.waitForTimeout(1300);
+        const m = await page.evaluate((idx) => {
+          const item = document.querySelectorAll<HTMLElement>('#help [data-contact]')[idx];
+          const c = item.querySelector<HTMLElement>('[data-card]')!.getBoundingClientRect();
+          const b = item.querySelector<HTMLElement>('[data-bar]')!.getBoundingClientRect();
+          const lotus = document.querySelector<HTMLElement>('.chrome-btn')!.getBoundingClientRect();
+          const folio = document.querySelector<HTMLElement>('.folio')!.getBoundingClientRect();
+          const last = document.querySelectorAll<HTMLElement>('#help [data-bar]')[2].getBoundingClientRect();
+          const head = document.querySelector<HTMLElement>('#help .nh__head')!;
+          const hr = head.getBoundingClientRect();
+          const rows = [...item.querySelectorAll<HTMLElement>('.nh__row')].map((e) => e.getBoundingClientRect());
+          return {
+            clearTop: c.top >= lotus.bottom - 2,
+            joined: Math.abs(c.bottom - (b.top + 5)) <= 2,
+            inside: c.left >= 0 && c.right <= innerWidth,
+            rowsInside: rows.every((rr) => rr.top >= c.top - 1 && rr.bottom <= c.bottom + 1),
+            barsClear: last.bottom <= folio.top - 6,
+            headVisible: Number(getComputedStyle(head).opacity) > 0.9,
+            headOverlapped: c.top < hr.bottom + 2,
+          };
+        }, i);
+        r[`open${i}`] = m;
+        // the heading may only be covered when it has stepped aside
+        if (!(m.clearTop && m.joined && m.inside && m.rowsInside && m.barsClear && (m.headVisible || m.headOverlapped))) ok = false;
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(800);
+      }
+      rows.push(r);
+      await ctx.close();
+    }
+    check('AC-28c', 'Need Help fits 360 × 640 to 430 × 932: a card opens clear of the Contents button, joined to its bar, with its rows inside, the bars clear of the page number, and the heading stepping aside only if the card reaches it', ok, JSON.stringify(rows));
   }
 
   /* ================================================ Phase 5: closing, sharing, polish ================================================ */

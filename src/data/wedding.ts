@@ -95,10 +95,13 @@ const data: WeddingData = {
     },
   },
 
+  // Need Help: the groom's and the bride's family contacts are the fathers (the client asked for Rahul's father and Divya's
+  // father), and the wedding event coordinator. Phone and WhatsApp numbers (international format, +91XXXXXXXXXX) and an email
+  // are for the families to give; none is invented, and a card shows "coming soon" until they are here.
   contacts: [
-    { id: 'groom-rep', role: "Groom's Family Representative", name: null, phone: null, whatsapp: null, languages: [] },
-    { id: 'bride-rep', role: "Bride's Family Representative", name: null, phone: null, whatsapp: null, languages: [] },
-    { id: 'coordinator', role: 'Wedding Event Coordinator', name: null, phone: null, whatsapp: null, languages: [] },
+    { id: 'groom-rep', role: "Groom's Family Representative", name: 'Ravichandran', phone: null, whatsapp: null, email: null, languages: [] },
+    { id: 'bride-rep', role: "Bride's Family Representative", name: 'Ravichandran', phone: null, whatsapp: null, email: null, languages: [] },
+    { id: 'coordinator', role: 'Wedding Event Coordinator', name: null, phone: null, whatsapp: null, email: null, languages: [] },
   ],
 
   rsvp: {

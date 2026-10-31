@@ -231,25 +231,26 @@ const stayWaiting = 'Stay details will be shared soon';
     gap: 9px;
   }
 
-  /* One pane of frosted glass: the picture behind shows through it softly. A pale tint keeps the writing plainly readable. */
+  /* One pane of frosted glass in sandal and sage green: the picture behind still shows through it, but the tint is deep enough
+     that the writing on it stays plainly readable. */
   .vt__title,
   .vt__card {
-    border: 1px solid rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.72);
     background:
-      linear-gradient(115deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 38%),
-      linear-gradient(155deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 249, 237, 0.2) 55%, rgba(255, 244, 225, 0.32) 100%);
-    -webkit-backdrop-filter: blur(4px) saturate(1.5);
-    backdrop-filter: blur(4px) saturate(1.5);
+      linear-gradient(115deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0) 40%),
+      linear-gradient(160deg, rgba(238, 243, 214, 0.86) 0%, rgba(222, 234, 197, 0.8) 52%, rgba(245, 235, 205, 0.86) 100%);
+    -webkit-backdrop-filter: blur(7px) saturate(1.4);
+    backdrop-filter: blur(7px) saturate(1.4);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.95),
-      inset 0 0 0 1px rgba(201, 162, 74, 0.3),
-      0 10px 26px rgba(50, 25, 10, 0.28);
+      inset 0 0 0 1px rgba(84, 120, 64, 0.42),
+      0 10px 26px rgba(40, 50, 20, 0.3);
   }
 
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .vt__title,
     .vt__card {
-      background: rgba(255, 250, 240, 0.9);
+      background: rgba(236, 241, 212, 0.96);
     }
   }
 
@@ -263,16 +264,12 @@ const stayWaiting = 'Stay details will be shared soon';
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: #5e0e1c;
-    text-shadow: 0 0 8px rgba(255, 250, 240, 0.8);
   }
 
   .vt__card {
     position: relative;
     padding: 8px;
     border-radius: 16px;
-    text-shadow:
-      0 0 6px rgba(255, 249, 236, 0.95),
-      0 0 2px rgba(255, 249, 236, 0.9);
   }
 
   .vt__card--venue {
@@ -297,8 +294,19 @@ const stayWaiting = 'Stay details will be shared soon';
     overflow: hidden;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.85);
-    box-shadow: 0 0 0 1px rgba(160, 120, 40, 0.5);
-    background: #efe3c8;
+    box-shadow: 0 0 0 1px rgba(84, 120, 64, 0.55);
+    background: #e6ecc8;
+  }
+
+  /* The map in one colourway: sandal land and sage green, whatever Google draws (a muted map under a tint laid over it) */
+  .vt__map::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(160deg, rgba(168, 200, 126, 0.46), rgba(238, 222, 176, 0.42));
+    mix-blend-mode: multiply;
+    pointer-events: none;
   }
 
   .vt__map-slot {
@@ -315,6 +323,7 @@ const stayWaiting = 'Stay details will be shared soon';
     border: 0;
     pointer-events: none;
     opacity: 0;
+    filter: sepia(0.3) saturate(0.78);
     transition: opacity 0.5s ease;
   }
 
@@ -331,10 +340,10 @@ const stayWaiting = 'Stay details will be shared soon';
     justify-items: center;
     gap: 5px;
     background:
-      linear-gradient(90deg, rgba(160, 120, 40, 0.12) 1px, transparent 1px) 0 0 / 34px 34px,
-      linear-gradient(0deg, rgba(160, 120, 40, 0.12) 1px, transparent 1px) 0 0 / 34px 34px,
-      linear-gradient(160deg, #f4ead0, #e6d9b6);
-    color: #7a5516;
+      linear-gradient(90deg, rgba(84, 120, 64, 0.14) 1px, transparent 1px) 0 0 / 34px 34px,
+      linear-gradient(0deg, rgba(84, 120, 64, 0.14) 1px, transparent 1px) 0 0 / 34px 34px,
+      linear-gradient(160deg, #eef2d6, #e8dcb4);
+    color: #3f5f2a;
     font: 600 11px / 1.3 var(--font-body);
     letter-spacing: 0.04em;
   }
@@ -367,21 +376,20 @@ const stayWaiting = 'Stay details will be shared soon';
     font: 700 clamp(8.5px, 3cqw, 10.5px) / 1.2 var(--font-royal);
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #6f4d10;
+    color: #3f5f2a;
   }
 
   .vt__name {
     flex: none;
     font: 700 clamp(17px, 7.4cqw, 25px) / 1.1 var(--font-display);
     color: #5e0e1c;
-    text-shadow: 0 0 8px rgba(255, 250, 240, 0.7);
   }
 
   .vt__addr {
     flex: none;
     margin-top: -2px;
-    font: 500 clamp(10.5px, 3.8cqw, 12.5px) / 1.25 var(--font-body);
-    color: #3f2d22;
+    font: 600 clamp(10.5px, 3.8cqw, 12.5px) / 1.25 var(--font-body);
+    color: #2b3a22;
   }
 
   /* Get Directions glows and gleams (a soft golden pulse round the button and a sheen sweeping across it), so a guest sees it first */
@@ -467,7 +475,7 @@ const stayWaiting = 'Stay details will be shared soon';
     content: '';
     flex: 0 1 18%;
     height: 1px;
-    background: linear-gradient(90deg, transparent, #b8893a);
+    background: linear-gradient(90deg, transparent, #6f9a52);
   }
 
   .vt__sub::after {
@@ -488,7 +496,7 @@ const stayWaiting = 'Stay details will be shared soon';
     gap: 9px;
     padding: 5px 0;
     border: 0;
-    border-top: 1px solid rgba(160, 120, 40, 0.38);
+    border-top: 1px solid rgba(84, 120, 64, 0.4);
     border-radius: 0;
     background: none;
     color: inherit;
@@ -508,9 +516,9 @@ const stayWaiting = 'Stay details will be shared soon';
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    color: #7a5516;
-    background: radial-gradient(circle at 35% 30%, #fff8e0, #efdca6);
-    box-shadow: 0 0 0 1px #c9a24a;
+    color: #3f5f2a;
+    background: radial-gradient(circle at 35% 30%, #f8faea, #d3e2b2);
+    box-shadow: 0 0 0 1px #7aa05a;
   }
 
   .vt__icon svg {
@@ -528,12 +536,12 @@ const stayWaiting = 'Stay details will be shared soon';
     font: 700 9.5px / 1.2 var(--font-royal);
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #6f4d10;
+    color: #3f5f2a;
   }
 
   .vt__row-summary {
     font: 600 clamp(11px, 3.9cqw, 13px) / 1.22 var(--font-body);
-    color: #2f1c14;
+    color: #1f2b18;
   }
 
   /* The arrow, like the page's own next arrow: a maroon disc with a gold rim */
